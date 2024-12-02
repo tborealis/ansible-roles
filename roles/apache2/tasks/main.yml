@@ -1,0 +1,70 @@
+---
+- name: Install Apache2
+  apt:
+    pkg: "{{ apache2_packages }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Enable MPM
+  apache2_module:
+    name: mpm_event
+    state: present
+    ignore_configcheck: true
+  notify: restart apache2
+
+
+- name: Disable Apache2 modules
+  apache2_module:
+    name: "{{ item }}"
+    state: absent
+  with_items: "{{ apache2_disable_modules }}"
+  notify: restart apache2
+
+- name: Enable Apache2 modules
+  apache2_module:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ apache2_modules }}"
+  notify: restart apache2
+
+- name: Disable default Apache2 site
+  file:
+    path: /etc/apache2/sites-enabled/000-default.conf
+    state: absent
+  notify: restart apache2
+
+- name: Create password
+  htpasswd:
+    path: /etc/apache2/htpassword
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    owner: root
+    group: www-data
+    mode: 0640
+    state: present
+  with_items: "{{ apache2_basic_auth }}"
+  notify: restart apache2
+
+- name: Apply environment config
+  template:
+    src: etc/apache2/envvars.j2
+    dest: "/etc/apache2/envvars"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Install vhosts
+  template:
+    src: "templates/apache2/vhosts/{{ item.src }}"
+    dest: "/etc/apache2/sites-available/{{ item.dest }}"
+  with_items: "{{ apache2_vhosts }}"
+  notify: restart apache2
+
+- name: Enable vhosts
+  file:
+    src: "/etc/apache2/sites-available/{{ item.dest }}"
+    path: "/etc/apache2/sites-enabled/{{ item.dest }}"
+    state: link
+  with_items: "{{ apache2_vhosts }}"
+  notify: restart apache2

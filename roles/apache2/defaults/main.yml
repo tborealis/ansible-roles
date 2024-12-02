@@ -1,0 +1,27 @@
+---
+apache2_user: www-data
+
+apache2_vhosts: []
+
+apache2_basic_auth: []
+
+apache2_load_modules: []
+
+apache2_conf: []
+
+apache2_packages:
+- apache2
+- apache2-utils
+- python3-passlib
+
+apache2_modules:
+- proxy_fcgi
+- setenvif
+- rewrite
+- headers
+- ssl
+
+apache2_disable_modules:
+- mpm_prefork
+
+apache2_env_vars: []
