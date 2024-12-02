@@ -1,5 +1,5 @@
 ---
-- name: Install aws-cli
+- name: Install aws_cli
   ansible.builtin.import_role:
     name: ecgalaxy.aws_cli
     allow_duplicates: false

@@ -1,6 +1,6 @@
 # AWS CLI with config
 
-Installs the AWS CLI and configures it with the given credentials. Uses the EC ecgalaxy.aws-cli role. To install this 
+Installs the AWS CLI and configures it with the given credentials. Uses the EC ecgalaxy.aws_cli role. To install this 
 role add the following to the roles section of the project requirements.yml:
 
 ```yaml
