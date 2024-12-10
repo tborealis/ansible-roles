@@ -16,7 +16,8 @@ certbot_certs: # array of certificates to request
   name: example.com # name of the certificate
   domains: # array of domains in single certificate
   - example.com
-  - test.example.com 
+  - test.example.com
+  deploy_hook: /path/to/deploy.sh # optional script to run after certificate renewal
 certbot_dry_run: false # test mode that prevents creation or download of certs (default: false)
 ```
 
@@ -37,4 +38,3 @@ should be used in the webserver config.
 
 The `certbot_dry_run` option is useful for testing the role without actually requesting certificates, which avoids rate 
 limit issues.
-
