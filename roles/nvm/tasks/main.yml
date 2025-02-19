@@ -1,6 +1,6 @@
 ---
 - name: Per-user NVM config
-  include_tasks: per_user.yml
+  ansible.builtin.include_tasks: per_user.yml
   with_items: '{{ nvm_config }}'
   loop_control:
     loop_var: nvm_user_config

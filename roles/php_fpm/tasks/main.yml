@@ -1,13 +1,13 @@
 ---
 - name: Install PHP FPM
-  apt:
+  ansible.builtin.apt:
     pkg: "php{{ php_fpm_version }}-fpm"
     state: present
     update_cache: yes
     cache_valid_time: 3600
 
 - name: Install PHP packages
-  apt:
+  ansible.builtin.apt:
     pkg: "{{ php_fpm_packages }}"
     state: present
     update_cache: yes
@@ -15,7 +15,7 @@
   notify: restart php-fpm
 
 - name: Install Xdebug
-  apt:
+  ansible.builtin.apt:
     pkg: "php{{ php_fpm_version }}-xdebug"
     state: present
     update_cache: yes
@@ -25,18 +25,18 @@
   register: php_fpm_xdebug_installed
 
 - name: Disable xdebug by default
-  file:
+  ansible.builtin.file:
     path: "/etc/php/{{ php_fpm_version }}/fpm/conf.d/20-xdebug.ini"
     state: absent
 
 - name: Remove default pool
-  file:
+  ansible.builtin.file:
     path: "/etc/php/{{ php_fpm_version }}/fpm/pool.d/www.conf"
     state: absent
   notify: restart php-fpm
 
 - name: Apply PHP FPM settings
-  template:
+  ansible.builtin.template:
     src: "{{ lookup('first_found', [role_path~'/templates/php'~php_fpm_version~'.ini.j2', role_path~'/templates/php.ini.j2']) }}"
     dest: "/etc/php/{{ php_fpm_version }}/fpm/php.ini"
     owner: root
@@ -45,7 +45,7 @@
   notify: restart php-fpm
 
 - name: Apply PHP FPM conf
-  template:
+  ansible.builtin.template:
     src: php-fpm.conf.j2
     dest: "/etc/php/{{ php_fpm_version }}/fpm/php-fpm.conf"
     owner: root
@@ -54,7 +54,7 @@
   notify: restart php-fpm
 
 - name: Install pools
-  template:
+  ansible.builtin.template:
     src: "templates/fpm/pools/{{ item.src }}"
     dest: "/etc/php/{{ php_fpm_version }}/fpm/pool.d/{{ item.dest }}"
     owner: root
@@ -64,7 +64,7 @@
   with_items: "{{ php_fpm_pools }}"
 
 - name: Shut down server if no pools
-  service:
+  ansible.builtin.service:
     name: "php{{ php_fpm_version }}-fpm"
     state: stopped
     enabled: no
@@ -72,7 +72,7 @@
 
 # TODO: review security
 #- name: Ensure opcache file cache dir exists
-#  file:
+#  ansible.builtin.file:
 #    path: "{{ php_fpm_opcache_file_cache }}"
 #    owner: root
 #    group: root

@@ -3,12 +3,12 @@
   become: true
   block:
   - name: Create config dir
-    file:
+    ansible.builtin.file:
       state: directory
       path: "~/.aws"
 
   - name: Write config files
-    template:
+    ansible.builtin.template:
       src: "{{ item.src }}"
       dest: "{{ item.dest }}"
       mode: 0600

@@ -1,6 +1,6 @@
 ---
 - name: Add nginx repo key
-  copy:
+  ansible.builtin.copy:
     src: "{{ lookup('first_found', ['nginx-archive-keyring.gpg', 'roles/nginx/files/nginx-archive-keyring.gpg']) }}"
     dest: /usr/share/keyrings/nginx-archive-keyring.gpg
     owner: root

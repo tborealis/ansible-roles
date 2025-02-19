@@ -1,61 +1,61 @@
 ---
 - name: Set hostname
-  hostname:
+  ansible.builtin.hostname:
     name: "{{ inventory_hostname }}"
 
 - name: Clean /etc/hosts
-  template:
+  ansible.builtin.template:
     src: networking/hosts.j2
     dest: /etc/hosts
 
 - name: Set DHCP config
-  template:
+  ansible.builtin.template:
     src: networking/dhclient.conf.j2
     dest: /etc/dhcp/dhclient.conf
 
 # fixes repos on first install
 - name: Update APT
-  apt:
+  ansible.builtin.apt:
     update_cache: yes
     cache_valid_time: 3600
 
 - name: Add backports repo
-  apt_repository:
+  ansible.builtin.apt_repository:
     repo: "deb https://deb.debian.org/debian {{ ansible_distribution_release }}-backports main"
     state: present
     update_cache: yes
 
 - name: Install system packages
-  apt:
+  ansible.builtin.apt:
     pkg: "{{ base_default_system_packages + system_packages }}"
     state: present
     update_cache: yes
     cache_valid_time: 3600
 
 - name: Generate required locales
-  locale_gen:
+  community.general.locale_gen:
     name: "{{ item }}"
     state: present
   with_items: "{{ system_locales }}"
 
 - name: Set default locale
-  template:
+  ansible.builtin.template:
     src: locale.j2
     dest: /etc/default/locale
 
 - name: Set default timezone
-  timezone:
+  community.general.timezone:
     name: "{{ system_timezone }}"
   notify: restart cron
 
 - name: Use full hostname in prompt
-  replace:
+  ansible.builtin.replace:
     regexp: '^(.*PS1.*)\\h(.*)'
     replace: '\g<1>\\H\g<2>'
     path: "/etc/skel/.bashrc"
 
 - name: Add ssh user groups
-  group:
+  ansible.builtin.group:
     name: "{{ item }}"
     system: yes
   with_items:
@@ -63,7 +63,7 @@
   - "{{ ssh_extra_user_groups }}"
 
 - name: Create users
-  user:
+  ansible.builtin.user:
     name: "{{ item.name }}"
     password: "{{ item.password }}"
     append: yes
@@ -76,7 +76,7 @@
     label: "{{ item.name }}"
 
 - name: Assign authorized keys - default users
-  authorized_key:
+  ansible.posix.authorized_key:
     user: "{{ item.0.name }}"
     key: "{{ lookup('file', item.1) }}"
   with_subelements:
@@ -86,7 +86,7 @@
     label: "{{ item.0.name }} - {{ item.1 }}"
 
 - name: Assign authorized keys - users
-  authorized_key:
+  ansible.posix.authorized_key:
     user: "{{ item.0.name }}"
     key: "{{ lookup('file', item.1) }}"
   with_subelements:
@@ -96,7 +96,7 @@
     label: "{{ item.0.name }} - {{ item.1 }}"
 
 - name: Install openssh from backports
-  apt:
+  ansible.builtin.apt:
     pkg: openssh-server
     default_release: "{{ ansible_distribution_release }}-backports"
     state: latest
@@ -104,7 +104,7 @@
     cache_valid_time: 3600
 
 - name: Configure sshd
-  template:
+  ansible.builtin.template:
     src: ssh/99-custom.conf.j2
     dest: /etc/ssh/sshd_config.d/99-custom.conf
     owner: root
@@ -114,7 +114,7 @@
   register: sshd_status
 
 - name: Add system known hosts
-  lineinfile:
+  ansible.builtin.lineinfile:
     dest: /etc/ssh/ssh_known_hosts
     line: "{{ item }}"
     create: yes
@@ -124,7 +124,7 @@
   with_items: "{{ known_hosts }}"
 
 - name: Add to profile.d
-  template:
+  ansible.builtin.template:
     src: "{{ item.src }}"
     dest: "/etc/profile.d/{{ item.dest }}"
     owner: root
@@ -132,5 +132,5 @@
     mode: 0644
   with_items: "{{ base_profile_config }}"
 
-- include_tasks: vagrant.yml
+- ansible.builtin.include_tasks: vagrant.yml
   when: vagrant

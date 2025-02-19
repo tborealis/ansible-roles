@@ -3,5 +3,5 @@ has not been created to restart sshd. You need to add `post-tasks.yml` to the `p
 
 ```
 post_tasks:
-- import_tasks: roles/base/tasks/post-tasks.yml
+- ansible.builtin.import_tasks: roles/base/tasks/post-tasks.yml
 ```

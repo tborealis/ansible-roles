@@ -1,21 +1,21 @@
 ---
 - block:
   - name: Install dependencies
-    apt:
+    ansible.builtin.apt:
       pkg: libxml2-utils
       state: present
       update_cache: yes
       cache_valid_time: 3600
 
   - name: Create user
-    user:
+    ansible.builtin.user:
       name: phpbu
       password: '*'
       system: yes
       shell: /bin/false
 
   - name: Create directories
-    file:
+    ansible.builtin.file:
       path: '{{ item.path }}'
       owner: '{{ item.owner }}'
       group: phpbu
@@ -28,7 +28,7 @@
     - { path: '/home/phpbu/.ssh', mode: '0700', owner: 'phpbu' }
 
   - name: Add private key to phpbu user
-    copy:
+    ansible.builtin.copy:
       content: "{{ phpbu_private_key|b64decode }}"
       dest: /home/phpbu/.ssh/id_ed25519
       owner: phpbu
@@ -37,7 +37,7 @@
     when: phpbu_private_key != None
 
   - name: Download phpbu
-    get_url:
+    ansible.builtin.get_url:
       url: '{{ phpbu_phar_url }}'
       checksum: '{{ phpbu_phar_checksum }}'
       dest: '{{ phpbu_lib_dir }}/phpbu.phar'
@@ -47,14 +47,14 @@
       force: yes
 
   - name: Symlink phpbu
-    file:
+    ansible.builtin.file:
       src: '{{ phpbu_lib_dir }}/phpbu.phar'
       dest: /usr/local/bin/phpbu
       state: link
       force: yes
 
   - name: Download phpbu schema
-    get_url:
+    ansible.builtin.get_url:
       url: '{{ phpbu_schema_url }}'
       dest: '{{ phpbu_lib_dir }}/phpbu.xsd'
       mode: '0644'
@@ -63,7 +63,7 @@
       force: yes
 
   - name: Configure
-    template:
+    ansible.builtin.template:
       src: templates/phpbu/phpbu.xml
       dest: /etc/phpbu.xml
       owner: root
@@ -72,7 +72,7 @@
       validate: 'xmllint --noout --schema {{ phpbu_lib_dir }}/phpbu.xsd %s'
 
   - name: "{{ phpbu_cron_enable|ternary('Install', 'Remove') }} cron"
-    cron:
+    ansible.builtin.cron:
       user: phpbu
       minute: '{{ phpbu_cron_time.0 }}'
       hour: '{{ phpbu_cron_time.1 }}'

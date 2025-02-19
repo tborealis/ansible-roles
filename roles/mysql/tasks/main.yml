@@ -1,34 +1,34 @@
 ---
-- import_tasks: add-key.yml
+- ansible.builtin.import_tasks: add-key.yml
 
 - name: Add MySQL repository
-  apt_repository:
+  ansible.builtin.apt_repository:
     repo: deb [signed-by=/usr/share/keyrings/mysql-repo.gpg] https://repo.mysql.com/apt/debian/ {{ ansible_distribution_release }} mysql-{{ mysql_version }}
 
 - name: Check if MySQL server installed
-  shell: dpkg-query -W -f='${db:Status-Abbrev}' mysql-server || true
+  ansible.builtin.shell: dpkg-query -W -f='${db:Status-Abbrev}' mysql-server || true
   changed_when: false
   register: mysql_installed
 
 - name: Install MySQL server
-  apt:
+  ansible.builtin.apt:
     pkg: mysql-server,python3-mysqldb
     state: present
     update_cache: yes
     cache_valid_time: 3600
 
 - name: Stop MySQL if fresh install
-  service:
+  ansible.builtin.service:
     name: mysql
     state: stopped
   when: mysql_installed.stdout != "ii "
 
 - name: Delete InnoDB logs if fresh install # changing logfile size causes restart issue until logs deleted
-  shell: rm -f /var/lib/mysql/ib_logfile[01]
+  ansible.builtin.shell: rm -f /var/lib/mysql/ib_logfile[01]
   when: mysql_installed.stdout != "ii "
 
 - name: Configure
-  template:
+  ansible.builtin.template:
     src: tuning.cnf.j2
     dest: /etc/mysql/conf.d/tuning.cnf
     owner: root
@@ -37,13 +37,13 @@
   notify: restart mysql
 
 - name: Start MySQL if fresh install
-  service:
+  ansible.builtin.service:
     name: mysql
     state: started
   when: mysql_installed.stdout != "ii "
 
 - name: Set MySQL root password
-  mysql_user:
+  community.mysql.mysql_user:
     name: "root"
     host: "{{ item }}"
     password: "{{ mysql_root_password }}"
@@ -60,7 +60,7 @@
   - localhost
 
 - name: Create databases
-  mysql_db:
+  community.mysql.mysql_db:
     name: "{{ item.name }}"
     collation: "{{ item.collation | default('utf8_general_ci') }}"
     encoding: "{{ item.encoding | default('utf8') }}"
@@ -70,7 +70,7 @@
   with_items: '{{ mysql_databases }}'
 
 - name: Create users
-  mysql_user:
+  community.mysql.mysql_user:
     name: "{{ item.name }}"
     host: "{{ item.host | default('localhost') }}"
     password: "{{ item.password }}"

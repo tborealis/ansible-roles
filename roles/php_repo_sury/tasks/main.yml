@@ -1,12 +1,12 @@
 ---
-- import_tasks: add-key.yml
+- ansible.builtin.import_tasks: add-key.yml
 
 - name: Add PHP repository
-  apt_repository:
+  ansible.builtin.apt_repository:
     repo: deb [signed-by=/usr/share/keyrings/php-sury-repo.gpg] https://packages.sury.org/php/ {{ ansible_distribution_release }} main
 
 - name: Install xdebug control scripts
-  template:
+  ansible.builtin.template:
     src: "{{ item.src }}"
     dest: "/usr/local/bin/{{ item.dest }}"
     owner: root

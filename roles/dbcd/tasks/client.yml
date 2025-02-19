@@ -1,7 +1,7 @@
 ---
 # This is to be applied to the machine that creates the database dump and uploads it to the server
 - name: "Add private key to {{ dbcd_client_user }} user"
-  copy:
+  ansible.builtin.copy:
     content: "{{ dbcd_client_private_key }}"
     dest: "/home/{{ dbcd_client_user }}/.ssh/dbcd"
     owner: "{{ dbcd_client_user }}"
@@ -9,7 +9,7 @@
     mode: 0600
 
 - name: "Add dbcd server ssh config"
-  blockinfile:
+  ansible.builtin.blockinfile:
     block: |
       Host dbcd-server-w
         HostName {{ dbcd_server_host }}
@@ -24,7 +24,7 @@
     marker: "# {mark}-DBCD-W ANSIBLE MANAGED BLOCK"
 
 - name: "Add dbcd server to known hosts"
-  lineinfile:
+  ansible.builtin.lineinfile:
     dest: /etc/ssh/ssh_known_hosts
     line: "{{ item }}"
     create: yes

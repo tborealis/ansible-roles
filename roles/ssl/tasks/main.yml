@@ -1,6 +1,6 @@
 ---
 - name: Install SSL private keys
-  copy:
+  ansible.builtin.copy:
     content: "{{ item.data|b64decode }}"
     dest: "/etc/ssl/private/{{ item.name }}.key"
     owner: root
@@ -11,7 +11,7 @@
     label: "{{ item.name}}.key"
 
 - name: Install SSL certificates
-  copy:
+  ansible.builtin.copy:
     content: "{{ item.data|b64decode }}"
     dest: "/etc/ssl/certs/{{ item.name }}.pem"
     owner: root
@@ -22,7 +22,7 @@
     label: "{{ item.name }}.pem"
 
 - name: Install SSL stapling certificates
-  copy:
+  ansible.builtin.copy:
     content: "{{ item.data|b64decode }}"
     dest: "/etc/ssl/certs/{{ item.name }}.stapling.pem"
     owner: root
@@ -36,7 +36,7 @@
   when: not ssl_skip_dh
   block:
   - name: Create DH folder
-    file:
+    ansible.builtin.file:
       path: /etc/ssl/dh
       state: directory
       owner: root
@@ -44,12 +44,12 @@
       mode: 0710
 
   - name: Generate DH params
-    command: openssl dhparam -out /etc/ssl/dh/dhparam.pem 2048
+    ansible.builtin.command: openssl dhparam -out /etc/ssl/dh/dhparam.pem 2048
     args:
       creates: /etc/ssl/dh/dhparam.pem
 
   - name: Secure DH params # secure to do this after creation due to folder perms
-    file:
+    ansible.builtin.file:
       path: /etc/ssl/dh/dhparam.pem
       state: file
       owner: root

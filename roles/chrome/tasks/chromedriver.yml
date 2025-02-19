@@ -1,14 +1,14 @@
 ---
 - name: Install chromedriver
-  command: "npx --yes @puppeteer/browsers install chromedriver@{{chrome_chromedriver_version}} --path /opt"
+  ansible.builtin.command: "npx --yes @puppeteer/browsers install chromedriver@{{chrome_chromedriver_version}} --path /opt"
   register: chromedriver_install_result
 
 - name: Process chromedriver path
-  set_fact:
+  ansible.builtin.set_fact:
     chromedriver_path: "{{ chromedriver_install_result.stdout|regex_search('chromedriver@[\\d.]+ (.+)', '\\1')|first }}"
 
 - name: Link chromedriver
-  file:
+  ansible.builtin.file:
     src: "{{ chromedriver_path }}"
     dest: /usr/local/bin/chromedriver
     state: link

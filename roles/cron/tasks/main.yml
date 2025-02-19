@@ -1,6 +1,6 @@
 ---
 - name: Install crons
-  cron:
+  ansible.builtin.cron:
     user: '{{ item.user }}'
     minute: '{{ item.time.0 }}'
     hour: '{{ item.time.1 }}'

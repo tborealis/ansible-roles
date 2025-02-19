@@ -2,18 +2,18 @@
 - name: Check for secure vars files
   become: false
   local_action:
-    module: stat
+    module: ansible.builtin.stat
     path: "secure_vars/{{ item }}.yml"
   with_items: "{{ group_names }}"
   register: secure_vars_group_files
 
 - name: Import common secure vars
-  include_vars:
-      file: "secure_vars/common.yml"
+  ansible.builtin.include_vars:
+    file: "secure_vars/common.yml"
   when: load_common_secure_vars|default(false)
 
 - name: Import secure vars
-  include_vars:
+  ansible.builtin.include_vars:
     file: "{{ item.stat.path }}"
   when: item.stat.exists
   with_items: "{{ secure_vars_group_files.results }}"

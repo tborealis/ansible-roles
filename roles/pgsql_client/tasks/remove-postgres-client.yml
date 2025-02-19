@@ -1,6 +1,6 @@
 ---
 - name: "Remove Postgres {{ version }} packages"
-  apt:
+  ansible.builtin.apt:
     pkg: "postgresql-client-{{ version }}"
     state: absent
     purge: true

@@ -4,7 +4,7 @@
   block:
 
   - name: Check nvm version
-    command: 'bash -ic "nvm --version"'
+    ansible.builtin.command: 'bash -ic "nvm --version"'
     # task fails when the nvm command fails or is not installed (rc 127)
     failed_when: nvm_installed_version.rc != 0 and nvm_installed_version.rc != 127
     register: nvm_installed_version
@@ -17,10 +17,10 @@
     when: nvm_installed_version.stdout != nvm_version
 
   - name: Per-version nvm config
-    include_tasks: per_version.yml
+    ansible.builtin.include_tasks: per_version.yml
     with_items: '{{ nvm_user_config.versions }}'
     loop_control:
       loop_var: nvm_user_config_version
 
   - name: 'Set default Node version to {{ nvm_user_config.default_version }}'
-    command: 'bash -ic "nvm alias default {{ nvm_user_config.default_version }}"'
+    ansible.builtin.command: 'bash -ic "nvm alias default {{ nvm_user_config.default_version }}"'

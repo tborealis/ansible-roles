@@ -1,6 +1,6 @@
 ---
 - name: Create symfony params folder
-  file:
+  ansible.builtin.file:
     dest: '{{ symfony_params_file_path }}'
     state: directory
     owner: "{{ symfony_params_macos | ternary(omit, symfony_params_file_user) }}"
@@ -8,7 +8,7 @@
   when: symfony_params_template is defined
 
 - name: Write symfony parameters file
-  template:
+  ansible.builtin.template:
     src: 'templates/symfony-params/{{ symfony_params_template }}'
     dest: '{{ symfony_params_file_path }}/parameters.yaml'
     owner: "{{ symfony_params_macos | ternary(omit, symfony_params_file_user) }}"

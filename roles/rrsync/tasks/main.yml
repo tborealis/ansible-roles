@@ -1,13 +1,13 @@
 ---
 - name: Install rsync
-  apt:
+  ansible.builtin.apt:
     pkg: rsync
     state: present
     update_cache: yes
     cache_valid_time: 3600
 
 - name: Link rrsync
-  file:
+  ansible.builtin.file:
     src: /usr/share/doc/rsync/scripts/rrsync
     dest: /usr/local/bin/rrsync
     state: link

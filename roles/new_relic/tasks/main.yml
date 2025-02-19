@@ -1,6 +1,6 @@
 ---
 - name: Add repo key
-  copy:
+  ansible.builtin.copy:
     src: newrelic-repo.gpg
     dest: /usr/share/keyrings/newrelic-repo.gpg
     owner: root
@@ -8,11 +8,11 @@
     mode: 0644
 
 - name: Add New Relic repo
-  apt_repository:
+  ansible.builtin.apt_repository:
     repo: "deb [signed-by=/usr/share/keyrings/newrelic-repo.gpg] https://apt.newrelic.com/debian/ newrelic non-free"
 
 - name: Install New Relic
-  apt:
+  ansible.builtin.apt:
     pkg: newrelic-php5
     state: present
     update_cache: yes
@@ -20,7 +20,7 @@
   notify: restart php-fpm
 
 - name: Apply settings
-  template:
+  ansible.builtin.template:
     src: "newrelic.ini.j2"
     dest: "/etc/php/{{ php_version }}/mods-available/newrelic.ini"
     owner: root

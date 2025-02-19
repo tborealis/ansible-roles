@@ -1,6 +1,6 @@
 ---
 - name: Use full hostname in prompt
-  replace:
+  ansible.builtin.replace:
     regexp: '^(.*PS1.*)\\h(.*)'
     replace: '\g<1>\\H\g<2>'
     path: "/home/{{ item.name }}/.bashrc"

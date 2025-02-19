@@ -1,6 +1,6 @@
 ---
 - name: "Remove PHP {{ php_remove_version }} packages"
-  apt:
+  ansible.builtin.apt:
     pkg: "php{{ php_remove_version }}-*"
     state: absent
     purge: true

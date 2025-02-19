@@ -1,6 +1,6 @@
 ---
 - name: Add vagrant to ssh-users group
-  user:
+  ansible.builtin.user:
     name: vagrant
     groups: ssh-users
     append: yes

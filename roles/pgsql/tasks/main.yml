@@ -1,6 +1,6 @@
 ---
 - name: Add PostgreSQL repo key
-  copy:
+  ansible.builtin.copy:
     src: postgresql.gpg
     dest: /usr/share/keyrings/postgresql.gpg
     owner: root
@@ -8,30 +8,30 @@
     mode: 0644
 
 - name: Add PostgreSQL repository
-  apt_repository:
+  ansible.builtin.apt_repository:
     repo: "deb [signed-by=/usr/share/keyrings/postgresql.gpg] https://apt.postgresql.org/pub/repos/apt/ {{ ansible_distribution_release }}-pgdg main"
     state: present
 
 - name: Install PostgreSQL packages
-  apt:
+  ansible.builtin.apt:
     pkg: "{{ postgres_default_packages + postgres_additional_packages }}"
     state: present
     update_cache: yes
     cache_valid_time: 3600
 
 - name: Ensure required locale present
-  locale_gen:
+  community.general.locale_gen:
     name: "{{ postgres_locale }}"
     state: present
 
 - name: Configure PostgreSQL
-  template:
+  ansible.builtin.template:
     src: postgresql-{{ postgres_version }}.conf.j2
     dest: "/etc/postgresql/{{ postgres_version }}/main/postgresql.conf"
   register: check_postgres_configure
 
 - name: Set access control
-  template:
+  ansible.builtin.template:
     src: pg_hba-{{ postgres_version }}.conf.j2
     dest: "/etc/postgresql/{{ postgres_version }}/main/pg_hba.conf"
     owner: postgres
@@ -40,7 +40,7 @@
   register: check_postgres_access
 
 - name: Restart PostgreSQL
-  service:
+  ansible.builtin.service:
     name: postgresql.service
     enabled: yes
     state: restarted
@@ -48,14 +48,14 @@
 
 - name: Create databases
   become_user: postgres
-  postgresql_db:
+  community.postgresql.postgresql_db:
     name: "{{ item }}"
     state: present
   with_items: "{{ postgres_databases }}"
 
 - name: Create users
   become_user: postgres
-  postgresql_user:
+  community.postgresql.postgresql_user:
     name: "{{ item.user }}"
     password: "{{ item.password }}"
     db: "{{ item.db|default(omit) }}"
@@ -65,7 +65,7 @@
 
 - name: Apply privs
   become_user: postgres
-  postgresql_privs:
+  community.postgresql.postgresql_privs:
     database: "{{ item.db }}"
     roles: "{{ item.roles }}"
     privs: "{{ item.privs }}"

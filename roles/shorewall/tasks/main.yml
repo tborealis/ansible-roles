@@ -1,6 +1,6 @@
 ---
 - name: Install Shorewall
-  apt:
+  ansible.builtin.apt:
     pkg: shorewall,fail2ban,python-pyinotify
     state: present
     update_cache: yes
@@ -10,7 +10,7 @@
   - restart fail2ban
 
 - name: Configure
-  template:
+  ansible.builtin.template:
     src: "shorewall/{{ item.src }}"
     dest: "/etc/shorewall/{{ item.dest }}"
   with_items:
@@ -22,22 +22,22 @@
   register: reg_shorewall_configure
 
 - name: Test
-  command: shorewall check
+  ansible.builtin.command: shorewall check
   when: reg_shorewall_configure is changed
   notify: restart shorewall
 
 - name: Configure default
-  template:
+  ansible.builtin.template:
     src: default/shorewall.j2
     dest: /etc/default/shorewall
 
 - name: Enable service
-  service:
+  ansible.builtin.service:
     name: shorewall
     enabled: "{{ shorewall_enable }}"
 
 - name: Configure fail2ban
-  template:
+  ansible.builtin.template:
     src: fail2ban/jail.local.j2
     dest: /etc/fail2ban/jail.local
   notify: restart fail2ban

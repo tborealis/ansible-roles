@@ -1,13 +1,13 @@
 ---
 - name: Install Redis
-  apt:
+  ansible.builtin.apt:
     pkg: redis-server
     state: present
     update_cache: yes
     cache_valid_time: 3600
 
 - name: Add vm.overcommit_memory = 1 to sysctl
-  sysctl:
+  ansible.posix.sysctl:
     name: vm.overcommit_memory
     value: 1
     reload: yes

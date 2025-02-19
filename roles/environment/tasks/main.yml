@@ -1,6 +1,6 @@
 ---
 - name: Create environment files
-  template:
+  ansible.builtin.template:
     src: environment.j2
     dest: "{{ item.file }}"
     owner: "{{ item.owner }}"
@@ -11,7 +11,7 @@
     label: "{{ item.file }}"
 
 - name: Create dotenv files
-  template:
+  ansible.builtin.template:
     src: dotenv.j2
     dest: "{{ item.file }}"
     owner: "{{ item.owner }}"

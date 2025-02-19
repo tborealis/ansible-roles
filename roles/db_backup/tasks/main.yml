@@ -1,13 +1,13 @@
 ---
 - name: Clone db backup
-  git:
+  ansible.builtin.git:
     repo: https://github.com/TomAdam/db-backup.git
     dest: "{{ db_backup_install_path }}"
     version: "{{ db_backup_version }}"
     force: yes
 
 - name: Install composer vendors
-  composer:
+  community.general.composer:
     command: install
     no_dev: yes
     no_scripts: yes
@@ -15,7 +15,7 @@
     working_dir: "{{ db_backup_install_path }}"
 
 - name: Configure
-  template:
+  ansible.builtin.template:
     src: config.yml.j2
     dest: "{{ db_backup_install_path }}/config.yml"
     owner: root
@@ -23,7 +23,7 @@
     mode: 0600
 
 - name: Install password files
-  template:
+  ansible.builtin.template:
     src: "templates/db-backup/{{ item.template }}"
     dest: "{{ db_backup_install_path }}/{{ item.target }}"
     owner: root
@@ -32,7 +32,7 @@
   with_items: "{{ db_backup_password_files }}"
 
 - name: Install crons
-  cron:
+  ansible.builtin.cron:
     user: root
     minute: "{{ db_backup_cron_time.0 }}"
     hour: "{{ db_backup_cron_time.1 }}"

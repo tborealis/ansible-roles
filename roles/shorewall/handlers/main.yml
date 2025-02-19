@@ -1,14 +1,14 @@
 ---
 - name: restart shorewall
-  command: shorewall restart
+  ansible.builtin.command: shorewall restart
   when: shorewall_enable
 
 - name: restart shorewall6
-  command: shorewall6 restart
+  ansible.builtin.command: shorewall6 restart
   when: shorewall_enable
 
 - name: restart fail2ban
-  service:
+  ansible.builtin.service:
     name: fail2ban.service
     enabled: yes
     state: restarted
