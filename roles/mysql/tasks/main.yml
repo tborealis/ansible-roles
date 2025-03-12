@@ -12,7 +12,7 @@
 
 - name: Install MySQL server
   ansible.builtin.apt:
-    pkg: mysql-server,python3-mysqldb
+    pkg: mysql-server,python3-pymysql
     state: present
     update_cache: yes
     cache_valid_time: 3600
@@ -44,20 +44,14 @@
 
 - name: Set MySQL root password
   community.mysql.mysql_user:
-    name: "root"
-    host: "{{ item }}"
-    password: "{{ mysql_root_password }}"
+    name: root
+    host_all: true
     login_user: root
     login_password: "{{ mysql_root_password }}"
-    check_implicit_admin: yes
-    column_case_sensitive: yes
-  no_log: false
-  loop_control:
-    label: "root@{{ item }}"
-  with_items:
-  - 127.0.0.1
-  - ::1
-  - localhost
+    plugin: caching_sha2_password
+    plugin_auth_string: "{{ mysql_root_password }}"
+    check_implicit_admin: true
+    column_case_sensitive: true
 
 - name: Create databases
   community.mysql.mysql_db:
@@ -73,7 +67,8 @@
   community.mysql.mysql_user:
     name: "{{ item.name }}"
     host: "{{ item.host | default('localhost') }}"
-    password: "{{ item.password }}"
+    plugin: caching_sha2_password
+    plugin_auth_string: "{{ item.password }}"
     priv: "{{ item.priv | default('*.*:USAGE') }}"
     state: present
     login_user: root
