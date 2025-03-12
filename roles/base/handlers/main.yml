@@ -4,3 +4,9 @@
     name: cron
     state: restarted
     enabled: yes
+
+- name: Reload sshd
+  ansible.builtin.service:
+    name: ssh
+    state: reloaded
+    enabled: yes

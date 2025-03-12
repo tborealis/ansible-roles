@@ -111,7 +111,7 @@
     group: root
     mode: 0644
     validate: "sshd -t -f %s"
-  register: sshd_status
+  notify: Reload sshd
 
 - name: Add system known hosts
   ansible.builtin.lineinfile:
