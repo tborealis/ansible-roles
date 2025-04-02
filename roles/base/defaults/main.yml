@@ -32,3 +32,5 @@ base_default_system_packages:
   - gpg
   - zstd
 base_profile_config: []
+base_clean_hosts: true
+base_configure_dhclient: true

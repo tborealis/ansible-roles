@@ -8,12 +8,14 @@
     src: networking/hosts.j2
     dest: /etc/hosts
     mode: "0644"
+  when: base_clean_hosts
 
 - name: Set DHCP config
   ansible.builtin.template:
     src: networking/dhclient.conf.j2
     dest: /etc/dhcp/dhclient.conf
     mode: "0644"
+  when: base_configure_dhclient
 
 # fixes repos on first install
 - name: Update APT
