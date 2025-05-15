@@ -4,18 +4,18 @@
     pkg: git
     default_release: "{{ ansible_distribution_release }}-backports"
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Add repository SSH known hosts # prevents issue with interactive question on unknown host
   ansible.builtin.lineinfile:
     dest: /etc/ssh/ssh_known_hosts
     line: "{{ item }}"
-    create: yes
+    create: true
     owner: root
     group: root
-    mode: 0644
-  with_items: "{{git_known_hosts}}"
+    mode: "0644"
+  with_items: "{{ git_known_hosts }}"
 
 - name: Rewrite deprecated git protocol
   ansible.builtin.blockinfile:
@@ -23,8 +23,8 @@
     block: |
       [url "https://"]
         insteadOf = git://
-    create: yes
+    create: true
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   when: git_rewrite_deprecated_protocol

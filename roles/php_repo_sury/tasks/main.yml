@@ -1,5 +1,6 @@
 ---
-- ansible.builtin.import_tasks: add-key.yml
+- name: Import key task
+  ansible.builtin.import_tasks: add-key.yml
 
 - name: Add PHP repository
   ansible.builtin.apt_repository:
@@ -11,10 +12,10 @@
     dest: "/usr/local/bin/{{ item.dest }}"
     owner: root
     group: root
-    mode: 0755
+    mode: "0755"
   with_items:
-  - src: "{{ php_xdebug_control_script_enable }}"
-    dest: xdebug-enable
-  - src: "{{ php_xdebug_control_script_disable }}"
-    dest: xdebug-disable
+    - src: "{{ php_xdebug_control_script_enable }}"
+      dest: xdebug-enable
+    - src: "{{ php_xdebug_control_script_disable }}"
+      dest: xdebug-disable
   when: php_fpm_xdebug or php_cli_xdebug

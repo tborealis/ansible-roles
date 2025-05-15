@@ -3,13 +3,11 @@ postgres_databases: []
 postgres_users: []
 postgres_privs: []
 postgres_extensions: []
-
 postgres_default_packages:
-- "postgresql-{{ postgres_version }}"
-- "postgresql-client-{{ postgres_version }}"
-- python3-psycopg2
+  - "postgresql-{{ postgres_version }}"
+  - "postgresql-client-{{ postgres_version }}"
+  - python3-psycopg2
 postgres_additional_packages: []
-
 # Memory assumed at 2GB
 postgres_shared_buffers: 512MB # 1/4 ram
 postgres_effective_cache_size: 1GB # 1/2 ram
@@ -24,4 +22,4 @@ postgres_fsync: "{{ 'off' if postgres_risky_fast else 'on' }}"
 
 postgres_max_wal_size: 1GB
 
-postgres_locale: "{{ system_default_locale|default('en_GB.UTF-8') }}"
+postgres_locale: "{{ system_default_locale | default('en_GB.UTF-8') }}"

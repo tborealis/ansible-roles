@@ -5,7 +5,7 @@
     dest: /usr/share/keyrings/postgresql.gpg
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
 
 - name: Add PostgreSQL repository
   ansible.builtin.apt_repository:
@@ -16,5 +16,5 @@
   ansible.builtin.apt:
     pkg: "{{ postgres_default_packages }}"
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600

@@ -3,12 +3,12 @@
   ansible.builtin.apt:
     pkg: redis-server
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Add vm.overcommit_memory = 1 to sysctl
   ansible.posix.sysctl:
     name: vm.overcommit_memory
     value: 1
-    reload: yes
+    reload: true
   when: redis_overcommit_memory

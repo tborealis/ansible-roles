@@ -8,6 +8,6 @@
 - name: Install stripe-cli
   ansible.builtin.apt:
     deb: "https://github.com/stripe/stripe-cli/releases/download/v{{ stripe_cli_version }}/stripe_{{ stripe_cli_version }}_linux_amd64.deb"
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
   when: stripe_cli_version_result is changed

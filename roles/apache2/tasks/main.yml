@@ -3,7 +3,7 @@
   ansible.builtin.apt:
     pkg: "{{ apache2_packages }}"
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Enable MPM
@@ -11,27 +11,27 @@
     name: mpm_event
     state: present
     ignore_configcheck: true
-  notify: restart apache2
+  notify: Restart apache2
 
 - name: Disable Apache2 modules
   community.general.apache2_module:
     name: "{{ item }}"
     state: absent
   with_items: "{{ apache2_disable_modules }}"
-  notify: restart apache2
+  notify: Restart apache2
 
 - name: Enable Apache2 modules
   community.general.apache2_module:
     name: "{{ item }}"
     state: present
   with_items: "{{ apache2_modules }}"
-  notify: restart apache2
+  notify: Restart apache2
 
 - name: Disable default Apache2 site
   ansible.builtin.file:
     path: /etc/apache2/sites-enabled/000-default.conf
     state: absent
-  notify: restart apache2
+  notify: Restart apache2
 
 - name: Create password
   community.general.htpasswd:
@@ -40,10 +40,10 @@
     password: "{{ item.password }}"
     owner: root
     group: www-data
-    mode: 0640
+    mode: "0640"
     state: present
   with_items: "{{ apache2_basic_auth }}"
-  notify: restart apache2
+  notify: Restart apache2
 
 - name: Apply environment config
   ansible.builtin.template:
@@ -51,14 +51,15 @@
     dest: "/etc/apache2/envvars"
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
 
 - name: Install vhosts
   ansible.builtin.template:
     src: "templates/apache2/vhosts/{{ item.src }}"
     dest: "/etc/apache2/sites-available/{{ item.dest }}"
+    mode: "0644"
   with_items: "{{ apache2_vhosts }}"
-  notify: restart apache2
+  notify: Restart apache2
 
 - name: Enable vhosts
   ansible.builtin.file:
@@ -66,4 +67,4 @@
     path: "/etc/apache2/sites-enabled/{{ item.dest }}"
     state: link
   with_items: "{{ apache2_vhosts }}"
-  notify: restart apache2
+  notify: Restart apache2

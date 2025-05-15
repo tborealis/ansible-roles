@@ -1,5 +1,6 @@
 ---
-- ansible.builtin.import_tasks: add-key.yml
+- name: Import key task
+  ansible.builtin.import_tasks: add-key.yml
 
 - name: Add Yarn repo
   ansible.builtin.apt_repository:
@@ -11,5 +12,5 @@
   ansible.builtin.apt:
     pkg: yarn
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600

@@ -3,7 +3,7 @@
   ansible.builtin.apt:
     pkg: rsync
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Link rrsync
@@ -13,4 +13,4 @@
     state: link
     owner: root
     group: root
-    mode: 0755
+    mode: "0755"

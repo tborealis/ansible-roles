@@ -1,6 +1,6 @@
 ---
-- name: restart mysql
+- name: Restart mysql
   ansible.builtin.service:
     name: mysql
     state: restarted
-    enabled: yes
+    enabled: true

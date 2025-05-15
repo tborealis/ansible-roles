@@ -1,5 +1,6 @@
 ---
-- ansible.builtin.import_tasks: add-key.yml
+- name: Manage repo key
+  ansible.builtin.import_tasks: add-key.yml
 
 - name: Add MySQL repository
   ansible.builtin.apt_repository:
@@ -14,7 +15,7 @@
   ansible.builtin.apt:
     pkg: mysql-server,python3-pymysql
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Stop MySQL if fresh install
@@ -33,8 +34,8 @@
     dest: /etc/mysql/conf.d/tuning.cnf
     owner: root
     group: root
-    mode: 0644
-  notify: restart mysql
+    mode: "0644"
+  notify: Restart mysql
 
 - name: Start MySQL if fresh install
   ansible.builtin.service:
@@ -61,7 +62,7 @@
     state: present
     login_user: root
     login_password: "{{ mysql_root_password }}"
-  with_items: '{{ mysql_databases }}'
+  with_items: "{{ mysql_databases }}"
 
 - name: Create users
   community.mysql.mysql_user:
@@ -73,7 +74,7 @@
     state: present
     login_user: root
     login_password: "{{ mysql_root_password }}"
-    column_case_sensitive: yes
+    column_case_sensitive: true
   no_log: false
   loop_control:
     label: "{{ item.name }}@{{ item.host | default('localhost') }}"
