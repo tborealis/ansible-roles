@@ -10,7 +10,7 @@
     dest: /etc/bash_completion.d/aws-cli
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
 
 - name: Per-user config
   ansible.builtin.include_tasks: config.yml

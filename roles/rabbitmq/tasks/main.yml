@@ -13,7 +13,7 @@
   ansible.builtin.apt:
     pkg: rabbitmq-server
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Install RabbitMQ management plugin
@@ -29,7 +29,7 @@
 - name: Create admin user
   community.rabbitmq.rabbitmq_user:
     user: admin
-    password: {{ rabbitmq_admin_password }}
+    password: "{{ rabbitmq_admin_password }}"
     tags: administrator
     vhost: /
     configure_priv: .*

@@ -1,6 +1,6 @@
 ---
-- name: restart cron
+- name: Restart cron
   ansible.builtin.service:
     name: cron
     state: restarted
-    enabled: yes
+    enabled: true

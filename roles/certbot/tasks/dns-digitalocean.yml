@@ -3,7 +3,7 @@
   ansible.builtin.apt:
     name: python3-certbot-dns-digitalocean
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Create DO DNS credentials file
@@ -13,9 +13,10 @@
     dest: /etc/letsencrypt/digitalocean.ini
     owner: root
     group: root
-    mode: '0600'
+    mode: "0600"
 
-- with_items: '{{ certbot_certs }}'
+- name: Process certificates
+  with_items: "{{ certbot_certs }}"
   ansible.builtin.include_tasks: dns-digitalocean-certs.yml
   loop_control:
     loop_var: certbot_certs_item

@@ -2,9 +2,9 @@
 - name: Create mailhog user
   ansible.builtin.user:
     name: "{{ mailhog_user }}"
-    createhome: no
+    createhome: false
     shell: /bin/false
-    system: yes
+    system: true
     password: "*"
 
 - name: Create mailhog directory
@@ -13,7 +13,7 @@
     owner: root
     group: root
     state: directory
-    mode: 0755
+    mode: "0755"
 
 - name: Download mailhog binary
   ansible.builtin.get_url:
@@ -21,7 +21,7 @@
     dest: "{{ mailhog_install_dir }}/mailhog"
     owner: root
     group: root
-    mode: 0755
+    mode: "0755"
 
 - name: Install mailhog service
   ansible.builtin.template:
@@ -29,10 +29,10 @@
     dest: /lib/systemd/system/mailhog.service
     owner: root
     group: root
-    mode: 0755
+    mode: "0755"
 
 - name: Enable mailhog service
   ansible.builtin.service:
     name: mailhog.service
-    enabled: yes
+    enabled: true
     state: started

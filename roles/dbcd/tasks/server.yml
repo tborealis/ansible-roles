@@ -3,8 +3,8 @@
 - name: "Create user"
   ansible.builtin.user:
     name: "{{ dbcd_server_user }}"
-    password: '*'
-    append: yes
+    password: "*"
+    append: true
     groups: ssh-users
     shell: /bin/dash
 
@@ -27,4 +27,4 @@
     state: directory
     owner: "{{ dbcd_server_user }}"
     group: "{{ dbcd_server_user }}"
-    mode: 0750
+    mode: "0750"

@@ -5,9 +5,10 @@
     dest: /usr/share/keyrings/nodesource.gpg
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
 
-- ansible.builtin.import_tasks: remove-old-node-repo.yml
+- name: Remove historic node repo
+  ansible.builtin.import_tasks: remove-old-node-repo.yml
 
 - name: Add Node repo
   ansible.builtin.apt_repository:
@@ -20,7 +21,7 @@
   ansible.builtin.apt:
     pkg: nodejs
     state: "{{ node_repo.changed | ternary('latest', 'present') }}"
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Write .npmrc
@@ -29,12 +30,12 @@
     dest: "{{ item.dir }}/.npmrc"
     owner: "{{ item.user }}"
     group: "{{ item.user }}"
-    mode: 0600
+    mode: "0600"
   with_items: "{{ node_npmrc }}"
 
 - name: Install Node global packages
   community.general.npm:
     name: "{{ item }}"
-    global: yes
-    production: yes
+    global: true
+    production: true
   with_items: "{{ node_global_packages }}"

@@ -5,7 +5,7 @@
     dest: /usr/share/keyrings/postgresql.gpg
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
 
 - name: Add PostgreSQL repository
   ansible.builtin.apt_repository:
@@ -16,7 +16,7 @@
   ansible.builtin.apt:
     pkg: "{{ postgres_default_packages + postgres_additional_packages }}"
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Ensure required locale present
@@ -28,6 +28,7 @@
   ansible.builtin.template:
     src: postgresql-{{ postgres_version }}.conf.j2
     dest: "/etc/postgresql/{{ postgres_version }}/main/postgresql.conf"
+    mode: "0644"
   register: check_postgres_configure
 
 - name: Set access control
@@ -36,13 +37,13 @@
     dest: "/etc/postgresql/{{ postgres_version }}/main/pg_hba.conf"
     owner: postgres
     group: postgres
-    mode: 0640
+    mode: "0640"
   register: check_postgres_access
 
 - name: Restart PostgreSQL
   ansible.builtin.service:
     name: postgresql.service
-    enabled: yes
+    enabled: true
     state: restarted
   when: check_postgres_configure is changed or check_postgres_access is changed
 
@@ -58,8 +59,8 @@
   community.postgresql.postgresql_user:
     name: "{{ item.user }}"
     password: "{{ item.password }}"
-    db: "{{ item.db|default(omit) }}"
-    priv: "{{ item.priv|default(omit) }}"
+    db: "{{ item.db | default(omit) }}"
+    priv: "{{ item.priv | default(omit) }}"
   no_log: true
   with_items: "{{ postgres_users }}"
 
@@ -69,8 +70,8 @@
     database: "{{ item.db }}"
     roles: "{{ item.roles }}"
     privs: "{{ item.privs }}"
-    type: "{{ item.type|default(omit) }}"
-    objs: "{{ item.objs|default(omit) }}"
+    type: "{{ item.type | default(omit) }}"
+    objs: "{{ item.objs | default(omit) }}"
   with_items: "{{ postgres_privs }}"
 
 - name: Enable extensions

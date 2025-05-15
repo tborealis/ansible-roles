@@ -1,9 +1,8 @@
 ---
 - name: Check for secure vars files
   become: false
-  local_action:
-    module: ansible.builtin.stat
-    path: "secure_vars/{{ item }}.yml"
+  ansible.builtin.stat:
+  delegate_to: localhost
   with_items: "{{ group_names }}"
   register: secure_vars_group_files
 

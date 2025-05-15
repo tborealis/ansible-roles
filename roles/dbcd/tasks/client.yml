@@ -6,7 +6,7 @@
     dest: "/home/{{ dbcd_client_user }}/.ssh/dbcd"
     owner: "{{ dbcd_client_user }}"
     group: "{{ dbcd_client_user }}"
-    mode: 0600
+    mode: "0600"
 
 - name: "Add dbcd server ssh config"
   ansible.builtin.blockinfile:
@@ -20,15 +20,15 @@
     owner: "{{ dbcd_client_user }}"
     group: "{{ dbcd_client_user }}"
     create: true
-    mode: 0600
+    mode: "0600"
     marker: "# {mark}-DBCD-W ANSIBLE MANAGED BLOCK"
 
 - name: "Add dbcd server to known hosts"
   ansible.builtin.lineinfile:
     dest: /etc/ssh/ssh_known_hosts
     line: "{{ item }}"
-    create: yes
+    create: true
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
   with_items: "{{ dbcd_known_hosts }}"

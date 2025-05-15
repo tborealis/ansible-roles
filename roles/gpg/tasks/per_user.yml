@@ -1,31 +1,32 @@
 ---
-- become_user: "{{ gpg_user_config.user }}"
+- name: "Config for user {{ gpg_user_config.user }}"
+  become_user: "{{ gpg_user_config.user }}"
   become: true
   block:
-  - name: "Get user details for {{ gpg_user_config.user }}"
-    ansible.builtin.user:
-      name: "{{ gpg_user_config.user }}"
-      state: present
-    register: gpg_user_details
+    - name: "Get user details for {{ gpg_user_config.user }}"
+      ansible.builtin.user:
+        name: "{{ gpg_user_config.user }}"
+        state: present
+      register: gpg_user_details
 
-  - name: "Set vars for user {{ gpg_user_config.user }}"
-    ansible.builtin.set_fact:
-      gpg_basedir: "{{ gpg_user_details.home }}/.gnupg"
+    - name: "Set vars for user {{ gpg_user_config.user }}"
+      ansible.builtin.set_fact:
+        gpg_basedir: "{{ gpg_user_details.home }}/.gnupg"
 
-  - name: "Ensure {{ gpg_basedir }} directory exists with secure permissions"
-    ansible.builtin.file:
-      dest: "{{ gpg_basedir }}"
-      state: directory
-      mode: 0700
+    - name: "Ensure {{ gpg_basedir }} directory exists with secure permissions"
+      ansible.builtin.file:
+        dest: "{{ gpg_basedir }}"
+        state: directory
+        mode: "0700"
 
-  - name: Import private keys
-    ansible.builtin.include_tasks: private_keys.yml
-    with_items: "{{ gpg_user_config.private_keys }}"
-    loop_control:
-      loop_var: gpg_user_private_key
+    - name: Import private keys
+      ansible.builtin.include_tasks: private_keys.yml
+      with_items: "{{ gpg_user_config.private_keys }}"
+      loop_control:
+        loop_var: gpg_user_private_key
 
-  - name: Import public keys
-    ansible.builtin.include_tasks: public_keys.yml
-    with_items: "{{ gpg_user_config.public_keys }}"
-    loop_control:
-      loop_var: gpg_user_public_key
+    - name: Import public keys
+      ansible.builtin.include_tasks: public_keys.yml
+      with_items: "{{ gpg_user_config.public_keys }}"
+      loop_control:
+        loop_var: gpg_user_public_key

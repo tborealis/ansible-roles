@@ -1,33 +1,33 @@
 ---
 - name: Install SSL private keys
   ansible.builtin.copy:
-    content: "{{ item.data|b64decode }}"
+    content: "{{ item.data | b64decode }}"
     dest: "/etc/ssl/private/{{ item.name }}.key"
     owner: root
     group: ssl-cert
-    mode: 0640
+    mode: "0640"
   with_items: "{{ ssl_keys }}"
   loop_control:
-    label: "{{ item.name}}.key"
+    label: "{{ item.name }}.key"
 
 - name: Install SSL certificates
   ansible.builtin.copy:
-    content: "{{ item.data|b64decode }}"
+    content: "{{ item.data | b64decode }}"
     dest: "/etc/ssl/certs/{{ item.name }}.pem"
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
   with_items: "{{ ssl_certs }}"
   loop_control:
     label: "{{ item.name }}.pem"
 
 - name: Install SSL stapling certificates
   ansible.builtin.copy:
-    content: "{{ item.data|b64decode }}"
+    content: "{{ item.data | b64decode }}"
     dest: "/etc/ssl/certs/{{ item.name }}.stapling.pem"
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
   with_items: "{{ ssl_stapling }}"
   loop_control:
     label: "{{ item.name }}.stapling.pem"
@@ -35,23 +35,23 @@
 - name: DH params
   when: not ssl_skip_dh
   block:
-  - name: Create DH folder
-    ansible.builtin.file:
-      path: /etc/ssl/dh
-      state: directory
-      owner: root
-      group: ssl-cert
-      mode: 0710
+    - name: Create DH folder
+      ansible.builtin.file:
+        path: /etc/ssl/dh
+        state: directory
+        owner: root
+        group: ssl-cert
+        mode: "0710"
 
-  - name: Generate DH params
-    ansible.builtin.command: openssl dhparam -out /etc/ssl/dh/dhparam.pem 2048
-    args:
-      creates: /etc/ssl/dh/dhparam.pem
+    - name: Generate DH params
+      ansible.builtin.command: openssl dhparam -out /etc/ssl/dh/dhparam.pem 2048
+      args:
+        creates: /etc/ssl/dh/dhparam.pem
 
-  - name: Secure DH params # secure to do this after creation due to folder perms
-    ansible.builtin.file:
-      path: /etc/ssl/dh/dhparam.pem
-      state: file
-      owner: root
-      group: ssl-cert
-      mode: 0640
+    - name: Secure DH params # secure to do this after creation due to folder perms
+      ansible.builtin.file:
+        path: /etc/ssl/dh/dhparam.pem
+        state: file
+        owner: root
+        group: ssl-cert
+        mode: "0640"

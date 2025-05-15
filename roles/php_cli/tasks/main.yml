@@ -3,21 +3,21 @@
   ansible.builtin.apt:
     pkg: "php{{ php_cli_version }}-cli"
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Install PHP packages
   ansible.builtin.apt:
     pkg: "{{ php_cli_packages }}"
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Install Xdebug
   ansible.builtin.apt:
     pkg: php{{ php_cli_version }}-xdebug
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
   when: php_cli_xdebug
   register: php_cli_xdebug_installed
@@ -33,14 +33,14 @@
     dest: "/etc/php/{{ php_cli_version }}/cli/php.ini"
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
 
 # TODO: review security
-#- name: Ensure opcache file cache dir exists
-#  ansible.builtin.file:
-#    path: "{{ php_cli_opcache_file_cache }}"
-#    owner: root
-#    group: root
-#    mode: 0777
-#    state: directory
-#  when: php_cli_opcache_file_cache_only == 1
+# - name: Ensure opcache file cache dir exists
+#   ansible.builtin.file:
+#     path: "{{ php_cli_opcache_file_cache }}"
+#     owner: root
+#     group: root
+#     mode: 0777
+#     state: directory
+#   when: php_cli_opcache_file_cache_only == 1

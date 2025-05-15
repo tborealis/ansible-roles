@@ -3,10 +3,10 @@
   ansible.builtin.apt:
     pkg: gpg
     state: present
-    update_cache: no
+    update_cache: false
 
 # Base path is ansible folder
 - name: Add key
   ansible.builtin.apt_key:
-      data: "{{ lookup('file', key_path) }}"
-      state: present
+    data: "{{ lookup('file', key_path) }}"
+    state: present

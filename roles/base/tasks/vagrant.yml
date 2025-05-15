@@ -3,5 +3,5 @@
   ansible.builtin.user:
     name: vagrant
     groups: ssh-users
-    append: yes
-    password: '*'
+    append: true
+    password: "*"

@@ -5,7 +5,7 @@
     dest: /usr/share/keyrings/digitalocean-agent-keyring.gpg
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
 
 - name: Add repository
   ansible.builtin.apt_repository:
@@ -16,7 +16,7 @@
   ansible.builtin.apt:
     pkg: do-agent
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Ensure agent is started and enabled

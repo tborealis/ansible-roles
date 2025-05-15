@@ -3,7 +3,7 @@
   ansible.builtin.apt:
     pkg: python3-pip,supervisor
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Install superlance
@@ -20,7 +20,7 @@
 - name: Add users to supervisor group
   ansible.builtin.user:
     name: "{{ item }}"
-    append: yes
+    append: true
     groups: "{{ supervisor_group }}"
   with_items: "{{ supervisor_users }}"
 
@@ -30,8 +30,8 @@
     dest: /etc/supervisor/supervisord.conf
     owner: root
     group: "{{ supervisor_group }}"
-    mode: 0640
-  notify: restart supervisor
+    mode: "0640"
+  notify: Restart supervisor
 
 - name: Install supervisor configs
   ansible.builtin.template:
@@ -39,6 +39,6 @@
     dest: "/etc/supervisor/conf.d/{{ item.dest }}"
     owner: root
     group: "{{ supervisor_group }}"
-    mode: 0640
+    mode: "0640"
   with_items: "{{ supervisor_configs }}"
-  notify: update supervisor
+  notify: Update supervisor

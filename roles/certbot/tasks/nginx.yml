@@ -11,7 +11,7 @@
   ansible.builtin.apt:
     name: python3-certbot-nginx
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
   when: certbot_nginx_active.stdout == 'active'
 
@@ -19,7 +19,8 @@
   ansible.builtin.set_fact:
     certbot_mode: "{{ (certbot_nginx_active.stdout == 'active') | ternary('nginx', 'standalone') }}"
 
-- with_items: '{{ certbot_certs }}'
+- name: Process certificates
+  with_items: "{{ certbot_certs }}"
   ansible.builtin.include_tasks: nginx-certs.yml
   loop_control:
     loop_var: certbot_certs_item

@@ -1,26 +1,26 @@
 ---
-- become_user: '{{ nvm_user_config.user }}'
+- name: "Config for user {{ nvm_user_config.user }}"
+  become_user: "{{ nvm_user_config.user }}"
   become: true
   block:
+    - name: Check nvm version
+      ansible.builtin.command: 'bash -ic "nvm --version"'
+      # task fails when the nvm command fails or is not installed (rc 127)
+      failed_when: nvm_installed_version.rc != 0 and nvm_installed_version.rc != 127
+      register: nvm_installed_version
 
-  - name: Check nvm version
-    ansible.builtin.command: 'bash -ic "nvm --version"'
-    # task fails when the nvm command fails or is not installed (rc 127)
-    failed_when: nvm_installed_version.rc != 0 and nvm_installed_version.rc != 127
-    register: nvm_installed_version
+    - name: Install nvm
+      ansible.builtin.shell: >
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v{{ nvm_version }}/install.sh | bash
+      args:
+        creates: "{{ ansible_env.HOME }}/.nvm/nvm.sh"
+      when: nvm_installed_version.stdout != nvm_version
 
-  - name: Install nvm
-    ansible.builtin.shell: >
-      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v{{ nvm_version }}/install.sh | bash
-    args:
-      creates: "{{ ansible_env.HOME }}/.nvm/nvm.sh"
-    when: nvm_installed_version.stdout != nvm_version
+    - name: Per-version nvm config
+      ansible.builtin.include_tasks: per_version.yml
+      with_items: "{{ nvm_user_config.versions }}"
+      loop_control:
+        loop_var: nvm_user_config_version
 
-  - name: Per-version nvm config
-    ansible.builtin.include_tasks: per_version.yml
-    with_items: '{{ nvm_user_config.versions }}'
-    loop_control:
-      loop_var: nvm_user_config_version
-
-  - name: 'Set default Node version to {{ nvm_user_config.default_version }}'
-    ansible.builtin.command: 'bash -ic "nvm alias default {{ nvm_user_config.default_version }}"'
+    - name: "Set default Node version to {{ nvm_user_config.default_version }}"
+      ansible.builtin.command: 'bash -ic "nvm alias default {{ nvm_user_config.default_version }}"'
