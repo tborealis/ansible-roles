@@ -102,7 +102,7 @@
   ansible.builtin.apt:
     pkg: openssh-server
     default_release: "{{ ansible_distribution_release }}-backports"
-    state: latest
+    state: present
     update_cache: true
     cache_valid_time: 3600
 
