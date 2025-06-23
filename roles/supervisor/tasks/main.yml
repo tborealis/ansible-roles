@@ -1,44 +1,44 @@
 ---
 - name: Install pip and supervisor # use system package for systemd script
-  apt:
+  ansible.builtin.apt:
     pkg: python3-pip,supervisor
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Install superlance
-  pip:
+  ansible.builtin.pip:
     name: superlance
     state: present
     extra_args: --break-system-packages
   when: supervisor_crashmail_enable
 
 - name: Add supervisor group
-  group:
+  ansible.builtin.group:
     name: "{{ supervisor_group }}"
 
 - name: Add users to supervisor group
-  user:
+  ansible.builtin.user:
     name: "{{ item }}"
-    append: yes
+    append: true
     groups: "{{ supervisor_group }}"
   with_items: "{{ supervisor_users }}"
 
 - name: Configure supervisor
-  template:
+  ansible.builtin.template:
     src: supervisord.conf.j2
     dest: /etc/supervisor/supervisord.conf
     owner: root
     group: "{{ supervisor_group }}"
-    mode: 0640
-  notify: restart supervisor
+    mode: "0640"
+  notify: Restart supervisor
 
 - name: Install supervisor configs
-  template:
+  ansible.builtin.template:
     src: "templates/supervisor/{{ item.template }}"
     dest: "/etc/supervisor/conf.d/{{ item.dest }}"
     owner: root
     group: "{{ supervisor_group }}"
-    mode: 0640
+    mode: "0640"
   with_items: "{{ supervisor_configs }}"
-  notify: update supervisor
+  notify: Update supervisor

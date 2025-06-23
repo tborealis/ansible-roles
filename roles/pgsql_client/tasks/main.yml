@@ -1,20 +1,20 @@
 ---
 - name: Add PostgreSQL repo key
-  copy:
+  ansible.builtin.copy:
     src: postgresql.gpg
     dest: /usr/share/keyrings/postgresql.gpg
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
 
 - name: Add PostgreSQL repository
-  apt_repository:
+  ansible.builtin.apt_repository:
     repo: "deb [signed-by=/usr/share/keyrings/postgresql.gpg] https://apt.postgresql.org/pub/repos/apt/ {{ ansible_distribution_release }}-pgdg main"
     state: present
 
 - name: Install PostgreSQL client packages
-  apt:
+  ansible.builtin.apt:
     pkg: "{{ postgres_default_packages }}"
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600

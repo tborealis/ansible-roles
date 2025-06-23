@@ -1,7 +1,7 @@
 ---
 # This is to be applied to machine that need to download the database dump from the server
 - name: "Add dbcd server ssh config"
-  blockinfile:
+  ansible.builtin.blockinfile:
     block: |
       Host dbcd-server-r
         HostName {{ dbcd_server_host }}
@@ -10,15 +10,15 @@
     owner: "{{ dbcd_consumer_user }}"
     group: "{{ dbcd_consumer_user }}"
     create: true
-    mode: 0600
+    mode: "0600"
     marker: "# {mark}-DBCD-R ANSIBLE MANAGED BLOCK"
 
 - name: "Add dbcd server to known hosts"
-  lineinfile:
+  ansible.builtin.lineinfile:
     dest: /etc/ssh/ssh_known_hosts
     line: "{{ item }}"
-    create: yes
+    create: true
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
   with_items: "{{ dbcd_known_hosts }}"

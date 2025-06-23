@@ -1,10 +1,10 @@
 ---
-- name: update exim4 config
-  command: update-exim4.conf
-  notify: restart exim4
+- name: Update exim4 config
+  ansible.builtin.command: update-exim4.conf
+  notify: Restart exim4
 
-- name: restart exim4
-  service:
+- name: Restart exim4
+  ansible.builtin.service:
     name: exim4
-    enabled: yes
+    enabled: true
     state: restarted

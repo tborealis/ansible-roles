@@ -3,7 +3,7 @@ is changed and the APT update in the base role is failing. Add a pre-task to the
 
 ```yaml
 pre_tasks:
-- import_tasks: tasks/add-key.yml
+- ansible.builtin.import_tasks: tasks/add-key.yml
   vars:
     key_path: roles/chrome/files/google-repo.asc
 ```

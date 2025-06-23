@@ -1,17 +1,18 @@
 ---
 - name: Create symfony params folder
-  file:
-    dest: '{{ symfony_params_file_path }}'
+  ansible.builtin.file:
+    dest: "{{ symfony_params_file_path }}"
     state: directory
     owner: "{{ symfony_params_macos | ternary(omit, symfony_params_file_user) }}"
     group: "{{ symfony_params_macos | ternary(omit, symfony_params_file_group) }}"
+    mode: "{{ symfony_params_macos | ternary(omit, '0750') }}"
   when: symfony_params_template is defined
 
 - name: Write symfony parameters file
-  template:
-    src: 'templates/symfony-params/{{ symfony_params_template }}'
-    dest: '{{ symfony_params_file_path }}/parameters.yaml'
+  ansible.builtin.template:
+    src: "templates/symfony-params/{{ symfony_params_template }}"
+    dest: "{{ symfony_params_file_path }}/parameters.yaml"
     owner: "{{ symfony_params_macos | ternary(omit, symfony_params_file_user) }}"
     group: "{{ symfony_params_macos | ternary(omit, symfony_params_file_group) }}"
-    mode: "{{ symfony_params_macos | ternary(omit, '0600') }}"
+    mode: "{{ symfony_params_macos | ternary(omit, '0640') }}"
   when: symfony_params_template is defined

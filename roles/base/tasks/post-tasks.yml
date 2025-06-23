@@ -1,7 +1,0 @@
----
-- name: restart sshd
-  service:
-    name: ssh
-    state: restarted
-    enabled: yes
-  when: sshd_status is changed

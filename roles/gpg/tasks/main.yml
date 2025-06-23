@@ -1,13 +1,13 @@
 ---
 - name: Install GnuPG
-  apt:
+  ansible.builtin.apt:
     name: gnupg2
     state: latest
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Per-user GPG config
-  include_tasks: per_user.yml
+  ansible.builtin.include_tasks: per_user.yml
   with_items: "{{ gpg_config }}"
   loop_control:
     loop_var: gpg_user_config

@@ -1,26 +1,26 @@
 ---
 - name: Add repo key
-  copy:
+  ansible.builtin.copy:
     src: digitalocean-agent-keyring.gpg
     dest: /usr/share/keyrings/digitalocean-agent-keyring.gpg
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
 
 - name: Add repository
-  apt_repository:
+  ansible.builtin.apt_repository:
     filename: digitalocean-agent
     repo: deb [signed-by=/usr/share/keyrings/digitalocean-agent-keyring.gpg] https://repos.insights.digitalocean.com/apt/do-agent main main
 
 - name: Install agent
-  apt:
+  ansible.builtin.apt:
     pkg: do-agent
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Ensure agent is started and enabled
-  systemd:
+  ansible.builtin.systemd:
     name: do-agent
     enabled: true
     state: started

@@ -1,6 +1,12 @@
 ---
-- name: restart cron
-  service:
+- name: Restart cron
+  ansible.builtin.service:
     name: cron
     state: restarted
-    enabled: yes
+    enabled: true
+
+- name: Reload sshd
+  ansible.builtin.service:
+    name: ssh
+    state: reloaded
+    enabled: true

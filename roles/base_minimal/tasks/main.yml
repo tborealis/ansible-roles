@@ -1,49 +1,50 @@
 ---
 - name: Set hostname
-  hostname:
+  ansible.builtin.hostname:
     name: "{{ inventory_hostname }}"
 
 - name: Update APT
-  apt:
-    update_cache: yes
+  ansible.builtin.apt:
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Install system packages
-  apt:
+  ansible.builtin.apt:
     pkg: "{{ base_default_system_packages + system_packages }}"
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Generate required locales
-  locale_gen:
+  community.general.locale_gen:
     name: "{{ item }}"
     state: present
-  with_items: "{{system_locales}}"
+  with_items: "{{ system_locales }}"
 
 - name: Set default locale
-  copy:
+  ansible.builtin.copy:
     content: "LANG=\"{{ system_default_locale }}\"\n"
     dest: /etc/default/locale
+    mode: "0644"
 
 - name: Set default timezone
-  timezone:
+  community.general.timezone:
     name: "{{ system_timezone }}"
-  notify: restart cron
+  notify: Restart cron
 
 - name: Create users
-  user:
+  ansible.builtin.user:
     name: "{{ item.name }}"
     password: "{{ item.password }}"
-    append: yes
-    groups: "{{ item.groups|default(omit) }}"
-    shell: "{{ item.shell|default('/bin/bash') }}"
+    append: true
+    groups: "{{ item.groups | default(omit) }}"
+    shell: "{{ item.shell | default('/bin/bash') }}"
   with_items: "{{ users }}"
   loop_control:
     label: "{{ item.name }}"
 
 - name: Assign authorized keys
-  authorized_key:
+  ansible.posix.authorized_key:
     user: "{{ item.0.name }}"
     key: "{{ lookup('file', item.1) }}"
   with_subelements:

@@ -1,6 +1,6 @@
 ---
 - name: Restart Redis
-  service:
+  ansible.builtin.service:
     name: redis-server
     state: restarted
-    enabled: yes
+    enabled: true

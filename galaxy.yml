@@ -5,8 +5,18 @@ readme: README.md
 authors:
 - Tom Borealis <tom@lampbristol.com>
 description: A collection of roles for provisioning local and production environments
-license_file: 'LICENSE.md'
+license_file: 'LICENSE.txt'
 repository: https://github.com/TomAdam/ansible-roles
+tags:
+  - infrastructure
+  - linux
 build_ignore:
   - .idea
+  - .github
   - .gitignore
+dependencies:
+  ansible.posix: '*'
+  community.general: '*'
+  community.mysql: '*'
+  community.postgresql: '*'
+  community.rabbitmq: '*'

@@ -1,6 +1,6 @@
 ---
 - name: "Remove Node {{ node_version }} old repo"
-  apt_repository:
+  ansible.builtin.apt_repository:
     repo: "{{ item }}"
     state: absent
   with_items:

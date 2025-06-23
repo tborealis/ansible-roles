@@ -1,29 +1,30 @@
 ---
 - name: Remove system chrome
-  include_tasks: remove-system-chrome.yml
+  ansible.builtin.include_tasks: remove-system-chrome.yml
   when: chrome_remove_system_chrome
 
 - name: Install chrome system dependencies
-  apt:
+  ansible.builtin.apt:
     pkg: "{{ chrome_system_dependencies }}"
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Install chrome
-  command: "npx --yes @puppeteer/browsers install chrome@{{chrome_version}} --path /opt"
+  ansible.builtin.command: "npx --yes @puppeteer/browsers install chrome@{{ chrome_version }} --path /opt"
   register: chrome_install_result
 
 - name: Process chrome path
-  set_fact:
-    chrome_path: "{{ chrome_install_result.stdout|regex_search('chrome@[\\d.]+ (.+)', '\\1')|first }}"
+  ansible.builtin.set_fact:
+    chrome_path: "{{ chrome_install_result.stdout | regex_search('chrome@[\\d.]+ (.+)', '\\1') | first }}"
 
 - name: Link chrome
-  file:
+  ansible.builtin.file:
     src: "{{ chrome_path }}"
     dest: /usr/local/bin/google-chrome
     state: link
     force: true
 
-- import_tasks: chromedriver.yml
+- name: Chromedriver tasks
+  ansible.builtin.import_tasks: chromedriver.yml
   when: chrome_install_chromedriver

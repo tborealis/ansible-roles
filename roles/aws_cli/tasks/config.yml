@@ -1,17 +1,19 @@
 ---
-- become_user: "{{ aws_cli_user_config.user }}"
+- name: "Per user config for {{ aws_config_user_config.user }}"
+  become_user: "{{ aws_cli_user_config.user }}"
   become: true
   block:
-  - name: Create config dir
-    file:
-      state: directory
-      path: "~/.aws"
+    - name: Create config dir
+      ansible.builtin.file:
+        state: directory
+        path: "~/.aws"
+        mode: "0700"
 
-  - name: Configure aws-cli
-    template:
-      src: "{{ item.src }}"
-      dest: "{{ item.dest }}"
-      mode: 0600
-    with_items:
-    - { src: config.j2, dest: "~/.aws/config" }
-    - { src: credentials.j2, dest: "~/.aws/credentials" }
+    - name: Configure aws-cli
+      ansible.builtin.template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: "0600"
+      with_items:
+        - { src: config.j2, dest: "~/.aws/config" }
+        - { src: credentials.j2, dest: "~/.aws/credentials" }

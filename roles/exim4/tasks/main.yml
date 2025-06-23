@@ -1,22 +1,25 @@
 ---
 - name: Install exim
-  apt:
+  ansible.builtin.apt:
     pkg: exim4-daemon-light
     state: present
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Configure update-exim4.conf
-  template:
+  ansible.builtin.template:
     src: etc/exim4/update-exim4.conf.conf.j2
     dest: /etc/exim4/update-exim4.conf.conf
-  notify: update exim4 config
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Update exim4 config
 
 - name: Set mailname
-  copy:
+  ansible.builtin.copy:
     content: "{{ mailname }}\n"
     dest: /etc/mailname
     owner: root
     group: root
-    mode: 0644
-  notify: restart exim4
+    mode: "0644"
+  notify: Restart exim4
