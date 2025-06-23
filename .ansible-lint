@@ -1,0 +1,4 @@
+---
+profile: shared
+skip_list:
+  - experimental
