@@ -105,6 +105,17 @@
     state: present
     update_cache: true
     cache_valid_time: 3600
+  register: base_openssh_apt_release
+
+- name: Force apt update on openssh-server when switching to backports
+  ansible.builtin.apt:
+    pkg: openssh-server
+    state: latest
+    only_upgrade: true
+    update_cache: true
+    cache_valid_time: 3600
+  when: base_openssh_apt_release.changed
+  # noqa no-handler
 
 - name: Configure sshd
   ansible.builtin.template:
