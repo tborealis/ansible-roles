@@ -2,7 +2,7 @@
 - name: Install GnuPG
   ansible.builtin.apt:
     name: gnupg2
-    state: latest
+    state: present
     update_cache: true
     cache_valid_time: 3600
 
