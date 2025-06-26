@@ -1,6 +1,9 @@
 ---
 - name: Update supervisor
   ansible.builtin.command: supervisorctl update
+  register: supervisor_update_output
+  changed_when: supervisor_update_output.stdout != ""
+  # noqa: command-instead-of-module Module does not support update
 
 - name: Restart supervisor
   ansible.builtin.systemd:
