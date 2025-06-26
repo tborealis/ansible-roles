@@ -1,5 +1,5 @@
 ---
-- name: "Per user config for {{ aws_config_user_config.user }}"
+- name: "Per user config for {{ aws_cli_user_config.user }}"
   become_user: "{{ aws_cli_user_config.user }}"
   become: true
   block:

@@ -5,3 +5,5 @@ collections:
   - name: community.mysql
   - name: community.postgresql
   - name: community.rabbitmq
+roles:
+  - name: ecgalaxy.aws_cli
