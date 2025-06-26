@@ -6,8 +6,19 @@
     update_cache: true
     cache_valid_time: 3600
 
+- name: Download Composer installer
+  ansible.builtin.get_url:
+    url: https://getcomposer.org/installer
+    dest: /tmp/composer-setup.php
+    mode: "0644"
+
 - name: Install Composer
-  ansible.builtin.shell: curl -sS https://getcomposer.org/installer | php && mv composer.phar /usr/local/bin/composer
+  ansible.builtin.command:
+    argv:
+      - php
+      - /tmp/composer-setup.php
+      - --install-dir=/usr/local/bin
+      - --filename=composer
   args:
     creates: /usr/local/bin/composer
   register: composer_install
@@ -30,7 +41,18 @@
   register: composer_completion_stat
 
 - name: Generate Composer Bash completion
-  ansible.builtin.shell: "COMPOSER_ALLOW_SUPERUSER=1 composer completion bash > /etc/bash_completion.d/composer"
+  ansible.builtin.command: composer completion bash
+  register: composer_completion_output
+  environment:
+    COMPOSER_ALLOW_SUPERUSER: "1"
+  changed_when: composer_completion_output.stdout != ''
+  when: composer_install is changed or composer_update is changed or not composer_completion_stat.stat.exists
+
+- name: Write Composer Bash completion
+  ansible.builtin.copy:
+    dest: /etc/bash_completion.d/composer
+    content: "{{ composer_completion_output.stdout }}"
+    mode: "0644"
   when: composer_install is changed or composer_update is changed or not composer_completion_stat.stat.exists
 
 - name: Install Composer global packages

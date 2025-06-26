@@ -9,9 +9,15 @@
       failed_when: nvm_installed_version.rc != 0 and nvm_installed_version.rc != 127
       register: nvm_installed_version
 
+    - name: Download nvm installer
+      ansible.builtin.get_url:
+        url: "https://raw.githubusercontent.com/nvm-sh/nvm/v{{ nvm_version }}/install.sh"
+        dest: "{{ ansible_env.HOME }}/nvm_install.sh"
+        mode: "0755"
+      when: nvm_installed_version.stdout != nvm_version
+
     - name: Install nvm
-      ansible.builtin.shell: >
-        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v{{ nvm_version }}/install.sh | bash
+      ansible.builtin.command: "bash {{ ansible_env.HOME }}/nvm_install.sh"
       args:
         creates: "{{ ansible_env.HOME }}/.nvm/nvm.sh"
       when: nvm_installed_version.stdout != nvm_version

@@ -1,6 +1,8 @@
 ---
 - name: Update supervisor
-  ansible.builtin.command: supervisorctl update
+  community.general.supervisorctl:
+    name: all
+    state: restarted
 
 - name: Restart supervisor
   ansible.builtin.systemd:
