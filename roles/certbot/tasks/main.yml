@@ -8,3 +8,4 @@
 
 - name: "Running in {{ certbot_mode }} mode"
   ansible.builtin.include_tasks: "{{ certbot_mode }}.yml"
+  when: certbot_mode is defined

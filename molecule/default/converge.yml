@@ -11,5 +11,55 @@
         update_cache: yes
         cache_valid_time: 3600
 
+  collections:
+    - lampbristol.lampsible
+
   roles:
-    - role: lampbristol.lampsible.base
+#    - ant - legacy role
+#    - apache2
+    - base
+    - base_minimal
+    - aws_cli
+    - aws_config
+    - certbot
+    - role: node
+      vars:
+        node_version: 20
+    - chrome
+    - cron
+    - dbcd
+    - do_agent
+#    - dotdeb - legacy role
+    - dotenv
+    - environment
+    - exim4
+#    - geoip - legacy role
+    - git
+    - gpg
+    - mailhog
+    - role: mysql
+      vars:
+        mysql_innodb_buffer_pool_size: 1G
+        mysql_root_password: password
+    - new_relic
+    - nginx
+    - nvm
+    - pgsql
+    - pgsql_client
+    - php_repo_sury
+    - php_cli
+    - php_fpm
+    - composer
+    - phpbu
+    - db_backup
+#    - rabbitmq - legacy role
+    - redis
+    - rrsync
+    - shorewall
+    - ssl
+    - stripe_cli
+    - sudo
+    - supervisor
+    - symfony_params
+    - tasks
+    - yarn

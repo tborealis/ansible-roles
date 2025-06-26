@@ -3,7 +3,7 @@ ARG MOLECULE_DISTRO=debian12
 FROM geerlingguy/docker-${MOLECULE_DISTRO}-ansible:latest
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends isc-dhcp-client openssh-server cron && \
+    apt-get install -y --no-install-recommends isc-dhcp-client openssh-server cron gnupg unzip bash-completion && \
     rm -rf /var/lib/apt/lists/* && \
     rm -Rf /usr/share/doc && rm -Rf /usr/share/man && \
     apt-get clean && \

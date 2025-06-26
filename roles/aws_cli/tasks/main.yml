@@ -4,6 +4,21 @@
     name: ecgalaxy.aws_cli
     allow_duplicates: false
 
+- name: Ensure bash-completion is installed
+  ansible.builtin.apt:
+    name: bash-completion
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create bash completion directory if missing
+  ansible.builtin.file:
+    path: /etc/bash_completion.d
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
 - name: Configure bash completion
   ansible.builtin.template:
     src: bash_completion.j2

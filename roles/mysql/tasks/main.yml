@@ -47,7 +47,7 @@
   community.mysql.mysql_user:
     name: root
     host_all: true
-    login_user: root
+    login_user: root@127.0.0.1
     login_password: "{{ mysql_root_password }}"
     plugin: caching_sha2_password
     plugin_auth_string: "{{ mysql_root_password }}"

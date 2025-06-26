@@ -8,7 +8,7 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     cgroupns_mode: host
     privileged: true
-    command: /lib/systemd/systemd
+    override_command: false
 provisioner:
   name: ansible
 scenario:
