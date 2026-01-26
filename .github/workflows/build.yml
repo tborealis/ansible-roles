@@ -1,0 +1,29 @@
+name: build
+
+on:
+  push:
+    branches: ["bookworm"]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run ansible-lint
+        uses: ansible/ansible-lint@main
+        with:
+          requirements_file: requirements.yml
+
+  notify-downstream:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Trigger lampsible rebuild
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.LAMPSIBLE_PAT }}
+          repository: lampbristol/lampsible
+          event-type: upstream-update
+          client-payload: '{"sha": "${{ github.sha }}"}'
