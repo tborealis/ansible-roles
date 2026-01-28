@@ -21,4 +21,4 @@
   loop_control:
     loop_var: certbot_certs_item
     label: "{{ certbot_certs_item.name }}"
-  when: certbot_certs|length
+  when: certbot_certs|length > 0
