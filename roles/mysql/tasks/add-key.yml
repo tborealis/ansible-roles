@@ -1,7 +1,7 @@
 ---
 - name: Add MySQL repo key
   ansible.builtin.copy:
-    src: "{{ lookup('first_found', ['mysql-repo.gpg', 'roles/mysql/files/mysql-repo.gpg']) }}"
+    src: "{{ lookup('first_found', ['files/mysql-repo.gpg', 'roles/mysql/files/mysql-repo.gpg']) }}"
     dest: /usr/share/keyrings/mysql-repo.gpg
     owner: root
     group: root
