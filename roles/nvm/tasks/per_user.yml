@@ -11,8 +11,9 @@
 
     - name: Install nvm
       ansible.builtin.shell: >
-        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v{{ nvm_version }}/install.sh | bash
+        set -o pipefail && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v{{ nvm_version }}/install.sh | bash
       args:
+        executable: /bin/bash
         creates: "{{ ansible_env.HOME }}/.nvm/nvm.sh"
       when: nvm_installed_version.stdout != nvm_version
 

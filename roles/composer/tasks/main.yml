@@ -7,8 +7,9 @@
     cache_valid_time: 3600
 
 - name: Install Composer
-  ansible.builtin.shell: curl -sS https://getcomposer.org/installer | php && mv composer.phar /usr/local/bin/composer
+  ansible.builtin.shell: set -o pipefail && curl -sS https://getcomposer.org/installer | php && mv composer.phar /usr/local/bin/composer
   args:
+    executable: /bin/bash
     creates: /usr/local/bin/composer
   register: composer_install
 
