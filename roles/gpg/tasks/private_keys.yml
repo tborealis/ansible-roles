@@ -3,10 +3,10 @@
   ansible.builtin.command: "gpg2 --list-secret-key {{ gpg_user_private_key.id }}"
   register: gpg_user_private_key_exists
   failed_when: "gpg_user_private_key_exists is failed and 'No secret key' not in gpg_user_private_key_exists.stderr"
-  changed_when: "gpg_user_private_key_exists is failed and 'No secret key' in gpg_user_private_key_exists.stderr"
+  changed_when: false
 
 - name: Import as new key
-  when: "gpg_user_private_key_exists is changed"
+  when: "'No secret key' in gpg_user_private_key_exists.stderr"
   block:
     - name: "Write private key {{ gpg_user_private_key.id }} to {{ gpg_basedir }}"
       ansible.builtin.copy:

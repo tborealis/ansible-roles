@@ -12,11 +12,11 @@
 
 - name: Format swap file
   ansible.builtin.command: mkswap /var/swap.1
-  when: swap_created is changed
+  when: swap_created is not skipped
 
 - name: Enable swapfile
   ansible.builtin.command: swapon /var/swap.1
-  when: swap_created is changed
+  when: swap_created is not skipped
 
 - name: Add swap to fstab
   ansible.posix.mount:
