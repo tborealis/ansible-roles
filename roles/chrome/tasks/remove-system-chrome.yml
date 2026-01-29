@@ -3,7 +3,7 @@
   ansible.builtin.apt:
     pkg: google-chrome-stable
     state: absent
-  ignore_errors: true # there appears to be an ansible bug causing a seg fault when the package is already removed
+  failed_when: false # there appears to be an ansible bug causing a seg fault when the package is already removed
 
 - name: Remove google repository
   ansible.builtin.apt_repository:
