@@ -1,5 +1,5 @@
 ---
-- name: "Remove Node {{ version }} repo"
+- name: "Remove Node repo: {{ version }}"
   ansible.builtin.apt_repository:
     repo: "{{ item }}"
     state: absent

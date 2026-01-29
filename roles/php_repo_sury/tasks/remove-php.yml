@@ -1,5 +1,5 @@
 ---
-- name: "Remove PHP {{ php_remove_version }} packages"
+- name: "Remove PHP packages: {{ php_remove_version }}"
   ansible.builtin.apt:
     pkg: "php{{ php_remove_version }}-*"
     state: absent

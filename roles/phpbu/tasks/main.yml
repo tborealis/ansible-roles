@@ -73,7 +73,7 @@
         mode: "0640"
         validate: "xmllint --noout --schema {{ phpbu_lib_dir }}/phpbu.xsd %s"
 
-    - name: "{{ phpbu_cron_enable | ternary('Install', 'Remove') }} cron"
+    - name: "Manage phpbu cron: {{ phpbu_cron_enable | ternary('install', 'remove') }}"
       ansible.builtin.cron:
         user: phpbu
         minute: "{{ phpbu_cron_time.0 }}"

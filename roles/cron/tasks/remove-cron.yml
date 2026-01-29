@@ -1,5 +1,5 @@
 ---
-- name: 'Remove "{{ name }}" cron'
+- name: "Remove cron: {{ name }}"
   ansible.builtin.cron:
     user: "{{ user }}"
     name: "{{ name }}"

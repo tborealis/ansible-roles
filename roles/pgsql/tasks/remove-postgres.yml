@@ -1,5 +1,5 @@
 ---
-- name: "Remove Postgres {{ version }} packages"
+- name: "Remove Postgres packages: {{ version }}"
   ansible.builtin.apt:
     pkg: "postgresql-{{ version }},postgresql-client-{{ version }}"
     state: absent
