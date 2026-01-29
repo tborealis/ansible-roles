@@ -32,6 +32,7 @@
 
 - name: Generate Composer Bash completion
   ansible.builtin.shell: "COMPOSER_ALLOW_SUPERUSER=1 composer completion bash > /etc/bash_completion.d/composer"
+  changed_when: true
   when: composer_install is changed or composer_update is changed or not composer_completion_stat.stat.exists
 
 - name: Install Composer global packages

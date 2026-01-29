@@ -19,6 +19,7 @@
       ansible.builtin.command: "gpg2 --batch --passphrase-fd 0 --pinentry-mode loopback --import {{ gpg_basedir }}/{{ gpg_user_private_key.id }}"
       args:
         stdin: "{{ gpg_user_private_key.passphrase }}"
+      changed_when: true
       no_log: true
 
     - name: "Remove private key temp file: {{ gpg_user_private_key.id }}"
