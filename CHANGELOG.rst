@@ -1,5 +1,5 @@
 ================================
-tomb.roles Release Notes
+tborealis.roles Release Notes
 ================================
 
 .. contents:: Topics
@@ -10,7 +10,7 @@ v1.0.0
 Release Summary
 ---------------
 
-Initial release of the tomb.roles collection.
+Initial release of the tborealis.roles collection.
 
 Major Changes
 -------------

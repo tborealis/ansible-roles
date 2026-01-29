@@ -1,4 +1,4 @@
-# Ansible Collection - tomb.roles
+# Ansible Collection - tborealis.roles
 
 Ansible Galaxy collection of roles for provisioning development and production environments.
 Requires **Ansible 2.15** or newer.
@@ -18,7 +18,7 @@ Reference the roles using the collection namespace:
 ```yaml
 - hosts: all
   roles:
-    - role: tomb.roles.base
+    - role: tborealis.roles.base
 ```
 
 ## Development
