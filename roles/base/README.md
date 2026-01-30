@@ -15,7 +15,6 @@ Base system configuration including locales, timezone, users, DNS, and essential
 | `default_users` | `[]` | Default users to create |
 | `users` | `[]` | Additional users to create |
 | `local_hostnames` | `[]` | Local hostname entries |
-| `vagrant` | `false` | Whether running in Vagrant |
 | `known_hosts` | `[]` | SSH known hosts entries |
 | `ssh_extra_user_groups` | `[]` | Extra groups for SSH users |
 | `ssh_extra_conf_files` | `[]` | Extra SSH config files |

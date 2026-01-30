@@ -8,7 +8,7 @@ Config
 
 ```yaml
 nvm_config:
-- user: vagrant # username to install NVM for
+- user: webdev # username to install NVM for
   default_version: lts # any version NVM understands to set as default
   versions: # array of versions to install for user
   - version: 10.7 # any version NVM understands

@@ -42,6 +42,3 @@
     working_dir: /
   with_items: "{{ composer_global_packages }}"
 
-- name: Vagrant specific config
-  ansible.builtin.include_tasks: vagrant.yml
-  when: vagrant and composer_create_swap

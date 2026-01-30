@@ -9,5 +9,3 @@ Installs PHP Composer and optionally global packages.
 | `composer_global_packages` | `[]` | Global Composer packages to install |
 | `composer_php_version` | `{{ php_cli_version }}` | PHP version to use |
 | `composer_keep_updated` | `true` | Keep Composer updated to latest version |
-| `composer_create_swap` | `false` | Create swap file (for low memory systems) |
-| `vagrant` | `false` | Whether running in Vagrant |
