@@ -30,7 +30,6 @@ Reference the roles using the collection namespace:
 | [aws_cli](roles/aws_cli/README.md) | AWS CLI installation and configuration |
 | [aws_config](roles/aws_config/README.md) | AWS credentials configuration |
 | [base](roles/base/README.md) | Base system configuration |
-| [base_minimal](roles/base_minimal/README.md) | Minimal base system configuration |
 | [certbot](roles/certbot/README.md) | Let's Encrypt SSL certificates |
 | [chrome](roles/chrome/README.md) | Google Chrome and ChromeDriver |
 | [composer](roles/composer/README.md) | PHP Composer |
