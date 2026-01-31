@@ -16,5 +16,8 @@ Installs and configures PostgreSQL server.
 | `postgres_effective_cache_size` | `1GB` | Effective cache size (1/2 RAM) |
 | `postgres_max_connections` | `100` | Maximum connections |
 | `postgres_risky_fast` | `false` | Disable fsync for speed (data loss risk) |
+| `postgres_full_page_writes` | `on` | Full page writes (off if risky_fast) |
+| `postgres_synchronous_commit` | `on` | Synchronous commit (off if risky_fast) |
+| `postgres_fsync` | `on` | Fsync writes (off if risky_fast) |
 | `postgres_max_wal_size` | `1GB` | Maximum WAL size |
 | `postgres_locale` | `{{ system_default_locale }}` | Database locale |

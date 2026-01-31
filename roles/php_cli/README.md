@@ -15,6 +15,8 @@ Configures PHP CLI with custom settings.
 | `php_cli_mysqlnd_collect_statistics` | `false` | Collect MySQLnd statistics |
 | `php_cli_xdebug` | `false` | Enable Xdebug |
 | `php_cli_xdebug_remote_enable` | `true` | Enable Xdebug remote debugging |
+| `php_cli_xdebug_remote_host` | `{{ php_cli_xdebug_client_host }}` | Xdebug remote host (legacy) |
+| `php_cli_xdebug_remote_autostart` | `true` | Xdebug remote autostart (legacy) |
 | `php_cli_xdebug_client_host` | `{{ php_xdebug_client_host }}` | Xdebug client host |
 | `php_cli_xdebug_idekey` | `cli` | Xdebug IDE key |
 | `php_cli_xdebug_max_nesting_level` | `500` | Maximum nesting level |

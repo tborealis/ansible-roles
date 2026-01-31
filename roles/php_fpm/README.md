@@ -20,7 +20,19 @@ Configures PHP-FPM with pools and custom settings.
 | `php_fpm_mysqlnd_collect_statistics` | `false` | Collect MySQLnd statistics |
 | `php_fpm_opcache_memory_consumption` | `128` | OPcache memory (MB) |
 | `php_fpm_opcache_max_accelerated_files` | `100000` | OPcache max files |
+| `php_fpm_opcache_file_cache` | | OPcache file cache directory |
+| `php_fpm_opcache_file_cache_only` | `0` | Use only file cache |
 | `php_fpm_opcache_validate_timestamps` | `0` | Validate timestamps |
+| `php_fpm_opcache_revalidate_freq` | `0` | Revalidation frequency |
 | `php_fpm_xdebug` | `false` | Enable Xdebug |
+| `php_fpm_xdebug_remote_enable` | `true` | Enable Xdebug remote debugging |
+| `php_fpm_xdebug_remote_host` | `{{ php_fpm_xdebug_client_host }}` | Xdebug remote host (legacy) |
+| `php_fpm_xdebug_remote_autostart` | `true` | Xdebug remote autostart (legacy) |
+| `php_fpm_xdebug_client_host` | `{{ php_xdebug_client_host }}` | Xdebug client host |
+| `php_fpm_xdebug_start_with_request` | `yes` | Start Xdebug with request |
+| `php_fpm_xdebug_idekey` | `fpm` | Xdebug IDE key |
+| `php_fpm_xdebug_max_nesting_level` | `500` | Maximum nesting level |
+| `php_fpm_zend_ignore_args` | `true` | Ignore args in backtraces |
+| `php_fpm_zend_assertions` | `-1` | Zend assertions mode |
 | `php_fpm_pools` | `[]` | FPM pool configurations |
 | `php_fpm_packages` | `{{ php_packages }}` | PHP packages to install |
