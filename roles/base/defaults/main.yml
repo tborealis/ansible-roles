@@ -30,4 +30,5 @@ base_default_system_packages:
   - man-db
   - gpg
   - zstd
+base_use_backports: "{{ ansible_distribution_release != 'trixie' }}"
 base_profile_config: []
