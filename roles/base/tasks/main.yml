@@ -14,6 +14,7 @@
     src: networking/dhclient.conf.j2
     dest: /etc/dhcp/dhclient.conf
     mode: "0644"
+  when: base_config_dhclient
 
 # fixes repos on first install
 - name: Update APT
