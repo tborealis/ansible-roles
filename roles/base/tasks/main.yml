@@ -145,4 +145,3 @@
     group: root
     mode: "0644"
   with_items: "{{ base_profile_config }}"
-

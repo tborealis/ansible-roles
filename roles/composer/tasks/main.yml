@@ -41,4 +41,3 @@
     prefer_dist: true
     working_dir: /
   with_items: "{{ composer_global_packages }}"
-
