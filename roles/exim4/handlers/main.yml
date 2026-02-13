@@ -1,6 +1,7 @@
 ---
 - name: Update exim4 config
   ansible.builtin.command: update-exim4.conf
+  changed_when: true
   notify: Restart exim4
 
 - name: Restart exim4

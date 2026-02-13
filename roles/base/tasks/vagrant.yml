@@ -1,7 +1,0 @@
----
-- name: Add vagrant to ssh-users group
-  ansible.builtin.user:
-    name: vagrant
-    groups: ssh-users
-    append: true
-    password: "*"

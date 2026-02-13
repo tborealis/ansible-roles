@@ -6,5 +6,5 @@
     update_cache: true
     cache_valid_time: 3600
 
-- name: "Running in {{ certbot_mode }} mode"
+- name: "Include tasks for mode: {{ certbot_mode }}"
   ansible.builtin.include_tasks: "{{ certbot_mode }}.yml"

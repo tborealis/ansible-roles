@@ -7,8 +7,9 @@
     cache_valid_time: 3600
 
 - name: Install Composer
-  ansible.builtin.shell: curl -sS https://getcomposer.org/installer | php && mv composer.phar /usr/local/bin/composer
+  ansible.builtin.shell: set -o pipefail && curl -sS https://getcomposer.org/installer | php && mv composer.phar /usr/local/bin/composer
   args:
+    executable: /bin/bash
     creates: /usr/local/bin/composer
   register: composer_install
 
@@ -31,6 +32,7 @@
 
 - name: Generate Composer Bash completion
   ansible.builtin.shell: "COMPOSER_ALLOW_SUPERUSER=1 composer completion bash > /etc/bash_completion.d/composer"
+  changed_when: true
   when: composer_install is changed or composer_update is changed or not composer_completion_stat.stat.exists
 
 - name: Install Composer global packages
@@ -39,7 +41,3 @@
     prefer_dist: true
     working_dir: /
   with_items: "{{ composer_global_packages }}"
-
-- name: Vagrant specific config
-  ansible.builtin.include_tasks: vagrant.yml
-  when: vagrant and composer_create_swap

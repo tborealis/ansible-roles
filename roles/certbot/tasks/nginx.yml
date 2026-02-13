@@ -1,10 +1,12 @@
 ---
 # On the first provision, nginx should not be running
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
 - name: Check if nginx running
-  ansible.builtin.command: systemctl is-active nginx.service
-  failed_when: certbot_nginx_active.rc not in [0, 3]
-  changed_when: false
-  register: certbot_nginx_active
+  ansible.builtin.set_fact:
+    certbot_nginx_active:
+      stdout: "{{ 'active' if (ansible_facts.services['nginx.service'].state | default('') == 'running') else 'inactive' }}"
 
 # The Nginx plugin should only be installed if Nginx is installed as the package has a dependency on Nginx
 - name: Install nginx plugin

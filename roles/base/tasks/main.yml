@@ -145,7 +145,3 @@
     group: root
     mode: "0644"
   with_items: "{{ base_profile_config }}"
-
-- name: Vagrant specific config
-  ansible.builtin.include_tasks: vagrant.yml
-  when: vagrant

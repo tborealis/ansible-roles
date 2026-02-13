@@ -13,7 +13,7 @@
       ansible.builtin.set_fact:
         gpg_basedir: "{{ gpg_user_details.home }}/.gnupg"
 
-    - name: "Ensure {{ gpg_basedir }} directory exists with secure permissions"
+    - name: "Ensure directory exists with secure permissions: {{ gpg_basedir }}"
       ansible.builtin.file:
         dest: "{{ gpg_basedir }}"
         state: directory

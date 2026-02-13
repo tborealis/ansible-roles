@@ -9,10 +9,3 @@
 ff02::1 ip6-allnodes
 ff02::2 ip6-allrouters
 
-{% if vagrant_hosts is defined %}
-{% for host,ip in vagrant_hosts.iteritems() %}
-{% if host != inventory_hostname %}
-{{ ip }} {{ host }}
-{% endif %}
-{% endfor %}
-{% endif %}

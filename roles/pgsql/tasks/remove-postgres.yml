@@ -1,9 +1,9 @@
 ---
-- name: "Remove Postgres {{ version }} packages"
+- name: "Remove Postgres packages: {{ version }}"
   ansible.builtin.apt:
     pkg: "postgresql-{{ version }},postgresql-client-{{ version }}"
     state: absent
     purge: true
     update_cache: true
     cache_valid_time: 3600
-  ignore_errors: true
+  failed_when: false

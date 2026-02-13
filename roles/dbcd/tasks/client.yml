@@ -1,6 +1,6 @@
 ---
 # This is to be applied to the machine that creates the database dump and uploads it to the server
-- name: "Add private key to {{ dbcd_client_user }} user"
+- name: "Add private key to user: {{ dbcd_client_user }}"
   ansible.builtin.copy:
     content: "{{ dbcd_client_private_key }}"
     dest: "/home/{{ dbcd_client_user }}/.ssh/dbcd"

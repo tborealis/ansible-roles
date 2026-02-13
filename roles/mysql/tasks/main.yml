@@ -26,6 +26,7 @@
 
 - name: Delete InnoDB logs if fresh install # changing logfile size causes restart issue until logs deleted
   ansible.builtin.shell: rm -f /var/lib/mysql/ib_logfile[01]
+  changed_when: true
   when: mysql_installed.stdout != "ii "
 
 - name: Configure

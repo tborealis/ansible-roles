@@ -2,3 +2,4 @@
 profile: shared
 skip_list:
   - experimental
+  - var-naming[no-role-prefix]
