@@ -2,7 +2,7 @@
 - name: Install git
   ansible.builtin.apt:
     pkg: git
-    default_release: "{{ ansible_distribution_release }}-backports"
+    default_release: "{{ (ansible_distribution_release + '-backports') if git_use_backports else omit }}"
     state: present
     update_cache: true
     cache_valid_time: 3600

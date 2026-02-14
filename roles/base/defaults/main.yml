@@ -30,4 +30,6 @@ base_default_system_packages:
   - man-db
   - gpg
   - zstd
+base_use_backports: "{{ ansible_distribution_release == 'bookworm' }}"
 base_profile_config: []
+base_config_dhclient: "{{ ansible_distribution_release == 'bookworm' }}"
