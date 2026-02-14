@@ -107,7 +107,6 @@
     update_cache: true
     cache_valid_time: 3600
   when: base_use_backports and base_openssh_apt_release.changed
-  # noqa no-handler
 
 - name: Configure sshd
   ansible.builtin.template:
