@@ -1,10 +1,26 @@
 ---
-- name: Install DO DNS plugin
+- name: Install DO DNS plugin via apt
   ansible.builtin.apt:
     name: python3-certbot-dns-digitalocean
     state: present
     update_cache: true
     cache_valid_time: 3600
+  when: ansible_distribution_major_version | int < 13
+
+- name: Install pip
+  ansible.builtin.apt:
+    name: python3-pip
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_distribution_major_version | int >= 13
+
+- name: Install DO DNS plugin via pip
+  ansible.builtin.pip:
+    name: certbot-dns-digitalocean
+    state: present
+    extra_args: --break-system-packages
+  when: ansible_distribution_major_version | int >= 13
 
 - name: Create DO DNS credentials file
   ansible.builtin.copy:
