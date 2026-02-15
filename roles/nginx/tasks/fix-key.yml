@@ -10,4 +10,4 @@
 
 - name: Add repository config trusting the expired key
   ansible.builtin.apt_repository:
-    repo: "deb [trusted=yes] https://nginx.org/packages/debian {{ ansible_distribution_release }} nginx"
+    repo: "deb [trusted=yes] https://nginx.org/packages/debian {{ ansible_facts['distribution_release'] }} nginx"

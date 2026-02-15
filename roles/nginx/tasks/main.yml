@@ -4,7 +4,7 @@
 
 - name: Add upstream repository
   ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] https://nginx.org/packages/debian {{ ansible_distribution_release }} nginx"
+    repo: "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] https://nginx.org/packages/debian {{ ansible_facts['distribution_release'] }} nginx"
 
 # passlib for basic auth
 - name: Install Nginx

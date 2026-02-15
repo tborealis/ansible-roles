@@ -4,7 +4,7 @@
 
 - name: Add PHP repository
   ansible.builtin.apt_repository:
-    repo: deb [signed-by=/usr/share/keyrings/php-sury-repo.gpg] https://packages.sury.org/php/ {{ ansible_distribution_release }} main
+    repo: deb [signed-by=/usr/share/keyrings/php-sury-repo.gpg] https://packages.sury.org/php/ {{ ansible_facts['distribution_release'] }} main
 
 - name: Install xdebug control scripts
   ansible.builtin.template:
