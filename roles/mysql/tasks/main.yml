@@ -4,7 +4,9 @@
 
 - name: Add MySQL repository
   ansible.builtin.apt_repository:
-    repo: deb [signed-by=/usr/share/keyrings/mysql-repo.gpg] https://repo.mysql.com/apt/debian/ {{ ansible_distribution_release }} mysql-{{ mysql_version }}
+    repo: >-
+      deb [signed-by=/usr/share/keyrings/mysql-repo.gpg]
+      https://repo.mysql.com/apt/debian/ {{ ansible_facts['distribution_release'] }} mysql-{{ mysql_version }}
 
 - name: Check if MySQL server installed
   ansible.builtin.shell: dpkg-query -W -f='${db:Status-Abbrev}' mysql-server || true
