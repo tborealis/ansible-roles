@@ -1,3 +1,4 @@
 ---
+node_corepack_enable: false
 node_global_packages: []
 node_npmrc: []
