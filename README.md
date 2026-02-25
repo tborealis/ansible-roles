@@ -8,7 +8,7 @@ Requires **Ansible 2.15** or newer.
 Install the latest version directly from GitHub:
 
 ```shell
-ansible-galaxy collection install git+https://github.com/TomAdam/ansible-roles.git
+ansible-galaxy collection install git+https://github.com/tborealis/ansible-roles.git
 ```
 
 ## Usage
