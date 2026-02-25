@@ -6,7 +6,7 @@ authors:
   - Tom Borealis <tom@lampbristol.com>
 description: A collection of roles for provisioning local and production environments
 license_file: 'LICENSE.txt'
-repository: https://github.com/TomAdam/ansible-roles
+repository: https://github.com/tborealis/ansible-roles
 tags:
   - infrastructure
   - linux
