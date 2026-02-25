@@ -6,7 +6,7 @@ This is an Ansible Galaxy collection (`tborealis.roles`) containing reusable rol
 
 ## Commands
 
-- **Lint**: `ansible-lint` (run directly, not via make)
+- **Lint**: `make lint` (runs ansible-lint in a Docker container with the version pinned in `requirements-dev.txt`)
 - **Test**: No automated tests currently
 
 ## Code Style
