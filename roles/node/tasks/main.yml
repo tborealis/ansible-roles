@@ -29,7 +29,7 @@
     corepack enable
     {{ node_corepack_enable if node_corepack_enable is string else '' }}
   changed_when: true
-  when: node_corepack_enable != false
+  when: node_corepack_enable is not false
 
 - name: Write .npmrc
   ansible.builtin.template:

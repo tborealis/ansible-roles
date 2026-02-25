@@ -9,7 +9,7 @@
     bash -ic "nvm exec {{ nvm_user_config_version.version }} corepack enable
     {{ nvm_user_config_version.corepack_enable if nvm_user_config_version.corepack_enable is string else '' }}"
   changed_when: true
-  when: nvm_user_config_version.corepack_enable|default(false) != false
+  when: nvm_user_config_version.corepack_enable|default(false) is not false
 
 - name: "Install global packages for Node version {{ nvm_user_config_version.version }}"
   ansible.builtin.command: 'bash -ic "nvm exec {{ nvm_user_config_version.version }}  npm install -g --production {{ item }}"'
