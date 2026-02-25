@@ -24,6 +24,13 @@
     update_cache: true
     cache_valid_time: 3600
 
+- name: Enable package managers via corepack
+  ansible.builtin.command: >-
+    corepack enable
+    {{ node_corepack_enable if node_corepack_enable is string else '' }}
+  changed_when: true
+  when: node_corepack_enable is not false
+
 - name: Write .npmrc
   ansible.builtin.template:
     src: "node/{{ item.template }}"

@@ -12,12 +12,16 @@ nvm_config:
   default_version: lts # any version NVM understands to set as default
   versions: # array of versions to install for user
   - version: 10.7 # any version NVM understands
-    global_packages: # array of global packages specific to user and version 
+    global_packages: # array of global packages specific to user and version
     - gulp
   - version: lts
+    corepack_enable: true # runs `corepack enable` for this version
     global_packages:
     - grunt
 ```
+
+`corepack_enable` can be set to `true` to enable all package managers, or to a specific
+package manager name (e.g. `yarn`) to enable only that one.
 
 System Node
 -----------
