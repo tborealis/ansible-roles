@@ -71,11 +71,12 @@ Run `make lint` to check the collection with Docker:
 ```shell
 make lint
 ```
-The Makefile uses the `cytopia/ansible-lint` image.
-If Docker is unavailable, install `ansible-lint` locally and run it directly:
+
+The ansible-lint version is pinned in `requirements-dev.txt` and shared between CI and local linting.
+If Docker is unavailable, install the dependencies locally and run ansible-lint directly:
 
 ```shell
-pip install ansible-lint
+pip install -r requirements-dev.txt
 ansible-lint
 ```
 
