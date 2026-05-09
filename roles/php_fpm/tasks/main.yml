@@ -1,4 +1,9 @@
 ---
+- name: Validate PHP FPM version is supported
+  ansible.builtin.assert:
+    that: php_fpm_version in php_fpm_supported_versions
+    fail_msg: "Unsupported PHP FPM version '{{ php_fpm_version }}'. Supported: {{ php_fpm_supported_versions | join(', ') }}"
+
 - name: Install PHP FPM
   ansible.builtin.apt:
     pkg: "php{{ php_fpm_version }}-fpm"
@@ -37,7 +42,7 @@
 
 - name: Apply PHP FPM settings
   ansible.builtin.template:
-    src: "{{ lookup('first_found', [role_path~'/templates/php'~php_fpm_version~'.ini.j2', role_path~'/templates/php.ini.j2']) }}"
+    src: "php{{ php_fpm_version }}.ini.j2"
     dest: "/etc/php/{{ php_fpm_version }}/fpm/php.ini"
     owner: root
     group: root
