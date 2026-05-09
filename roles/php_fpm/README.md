@@ -2,17 +2,20 @@
 
 Configures PHP-FPM with pools and custom settings.
 
+Supported PHP versions: 7.4, 8.0, 8.1, 8.2, 8.3, 8.4. The role asserts `php_fpm_version` is one of these and fails otherwise.
+
 ## Role Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `php_fpm_version` | `{{ php_version }}` | PHP version |
+| `php_fpm_supported_versions` | `["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]` | Versions this role can configure |
 | `php_fpm_date_timezone` | `Europe/London` | Default timezone |
 | `php_fpm_realpath_cache_size` | `16M` | Realpath cache size |
 | `php_fpm_realpath_cache_ttl` | `120` | Realpath cache TTL |
 | `php_fpm_memory_limit` | `64M` | Memory limit |
 | `php_fpm_max_execution_time` | `30` | Maximum execution time |
-| `php_fpm_error_reporting` | `E_ALL & ~E_DEPRECATED & ~E_STRICT` | Error reporting level |
+| `php_fpm_error_reporting` | `E_ALL & ~E_DEPRECATED` | Error reporting level |
 | `php_fpm_display_errors` | `false` | Display errors |
 | `php_fpm_display_startup_errors` | `false` | Display startup errors |
 | `php_fpm_post_max_size` | `8M` | Maximum POST size |

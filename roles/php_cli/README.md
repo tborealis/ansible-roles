@@ -2,13 +2,16 @@
 
 Configures PHP CLI with custom settings.
 
+Supported PHP versions: 7.4, 8.0, 8.1, 8.2, 8.3, 8.4. The role asserts `php_cli_version` is one of these and fails otherwise.
+
 ## Role Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `php_cli_version` | `{{ php_version }}` | PHP version |
+| `php_cli_supported_versions` | `["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]` | Versions this role can configure |
 | `php_cli_date_timezone` | `Europe/London` | Default timezone |
-| `php_cli_error_reporting` | `E_ALL & ~E_DEPRECATED & ~E_STRICT` | Error reporting level |
+| `php_cli_error_reporting` | `E_ALL & ~E_DEPRECATED` | Error reporting level |
 | `php_cli_display_errors` | `false` | Display errors |
 | `php_cli_display_startup_errors` | `false` | Display startup errors |
 | `php_cli_error_log` | `syslog` | Error log destination |
