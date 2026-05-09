@@ -15,7 +15,7 @@ Supported PHP versions: 7.4, 8.0, 8.1, 8.2, 8.3, 8.4. The role asserts `php_fpm_
 | `php_fpm_realpath_cache_ttl` | `120` | Realpath cache TTL |
 | `php_fpm_memory_limit` | `64M` | Memory limit |
 | `php_fpm_max_execution_time` | `30` | Maximum execution time |
-| `php_fpm_error_reporting` | `E_ALL & ~E_DEPRECATED & ~E_STRICT` | Error reporting level |
+| `php_fpm_error_reporting` | `E_ALL & ~E_DEPRECATED` | Error reporting level |
 | `php_fpm_display_errors` | `false` | Display errors |
 | `php_fpm_display_startup_errors` | `false` | Display startup errors |
 | `php_fpm_post_max_size` | `8M` | Maximum POST size |
