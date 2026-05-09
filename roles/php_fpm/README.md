@@ -2,14 +2,14 @@
 
 Configures PHP-FPM with pools and custom settings.
 
-Supported PHP versions: 7.4, 8.0, 8.1, 8.2, 8.3, 8.4. The role asserts `php_fpm_version` is one of these and fails otherwise.
+Supported PHP versions: 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5. The role asserts `php_fpm_version` is one of these and fails otherwise.
 
 ## Role Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `php_fpm_version` | `{{ php_version }}` | PHP version |
-| `php_fpm_supported_versions` | `["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]` | Versions this role can configure |
+| `php_fpm_supported_versions` | `["7.4", "8.0", "8.1", "8.2", "8.3", "8.4", "8.5"]` | Versions this role can configure |
 | `php_fpm_date_timezone` | `Europe/London` | Default timezone |
 | `php_fpm_realpath_cache_size` | `16M` | Realpath cache size |
 | `php_fpm_realpath_cache_ttl` | `120` | Realpath cache TTL |
