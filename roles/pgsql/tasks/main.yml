@@ -66,6 +66,15 @@
   no_log: true
   with_items: "{{ postgres_users }}"
 
+- name: Create schemas
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_schema:
+    db: "{{ item.db }}"
+    name: "{{ item.name }}"
+    owner: "{{ item.owner | default(omit) }}"
+  with_items: "{{ postgres_schemas }}"
+
 - name: Apply privs
   become: true
   become_user: postgres
@@ -75,6 +84,8 @@
     privs: "{{ item.privs }}"
     type: "{{ item.type | default(omit) }}"
     objs: "{{ item.objs | default(omit) }}"
+    schema: "{{ item.schema | default(omit) }}"
+    target_roles: "{{ item.target_roles | default(omit) }}"
   with_items: "{{ postgres_privs }}"
 
 - name: Enable extensions
