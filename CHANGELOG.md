@@ -11,6 +11,10 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Changed
+
+- **yarn:** update the bundled Yarn APT repository signing key
+
 ### Added
 
 - **pgsql:** add `postgres_schemas` variable to create schemas, and
