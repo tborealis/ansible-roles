@@ -72,7 +72,7 @@
   when: mysql_installed.stdout != "ii "
 
 - name: Set MySQL root password
-  community.mysql.mysql_user:
+  ansible.mysql.mysql_user:
     name: root
     host_all: true
     login_user: root
@@ -83,7 +83,7 @@
     column_case_sensitive: true
 
 - name: Create databases
-  community.mysql.mysql_db:
+  ansible.mysql.mysql_db:
     name: "{{ item.name }}"
     collation: "{{ item.collation | default('utf8_general_ci') }}"
     encoding: "{{ item.encoding | default('utf8') }}"
@@ -93,7 +93,7 @@
   with_items: "{{ mysql_databases }}"
 
 - name: Create users
-  community.mysql.mysql_user:
+  ansible.mysql.mysql_user:
     name: "{{ item.name }}"
     host: "{{ item.host | default('localhost') }}"
     plugin: caching_sha2_password

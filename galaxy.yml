@@ -16,7 +16,7 @@ build_ignore:
   - .gitignore
 dependencies:
   ansible.posix: '*'
+  ansible.mysql: '*'
   community.general: '*'
-  community.mysql: '*'
   community.postgresql: '*'
   community.rabbitmq: '*'
