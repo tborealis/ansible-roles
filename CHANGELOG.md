@@ -11,10 +11,6 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
-### Changed
-
-- **yarn:** update the bundled Yarn APT repository signing key
-
 ### Added
 
 - **pgsql:** add `postgres_schemas` variable to create schemas, and
@@ -22,6 +18,25 @@ flagged with **BREAKING** and require a MAJOR version bump.
   default-privilege grants
 - **pgsql:** add `postgres_become_user` variable (default `postgres`) to configure the
   system user that database operations run as
+
+### Changed
+
+- **yarn:** update the bundled Yarn APT repository signing key
+- **base, do_agent, mysql, new_relic, nginx, node, pgsql, pgsql_client,
+  php_repo_sury, yarn:** stop using the deprecated `ansible.builtin.apt_repository` module
+  (slated for removal in ansible-core 2.25). Repositories are now configured with
+  `deb822_repository`, and these roles install the `python3-debian` package the
+  new module requires. Stale `.list` files left by the old module are removed on the next
+  run so apt no longer warns about duplicate sources.
+- **chrome:** drop the deprecated `ansible.builtin.apt_repository` task that removed the
+  Google Chrome repository during system-chrome cleanup.
+- **rabbitmq:** replace the deprecated `ansible.builtin.apt_key` and `apt_repository` with
+  a `/usr/share/keyrings` key and a `signed-by` `deb822_repository`.
+- **tasks:** replace the deprecated `ansible.builtin.apt_key` in the shared `add-key`
+  helper with a copy into `/etc/apt/trusted.gpg.d` (the `key_path` interface is unchanged).
+- **mysql:** **BREAKING** switch from the deprecated `community.mysql` collection to the
+  renamed `ansible.mysql` collection. Consumers of `tborealis.roles` must now install the
+  `ansible.mysql` collection.
 
 ## [1.0.0] - 2026-06-11
 

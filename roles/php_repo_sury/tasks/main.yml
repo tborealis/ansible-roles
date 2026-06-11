@@ -2,9 +2,36 @@
 - name: Import key task
   ansible.builtin.import_tasks: add-key.yml
 
+- name: Install deb822 dependency
+  ansible.builtin.apt:
+    pkg: python3-debian
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
 - name: Add PHP repository
-  ansible.builtin.apt_repository:
-    repo: deb [signed-by=/usr/share/keyrings/php-sury-repo.gpg] https://packages.sury.org/php/ {{ ansible_facts['distribution_release'] }} main
+  ansible.builtin.deb822_repository:
+    name: php-sury
+    types: [deb]
+    uris: https://packages.sury.org/php/
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: main
+    signed_by: /usr/share/keyrings/php-sury-repo.gpg
+
+- name: Find legacy PHP list file
+  ansible.builtin.find:
+    paths: /etc/apt/sources.list.d
+    patterns: "*.list"
+    contains: 'packages\.sury\.org'
+  register: php_repo_sury_legacy_list
+
+- name: Remove legacy PHP list file
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ php_repo_sury_legacy_list.files }}"
+  loop_control:
+    label: "{{ item.path }}"
 
 - name: Install xdebug control scripts
   ansible.builtin.template:

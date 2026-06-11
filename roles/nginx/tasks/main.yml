@@ -2,9 +2,36 @@
 - name: Manage repo key
   ansible.builtin.import_tasks: add-key.yml
 
+- name: Install deb822 dependency
+  ansible.builtin.apt:
+    pkg: python3-debian
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
 - name: Add upstream repository
-  ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] https://nginx.org/packages/debian {{ ansible_facts['distribution_release'] }} nginx"
+  ansible.builtin.deb822_repository:
+    name: nginx
+    types: [deb]
+    uris: https://nginx.org/packages/debian
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: nginx
+    signed_by: /usr/share/keyrings/nginx-archive-keyring.gpg
+
+- name: Find legacy Nginx list file
+  ansible.builtin.find:
+    paths: /etc/apt/sources.list.d
+    patterns: "*.list"
+    contains: 'nginx\.org/packages'
+  register: nginx_legacy_list
+
+- name: Remove legacy Nginx list file
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ nginx_legacy_list.files }}"
+  loop_control:
+    label: "{{ item.path }}"
 
 # passlib for basic auth
 - name: Install Nginx

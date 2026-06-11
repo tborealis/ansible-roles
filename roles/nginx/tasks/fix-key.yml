@@ -4,10 +4,17 @@
     path: /etc/apt/sources.list.d/nginx_org_packages_debian.list
     state: absent
 
-- name: Update APT
+- name: Install deb822 dependency
   ansible.builtin.apt:
+    pkg: python3-debian
+    state: present
     update_cache: true
 
 - name: Add repository config trusting the expired key
-  ansible.builtin.apt_repository:
-    repo: "deb [trusted=yes] https://nginx.org/packages/debian {{ ansible_facts['distribution_release'] }} nginx"
+  ansible.builtin.deb822_repository:
+    name: nginx
+    types: [deb]
+    uris: https://nginx.org/packages/debian
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: nginx
+    trusted: true

@@ -1,8 +1,8 @@
 ---
 collections:
   - name: ansible.posix
+  - name: ansible.mysql
   - name: community.general
-  - name: community.mysql
   - name: community.postgresql
   - name: community.rabbitmq
 roles:

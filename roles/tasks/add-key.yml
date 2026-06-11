@@ -7,6 +7,9 @@
 
 # Base path is ansible folder
 - name: Add key
-  ansible.builtin.apt_key:
-    data: "{{ lookup('file', key_path) }}"
-    state: present
+  ansible.builtin.copy:
+    content: "{{ lookup('file', key_path) }}"
+    dest: "/etc/apt/trusted.gpg.d/{{ key_path | basename }}"
+    owner: root
+    group: root
+    mode: "0644"
