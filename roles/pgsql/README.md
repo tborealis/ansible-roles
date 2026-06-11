@@ -11,6 +11,7 @@ Installs and configures PostgreSQL server.
 | `postgres_schemas` | `[]` | Schemas to create (keys: `db`, `name`, `owner`) |
 | `postgres_privs` | `[]` | Privileges to grant (keys: `db`, `roles`, `privs`, `type`, `objs`, `schema`, `target_roles`) |
 | `postgres_extensions` | `[]` | Extensions to enable |
+| `postgres_become_user` | `postgres` | System user to run database operations as |
 | `postgres_default_packages` | See defaults | PostgreSQL packages to install |
 | `postgres_additional_packages` | `[]` | Additional packages to install |
 | `postgres_shared_buffers` | `512MB` | Shared buffers size (1/4 RAM) |
