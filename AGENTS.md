@@ -51,3 +51,23 @@ Role READMEs should include:
 - Requirements (if any)
 - Variables table with Name, Default, and Description columns
 - No example playbook sections
+
+## Versioning & releases
+
+The collection uses [SemVer](https://semver.org/) and a Keep a Changelog
+`CHANGELOG.md`. **The full policy lives in [`docs/releasing.md`](docs/releasing.md)** —
+read it before cutting a release. The essentials for day-to-day work:
+
+**Update the changelog on every change.** Add a line under `## [Unreleased]` in the
+right category (`Added`/`Changed`/`Fixed`/`Removed`/`Deprecated`/`Security`), prefixed
+with the affected role, e.g. `- **nginx:** ...` (use `- **meta:** ...` for CI, docs, or
+tooling). Assess whether the change is **breaking** (removed/renamed variables, changed
+default behaviour, renamed depended-on task names, raised Ansible/OS requirements); if
+so, add **BREAKING** to the entry and recommend a MAJOR bump in the PR description. If no
+entry is warranted (pure CI/docs), apply the `skip-changelog` label instead. CI blocks
+PRs that don't touch `CHANGELOG.md` unless that label is set.
+
+**Cut a release** with `make release VERSION=vX.Y.Z` (bumps `galaxy.yml` and promotes
+`[Unreleased]` to a dated heading), commit on a `release/vX.Y.Z` branch, merge to
+`main`, then `git tag vX.Y.Z && git push origin vX.Y.Z`. CI verifies the tag matches
+`galaxy.yml`/`CHANGELOG.md` and publishes the GitHub Release.
