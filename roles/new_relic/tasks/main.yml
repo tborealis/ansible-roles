@@ -7,9 +7,36 @@
     group: root
     mode: "0644"
 
+- name: Install deb822 dependency
+  ansible.builtin.apt:
+    pkg: python3-debian
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
 - name: Add New Relic repo
-  ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/newrelic-repo.gpg] https://apt.newrelic.com/debian/ newrelic non-free"
+  ansible.builtin.deb822_repository:
+    name: newrelic
+    types: [deb]
+    uris: https://apt.newrelic.com/debian/
+    suites: newrelic
+    components: non-free
+    signed_by: /usr/share/keyrings/newrelic-repo.gpg
+
+- name: Find legacy New Relic list file
+  ansible.builtin.find:
+    paths: /etc/apt/sources.list.d
+    patterns: "*.list"
+    contains: 'apt\.newrelic\.com'
+  register: new_relic_legacy_list
+
+- name: Remove legacy New Relic list file
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ new_relic_legacy_list.files }}"
+  loop_control:
+    label: "{{ item.path }}"
 
 - name: Install New Relic
   ansible.builtin.apt:

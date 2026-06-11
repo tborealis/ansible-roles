@@ -2,11 +2,36 @@
 - name: Manage repo key
   ansible.builtin.import_tasks: add-key.yml
 
+- name: Install deb822 dependency
+  ansible.builtin.apt:
+    pkg: python3-debian
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
 - name: Add MySQL repository
-  ansible.builtin.apt_repository:
-    repo: >-
-      deb [signed-by=/usr/share/keyrings/mysql-repo.gpg]
-      https://repo.mysql.com/apt/debian/ {{ ansible_facts['distribution_release'] }} mysql-{{ mysql_version }}
+  ansible.builtin.deb822_repository:
+    name: mysql
+    types: [deb]
+    uris: https://repo.mysql.com/apt/debian/
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: "mysql-{{ mysql_version }}"
+    signed_by: /usr/share/keyrings/mysql-repo.gpg
+
+- name: Find legacy MySQL list file
+  ansible.builtin.find:
+    paths: /etc/apt/sources.list.d
+    patterns: "*.list"
+    contains: 'repo\.mysql\.com'
+  register: mysql_legacy_list
+
+- name: Remove legacy MySQL list file
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ mysql_legacy_list.files }}"
+  loop_control:
+    label: "{{ item.path }}"
 
 - name: Check if MySQL server installed
   ansible.builtin.shell: dpkg-query -W -f='${db:Status-Abbrev}' mysql-server || true

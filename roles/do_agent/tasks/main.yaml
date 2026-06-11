@@ -7,10 +7,26 @@
     group: root
     mode: "0644"
 
+- name: Install deb822 dependency
+  ansible.builtin.apt:
+    pkg: python3-debian
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
 - name: Add repository
-  ansible.builtin.apt_repository:
-    filename: digitalocean-agent
-    repo: deb [signed-by=/usr/share/keyrings/digitalocean-agent-keyring.gpg] https://repos.insights.digitalocean.com/apt/do-agent main main
+  ansible.builtin.deb822_repository:
+    name: digitalocean-agent
+    types: [deb]
+    uris: https://repos.insights.digitalocean.com/apt/do-agent
+    suites: main
+    components: main
+    signed_by: /usr/share/keyrings/digitalocean-agent-keyring.gpg
+
+- name: Remove legacy repository list file
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d/digitalocean-agent.list
+    state: absent
 
 - name: Install agent
   ansible.builtin.apt:

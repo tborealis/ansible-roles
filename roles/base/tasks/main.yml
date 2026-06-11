@@ -22,12 +22,39 @@
     update_cache: true
     cache_valid_time: 3600
 
-- name: Add backports repo
-  ansible.builtin.apt_repository:
-    repo: "deb https://deb.debian.org/debian {{ ansible_facts['distribution_release'] }}-backports main"
-    state: present
-    update_cache: true
+- name: Configure backports repo
   when: base_use_backports
+  block:
+    - name: Install deb822 dependency
+      ansible.builtin.apt:
+        pkg: python3-debian
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Add backports repo
+      ansible.builtin.deb822_repository:
+        name: debian-backports
+        types: [deb]
+        uris: https://deb.debian.org/debian
+        suites: "{{ ansible_facts['distribution_release'] }}-backports"
+        components: main
+        state: present
+
+    - name: Find legacy backports list file
+      ansible.builtin.find:
+        paths: /etc/apt/sources.list.d
+        patterns: "*.list"
+        contains: 'deb\.debian\.org/debian.*backports'
+      register: base_legacy_backports
+
+    - name: Remove legacy backports list file
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ base_legacy_backports.files }}"
+      loop_control:
+        label: "{{ item.path }}"
 
 - name: Install system packages
   ansible.builtin.apt:

@@ -2,11 +2,36 @@
 - name: Import key task
   ansible.builtin.import_tasks: add-key.yml
 
+- name: Install deb822 dependency
+  ansible.builtin.apt:
+    pkg: python3-debian
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
 - name: Add Yarn repo
-  ansible.builtin.apt_repository:
-    repo: "{{ item }}"
-  with_items:
-    - "deb [signed-by=/usr/share/keyrings/yarn-repo.gpg] https://dl.yarnpkg.com/debian/ stable main"
+  ansible.builtin.deb822_repository:
+    name: yarn
+    types: [deb]
+    uris: https://dl.yarnpkg.com/debian/
+    suites: stable
+    components: main
+    signed_by: /usr/share/keyrings/yarn-repo.gpg
+
+- name: Find legacy Yarn list file
+  ansible.builtin.find:
+    paths: /etc/apt/sources.list.d
+    patterns: "*.list"
+    contains: 'dl\.yarnpkg\.com'
+  register: yarn_legacy_list
+
+- name: Remove legacy Yarn list file
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ yarn_legacy_list.files }}"
+  loop_control:
+    label: "{{ item.path }}"
 
 - name: Install Yarn
   ansible.builtin.apt:

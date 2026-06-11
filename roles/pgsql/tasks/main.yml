@@ -7,10 +7,37 @@
     group: root
     mode: "0644"
 
-- name: Add PostgreSQL repository
-  ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/postgresql.gpg] https://apt.postgresql.org/pub/repos/apt/ {{ ansible_facts['distribution_release'] }}-pgdg main"
+- name: Install deb822 dependency
+  ansible.builtin.apt:
+    pkg: python3-debian
     state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Add PostgreSQL repository
+  ansible.builtin.deb822_repository:
+    name: postgresql
+    types: [deb]
+    uris: https://apt.postgresql.org/pub/repos/apt/
+    suites: "{{ ansible_facts['distribution_release'] }}-pgdg"
+    components: main
+    signed_by: /usr/share/keyrings/postgresql.gpg
+    state: present
+
+- name: Find legacy PostgreSQL list file
+  ansible.builtin.find:
+    paths: /etc/apt/sources.list.d
+    patterns: "*.list"
+    contains: 'apt\.postgresql\.org'
+  register: postgres_legacy_list
+
+- name: Remove legacy PostgreSQL list file
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ postgres_legacy_list.files }}"
+  loop_control:
+    label: "{{ item.path }}"
 
 - name: Install PostgreSQL packages
   ansible.builtin.apt:

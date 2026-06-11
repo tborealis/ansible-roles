@@ -5,12 +5,6 @@
     state: absent
   failed_when: false # there appears to be an ansible bug causing a seg fault when the package is already removed
 
-- name: Remove google repository
-  ansible.builtin.apt_repository:
-    filename: google-chrome
-    repo: deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main
-    state: absent
-
 - name: Remove remaining config files
   ansible.builtin.file:
     path: "{{ item }}"
