@@ -1,7 +1,7 @@
 ---
 - name: Validate PHP FPM version is supported
   ansible.builtin.assert:
-    that: php_fpm_version in php_fpm_supported_versions
+    that: php_fpm_version | string in php_fpm_supported_versions
     fail_msg: "Unsupported PHP FPM version '{{ php_fpm_version }}'. Supported: {{ php_fpm_supported_versions | join(', ') }}"
 
 - name: Install PHP FPM

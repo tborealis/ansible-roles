@@ -38,6 +38,12 @@ flagged with **BREAKING** and require a MAJOR version bump.
   renamed `ansible.mysql` collection. Consumers of `tborealis.roles` must now install the
   `ansible.mysql` collection.
 
+### Fixed
+
+- **php_cli, php_fpm:** accept an unquoted YAML version (e.g. `php_version: 8.1`
+  parsed as a float) in the supported-version check by coercing to a string before
+  comparison
+
 ## [1.0.0] - 2026-06-11
 
 ### Added
