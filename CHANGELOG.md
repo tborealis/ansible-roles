@@ -11,6 +11,14 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Added
+
+- **pgsql:** add `postgres_schemas` variable to create schemas, and
+  `schema`/`target_roles` keys in `postgres_privs` for schema-scoped and
+  default-privilege grants
+- **pgsql:** add `postgres_become_user` variable (default `postgres`) to configure the
+  system user that database operations run as
+
 ## [1.0.0] - 2026-06-11
 
 ### Added

@@ -1,8 +1,10 @@
 ---
 postgres_databases: []
 postgres_users: []
+postgres_schemas: []
 postgres_privs: []
 postgres_extensions: []
+postgres_become_user: postgres
 postgres_default_packages:
   - "postgresql-{{ postgres_version }}"
   - "postgresql-client-{{ postgres_version }}"
