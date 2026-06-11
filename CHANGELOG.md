@@ -11,6 +11,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-06-12
+
 ### Added
 
 - **pgsql:** add `postgres_schemas` variable to create schemas, and
