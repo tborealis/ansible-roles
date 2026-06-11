@@ -1,13 +1,42 @@
 ---
-- name: Add key for RabbitMQ repository
-  ansible.builtin.apt_key:
-    data: "{{ lookup('file', 'rabbitmq-repo.asc') }}"
+- name: Install deb822 dependency
+  ansible.builtin.apt:
+    pkg: python3-debian
     state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Add RabbitMQ repo key
+  ansible.builtin.copy:
+    src: rabbitmq-repo.asc
+    dest: /usr/share/keyrings/rabbitmq.asc
+    owner: root
+    group: root
+    mode: "0644"
 
 - name: Add RabbitMQ repository
-  ansible.builtin.apt_repository:
-    repo: deb https://www.rabbitmq.com/debian/ testing main
-    state: present
+  ansible.builtin.deb822_repository:
+    name: rabbitmq
+    types: [deb]
+    uris: https://www.rabbitmq.com/debian/
+    suites: testing
+    components: main
+    signed_by: /usr/share/keyrings/rabbitmq.asc
+
+- name: Find legacy RabbitMQ list file
+  ansible.builtin.find:
+    paths: /etc/apt/sources.list.d
+    patterns: "*.list"
+    contains: 'rabbitmq\.com'
+  register: rabbitmq_legacy_list
+
+- name: Remove legacy RabbitMQ list file
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ rabbitmq_legacy_list.files }}"
+  loop_control:
+    label: "{{ item.path }}"
 
 - name: Install RabbitMQ
   ansible.builtin.apt:
