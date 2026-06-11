@@ -81,3 +81,11 @@ ansible-lint
 ```
 
 See `galaxy.yml` for collection metadata and dependencies.
+
+## Releases
+
+The collection follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and
+records every change in [`CHANGELOG.md`](CHANGELOG.md). Releases are cut by pushing a
+`vX.Y.Z` tag to `main`, which publishes a GitHub Release via GitHub Actions. See the
+[Versioning & releases](AGENTS.md#versioning--releases) policy for the full process and
+changelog conventions.
