@@ -11,6 +11,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-06-12
+
 ### Added
 
 - **redis:** add `redis_version` to optionally pin a major or major.minor line (e.g.
