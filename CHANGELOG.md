@@ -11,6 +11,12 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Fixed
+
+- **pgsql:** use the canonical `login_db` parameter for `postgresql_user`,
+  `postgresql_schema`, `postgresql_privs`, and `postgresql_ext` tasks, replacing the
+  deprecated `db`/`database` aliases (slated for removal in `community.postgresql` 5.0.0)
+
 ## [2.0.0] - 2026-06-12
 
 ### Added
