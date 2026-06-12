@@ -11,6 +11,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-06-12
+
 ### Fixed
 
 - **pgsql:** use the canonical `login_db` parameter for `postgresql_user`,
