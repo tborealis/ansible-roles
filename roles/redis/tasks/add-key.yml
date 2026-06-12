@@ -1,0 +1,8 @@
+---
+- name: Add Redis repo key
+  ansible.builtin.copy:
+    src: "{{ lookup('first_found', ['files/redis-archive-keyring.gpg', 'roles/redis/files/redis-archive-keyring.gpg']) }}"
+    dest: /usr/share/keyrings/redis-archive-keyring.gpg
+    owner: root
+    group: root
+    mode: "0644"

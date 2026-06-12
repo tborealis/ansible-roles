@@ -1,10 +1,67 @@
 ---
+- name: Manage repo key
+  ansible.builtin.import_tasks: add-key.yml
+
+- name: Install deb822 dependency
+  ansible.builtin.apt:
+    pkg: python3-debian
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Add Redis repository
+  ansible.builtin.deb822_repository:
+    name: redis
+    types: [deb]
+    uris: https://packages.redis.io/deb
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: main
+    signed_by: /usr/share/keyrings/redis-archive-keyring.gpg
+
+- name: Pin Redis version
+  ansible.builtin.template:
+    src: redis.pref.j2
+    dest: /etc/apt/preferences.d/redis.pref
+    owner: root
+    group: root
+    mode: "0644"
+  when: redis_version | length > 0
+
+- name: Remove Redis version pin
+  ansible.builtin.file:
+    path: /etc/apt/preferences.d/redis.pref
+    state: absent
+  when: redis_version | length == 0
+
 - name: Install Redis
   ansible.builtin.apt:
     pkg: redis-server
     state: present
     update_cache: true
     cache_valid_time: 3600
+
+- name: Configure Redis
+  ansible.builtin.template:
+    src: redis-ansible.conf.j2
+    dest: /etc/redis/redis-ansible.conf
+    owner: root
+    group: redis
+    mode: "0640"
+  notify: Restart Redis
+
+- name: Include Redis overrides
+  ansible.builtin.lineinfile:
+    path: /etc/redis/redis.conf
+    line: include /etc/redis/redis-ansible.conf
+    insertafter: EOF
+    state: present
+  notify: Restart Redis
+
+- name: Enable and start Redis
+  ansible.builtin.systemd:
+    name: redis-server
+    enabled: true
+    state: started
 
 - name: Add vm.overcommit_memory = 1 to sysctl
   ansible.posix.sysctl:

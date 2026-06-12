@@ -11,6 +11,22 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Added
+
+- **redis:** add `redis_version` to optionally pin a major or major.minor line (e.g.
+  `8` or `7.4`) via an apt preferences file; empty (the default) installs the latest
+- **redis:** add `redis_bind`, `redis_maxmemory`, `redis_maxmemory_policy`, and
+  `redis_password` variables, written to an Ansible-managed `/etc/redis/redis-ansible.conf`
+  that is included from the packaged `redis.conf`; the service is now restarted when
+  the configuration changes
+
+### Changed
+
+- **redis:** BREAKING install Redis from the official `packages.redis.io` APT repository
+  via `deb822_repository` (with the signing key shipped in the role) instead of the
+  distribution's own repository, and explicitly enable and start the service
+- **redis:** BREAKING bind to localhost (`127.0.0.1 -::1`) by default
+
 ## [2.0.1] - 2026-06-12
 
 ### Fixed

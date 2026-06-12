@@ -1,2 +1,11 @@
 ---
+# "" installs the latest version from the official repo; set to a major ("8") or
+# major.minor ("7.4") to pin that line via an apt preferences file.
+redis_version: ""
+
+redis_bind: "127.0.0.1 -::1"
+redis_maxmemory: "0"
+redis_maxmemory_policy: noeviction
+redis_password: ""
+
 redis_overcommit_memory: false
