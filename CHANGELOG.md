@@ -11,6 +11,12 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Fixed
+
+- **node:** refresh the NodeSource repository signing key; the previous copy was rejected
+  by Debian trixie's apt (SHA1-bound signature, disallowed since 2026-02-01). The current
+  upstream key verifies on both bookworm and trixie
+
 ### Added
 
 - **apt_keys:** new role that installs every collection-managed apt repository signing
