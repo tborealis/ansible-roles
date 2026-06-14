@@ -29,6 +29,7 @@ Reference the roles using the collection namespace:
 | [apache2](roles/apache2/README.md) | Apache2 web server |
 | [aws_cli](roles/aws_cli/README.md) | AWS CLI installation and configuration |
 | [aws_config](roles/aws_config/README.md) | AWS credentials configuration |
+| [apt_keys](roles/apt_keys/README.md) | Centralised apt repository signing keys |
 | [base](roles/base/README.md) | Base system configuration |
 | [certbot](roles/certbot/README.md) | Let's Encrypt SSL certificates |
 | [chrome](roles/chrome/README.md) | Google Chrome and ChromeDriver |
@@ -79,6 +80,10 @@ If Docker is unavailable, install the dependencies locally and run ansible-lint 
 pip install -r requirements-dev.txt
 ansible-lint
 ```
+
+Run `make check-keys` to check the apt repository signing keys for expiry and to verify
+each one still validates its repository. A scheduled CI job runs the same checks weekly
+and posts to Slack when a key is expiring or no longer verifies.
 
 See `galaxy.yml` for collection metadata and dependencies.
 

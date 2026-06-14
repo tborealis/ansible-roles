@@ -11,6 +11,33 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Added
+
+- **apt_keys:** new role that installs every collection-managed apt repository signing
+  key from a single manifest (`apt_keys_keyrings`) to `/etc/apt/keyrings/`; declared as a
+  meta dependency by `base` and every repo role so keys are refreshed before any
+  `apt-get update` (including `base`'s initial cache update), removing the need for manual
+  per-playbook key fixes when a key has changed
+- **meta:** scheduled `key-check` workflow and `scripts/check_apt_keys.py` that warn 30
+  days before a signing key expires, fail on revoked/expired keys, and verify each key
+  still validates its repository (catching upstream revocation, rotation, and signature
+  policy failures); alerts post to Slack via a `SLACK_WEBHOOK_URL` secret, and
+  `make check-keys` runs the same checks locally
+
+### Changed
+
+- **apt_keys, nginx, mysql, redis, yarn, php_repo_sury, node, rabbitmq, new_relic,
+  do_agent, pgsql, pgsql_client:** BREAKING repository signing keys now install to
+  `/etc/apt/keyrings/` (was `/usr/share/keyrings/`) and are managed centrally by the new
+  `apt_keys` role; each repo role now depends on `apt_keys`
+
+### Removed
+
+- **nginx, mysql, redis, yarn, php_repo_sury:** BREAKING remove the per-role `add-key.yml`
+  task files and their `Manage repo key` / `Import key task` tasks; key installation now
+  happens in the `apt_keys` dependency
+- **nginx:** remove the unused `fix-key.yml` expired-key workaround
+
 ## [3.0.0] - 2026-06-12
 
 ### Added
