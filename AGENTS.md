@@ -44,6 +44,24 @@ roles/example/
 └── README.md            # Role documentation with variable table
 ```
 
+## Apt repository keys
+
+Roles that add a third-party apt repository must **not** ship or copy their own signing
+key. All keys are managed centrally by the `apt_keys` role, which installs them to
+`/etc/apt/keyrings/` before any `apt-get update` (including `base`'s). When adding a repo
+to a new role:
+
+1. Drop the keyring file in `roles/apt_keys/files/`.
+2. Add one entry to `apt_keys_keyrings` in `roles/apt_keys/defaults/main.yml` (`name`,
+   `src`, `dest`, upstream `url`, and the `repo` coordinates used by the live verifier).
+3. Point the role's `deb822_repository` at `signed_by: <dest>` and add `apt_keys` to the
+   role's `meta/main.yml` dependencies (`- role: apt_keys`).
+
+The scheduled `key-check` workflow discovers keys from this manifest automatically — no
+CI changes are needed — and a drift check fails the build if a keyring file is added
+without a manifest entry (or vice versa). Slack alerts require a `SLACK_WEBHOOK_URL`
+repository secret. Run `make check-keys` to check expiry and live verification locally.
+
 ## Documentation
 
 Role READMEs should include:

@@ -1,8 +1,0 @@
----
-- name: Add PHP repo key
-  ansible.builtin.copy:
-    src: "{{ lookup('first_found', ['files/php-sury-repo.gpg', 'roles/php_repo_sury/files/php-sury-repo.gpg']) }}"
-    dest: /usr/share/keyrings/php-sury-repo.gpg
-    owner: root
-    group: root
-    mode: "0644"

@@ -1,7 +1,4 @@
 ---
-- name: Import key task
-  ansible.builtin.import_tasks: add-key.yml
-
 - name: Install deb822 dependency
   ansible.builtin.apt:
     pkg: python3-debian
@@ -16,7 +13,7 @@
     uris: https://dl.yarnpkg.com/debian/
     suites: stable
     components: main
-    signed_by: /usr/share/keyrings/yarn-repo.gpg
+    signed_by: /etc/apt/keyrings/yarn-repo.gpg
 
 - name: Find legacy Yarn list file
   ansible.builtin.find:

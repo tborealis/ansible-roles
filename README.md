@@ -27,6 +27,7 @@ Reference the roles using the collection namespace:
 |------|-------------|
 | [ant](roles/ant/README.md) | Apache Ant installation |
 | [apache2](roles/apache2/README.md) | Apache2 web server |
+| [apt_keys](roles/apt_keys/README.md) | Centralised apt repository signing keys |
 | [aws_cli](roles/aws_cli/README.md) | AWS CLI installation and configuration |
 | [aws_config](roles/aws_config/README.md) | AWS credentials configuration |
 | [base](roles/base/README.md) | Base system configuration |
@@ -79,6 +80,10 @@ If Docker is unavailable, install the dependencies locally and run ansible-lint 
 pip install -r requirements-dev.txt
 ansible-lint
 ```
+
+Run `make check-keys` to check the apt repository signing keys for expiry and to verify
+each one still validates its repository. A scheduled CI job runs the same checks weekly
+and posts to Slack when a key is expiring or no longer verifies.
 
 See `galaxy.yml` for collection metadata and dependencies.
 
