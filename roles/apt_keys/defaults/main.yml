@@ -1,0 +1,104 @@
+---
+# Single registry of every apt signing keyring managed by this collection.
+#
+# Consumed by THREE things:
+#   1. this role's tasks    -> installs each `src` to `dest` before any apt update
+#   2. scripts/check_apt_keys.py (static)  -> expiry / revocation early-warning
+#   3. scripts/check_apt_keys.py --live    -> apt-get update against `repo` to prove
+#                                             the key still verifies its repository
+#
+# Adding a key for a new role: drop the keyring in this role's files/ and add one
+# entry below. Nothing else needs editing. The placeholder `{release}` in `suites`
+# is substituted with the target Debian release by the live verifier.
+apt_keys_keyrings:
+  - name: nginx
+    src: nginx-archive-keyring.gpg
+    dest: /etc/apt/keyrings/nginx-archive-keyring.gpg
+    url: https://nginx.org/keys/nginx_signing.key
+    repo:
+      uris: https://nginx.org/packages/debian
+      suites: "{release}"
+      components: nginx
+
+  - name: mysql
+    src: mysql-repo.gpg
+    dest: /etc/apt/keyrings/mysql-repo.gpg
+    url: https://repo.mysql.com/RPM-GPG-KEY-mysql-2023
+    repo:
+      uris: https://repo.mysql.com/apt/debian/
+      suites: "{release}"
+      components: mysql-8.4-lts
+
+  - name: redis
+    src: redis-archive-keyring.gpg
+    dest: /etc/apt/keyrings/redis-archive-keyring.gpg
+    url: https://packages.redis.io/gpg
+    repo:
+      uris: https://packages.redis.io/deb
+      suites: "{release}"
+      components: main
+
+  - name: yarn
+    src: yarn-repo.gpg
+    dest: /etc/apt/keyrings/yarn-repo.gpg
+    url: https://dl.yarnpkg.com/debian/pubkey.gpg
+    repo:
+      uris: https://dl.yarnpkg.com/debian/
+      suites: stable
+      components: main
+
+  - name: php-sury
+    src: php-sury-repo.gpg
+    dest: /etc/apt/keyrings/php-sury-repo.gpg
+    url: https://packages.sury.org/php/apt.gpg
+    repo:
+      uris: https://packages.sury.org/php/
+      suites: "{release}"
+      components: main
+
+  - name: node
+    src: nodesource.gpg
+    dest: /etc/apt/keyrings/nodesource.gpg
+    url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
+    repo:
+      # The key signs every node_*.x repo; a fixed version is fine for verification.
+      uris: https://deb.nodesource.com/node_22.x
+      suites: nodistro
+      components: main
+
+  - name: rabbitmq
+    src: rabbitmq-repo.asc
+    dest: /etc/apt/keyrings/rabbitmq.asc
+    url: https://github.com/rabbitmq/signing-keys/releases/download/3.0/rabbitmq-release-signing-key.asc
+    repo:
+      uris: https://www.rabbitmq.com/debian/
+      suites: testing
+      components: main
+
+  - name: new-relic
+    src: newrelic-repo.gpg
+    dest: /etc/apt/keyrings/newrelic-repo.gpg
+    url: https://download.newrelic.com/548C16BF.gpg
+    repo:
+      uris: https://apt.newrelic.com/debian/
+      suites: newrelic
+      components: non-free
+
+  - name: do-agent
+    src: digitalocean-agent-keyring.gpg
+    dest: /etc/apt/keyrings/digitalocean-agent-keyring.gpg
+    url: https://repos.insights.digitalocean.com/sonar-agent.asc
+    repo:
+      uris: https://repos.insights.digitalocean.com/apt/do-agent
+      suites: main
+      components: main
+
+  # Shared by the pgsql and pgsql_client roles (identical keyring).
+  - name: postgresql
+    src: postgresql.gpg
+    dest: /etc/apt/keyrings/postgresql.gpg
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    repo:
+      uris: https://apt.postgresql.org/pub/repos/apt/
+      suites: "{release}-pgdg"
+      components: main

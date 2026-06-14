@@ -6,14 +6,6 @@
     update_cache: true
     cache_valid_time: 3600
 
-- name: Add RabbitMQ repo key
-  ansible.builtin.copy:
-    src: rabbitmq-repo.asc
-    dest: /usr/share/keyrings/rabbitmq.asc
-    owner: root
-    group: root
-    mode: "0644"
-
 - name: Add RabbitMQ repository
   ansible.builtin.deb822_repository:
     name: rabbitmq
@@ -21,7 +13,7 @@
     uris: https://www.rabbitmq.com/debian/
     suites: testing
     components: main
-    signed_by: /usr/share/keyrings/rabbitmq.asc
+    signed_by: /etc/apt/keyrings/rabbitmq.asc
 
 - name: Find legacy RabbitMQ list file
   ansible.builtin.find:

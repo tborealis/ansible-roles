@@ -1,12 +1,4 @@
 ---
-- name: Add repo key
-  ansible.builtin.copy:
-    src: digitalocean-agent-keyring.gpg
-    dest: /usr/share/keyrings/digitalocean-agent-keyring.gpg
-    owner: root
-    group: root
-    mode: "0644"
-
 - name: Install deb822 dependency
   ansible.builtin.apt:
     pkg: python3-debian
@@ -21,7 +13,7 @@
     uris: https://repos.insights.digitalocean.com/apt/do-agent
     suites: main
     components: main
-    signed_by: /usr/share/keyrings/digitalocean-agent-keyring.gpg
+    signed_by: /etc/apt/keyrings/digitalocean-agent-keyring.gpg
 
 - name: Remove legacy repository list file
   ansible.builtin.file:

@@ -1,7 +1,4 @@
 ---
-- name: Manage repo key
-  ansible.builtin.import_tasks: add-key.yml
-
 - name: Install deb822 dependency
   ansible.builtin.apt:
     pkg: python3-debian
@@ -16,7 +13,7 @@
     uris: https://packages.redis.io/deb
     suites: "{{ ansible_facts['distribution_release'] }}"
     components: main
-    signed_by: /usr/share/keyrings/redis-archive-keyring.gpg
+    signed_by: /etc/apt/keyrings/redis-archive-keyring.gpg
 
 - name: Pin Redis version
   ansible.builtin.template:

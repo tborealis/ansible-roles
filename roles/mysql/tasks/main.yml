@@ -1,7 +1,4 @@
 ---
-- name: Manage repo key
-  ansible.builtin.import_tasks: add-key.yml
-
 - name: Install deb822 dependency
   ansible.builtin.apt:
     pkg: python3-debian
@@ -16,7 +13,7 @@
     uris: https://repo.mysql.com/apt/debian/
     suites: "{{ ansible_facts['distribution_release'] }}"
     components: "mysql-{{ mysql_version }}"
-    signed_by: /usr/share/keyrings/mysql-repo.gpg
+    signed_by: /etc/apt/keyrings/mysql-repo.gpg
 
 - name: Find legacy MySQL list file
   ansible.builtin.find:

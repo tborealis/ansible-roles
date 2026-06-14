@@ -1,12 +1,4 @@
 ---
-- name: Add repo key
-  ansible.builtin.copy:
-    src: newrelic-repo.gpg
-    dest: /usr/share/keyrings/newrelic-repo.gpg
-    owner: root
-    group: root
-    mode: "0644"
-
 - name: Install deb822 dependency
   ansible.builtin.apt:
     pkg: python3-debian
@@ -21,7 +13,7 @@
     uris: https://apt.newrelic.com/debian/
     suites: newrelic
     components: non-free
-    signed_by: /usr/share/keyrings/newrelic-repo.gpg
+    signed_by: /etc/apt/keyrings/newrelic-repo.gpg
 
 - name: Find legacy New Relic list file
   ansible.builtin.find:

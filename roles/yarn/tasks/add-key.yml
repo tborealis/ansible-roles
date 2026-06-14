@@ -1,8 +1,0 @@
----
-- name: Add Yarn repo key
-  ansible.builtin.copy:
-    src: "{{ lookup('first_found', ['files/yarn-repo.gpg', 'roles/yarn/files/yarn-repo.gpg']) }}"
-    dest: /usr/share/keyrings/yarn-repo.gpg
-    owner: root
-    group: root
-    mode: "0644"
