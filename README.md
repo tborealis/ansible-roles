@@ -27,9 +27,9 @@ Reference the roles using the collection namespace:
 |------|-------------|
 | [ant](roles/ant/README.md) | Apache Ant installation |
 | [apache2](roles/apache2/README.md) | Apache2 web server |
+| [apt_keys](roles/apt_keys/README.md) | Centralised apt repository signing keys |
 | [aws_cli](roles/aws_cli/README.md) | AWS CLI installation and configuration |
 | [aws_config](roles/aws_config/README.md) | AWS credentials configuration |
-| [apt_keys](roles/apt_keys/README.md) | Centralised apt repository signing keys |
 | [base](roles/base/README.md) | Base system configuration |
 | [certbot](roles/certbot/README.md) | Let's Encrypt SSL certificates |
 | [chrome](roles/chrome/README.md) | Google Chrome and ChromeDriver |
