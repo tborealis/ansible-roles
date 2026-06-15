@@ -82,8 +82,8 @@ ansible-lint
 ```
 
 Run `make check-keys` to check the apt repository signing keys for expiry and to verify
-each one still validates its repository. A scheduled CI job runs the same checks weekly
-and posts to Slack when a key is expiring or no longer verifies.
+each one still validates its repository on Debian bookworm and trixie. A scheduled CI job
+runs the same checks weekly and posts to Slack when a key is expiring or no longer verifies.
 
 See `galaxy.yml` for collection metadata and dependencies.
 

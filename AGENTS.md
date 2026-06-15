@@ -59,8 +59,10 @@ to a new role:
 
 The scheduled `key-check` workflow discovers keys from this manifest automatically — no
 CI changes are needed — and a drift check fails the build if a keyring file is added
-without a manifest entry (or vice versa). Slack alerts require a `SLACK_WEBHOOK_URL`
-repository secret. Run `make check-keys` to check expiry and live verification locally.
+without a manifest entry (or vice versa). The live verification runs against each
+supported Debian release (bookworm and trixie) in its own container, because whether a
+signature is accepted depends on that release's apt. Slack alerts require a
+`SLACK_WEBHOOK_URL` repository secret. Run `make check-keys` to run all checks locally.
 
 ## Documentation
 
