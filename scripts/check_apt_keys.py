@@ -15,7 +15,11 @@ roles/apt_keys/defaults/main.yml:
   running `apt-get update` against it. Catches upstream revocation/rotation
   that static inspection cannot see. A genuine key failure (EXPKEYSIG /
   REVKEYSIG / KEYEXPIRED / NO_PUBKEY) is fatal; an unreachable repo or missing
-  suite is reported inconclusive, not fatal.
+  suite is reported inconclusive, not fatal. Whether a signature is accepted
+  depends on the apt of the Debian release this runs under (trixie's sequoia
+  apt rejects SHA1 bindings, bookworm's gpgv does not), so run it once inside
+  each debian:<release> image you care about — the suite codename is
+  auto-detected from there.
 
 Also guards against drift: every keyring file must be registered in the
 manifest and vice versa.
@@ -55,6 +59,17 @@ SIG_FAIL_MARKERS = (
 UNUSABLE_VALIDITY = {"e", "r", "i", "d"}  # expired, revoked, invalid, disabled
 
 OK, WARNING, CRITICAL, NOTICE = "OK", "WARNING", "CRITICAL", "NOTICE"
+
+
+def detect_release(default: str = "trixie") -> str:
+    """Return the running container's Debian codename, for matching suites."""
+    try:
+        for line in Path("/etc/os-release").read_text().splitlines():
+            if line.startswith("VERSION_CODENAME="):
+                return line.split("=", 1)[1].strip().strip('"') or default
+    except OSError:
+        pass
+    return default
 
 
 def load_entries(manifest: Path) -> list[dict]:
@@ -185,8 +200,9 @@ def main() -> int:
                         help="warn when a keyring's last usable key expires within N days")
     parser.add_argument("--live", action="store_true",
                         help="also run apt-get update against each repo (needs apt)")
-    parser.add_argument("--release", default="trixie",
-                        help="Debian release substituted for {release} in suites")
+    parser.add_argument("--release", default=None,
+                        help="Debian release for {release} in suites "
+                             "(default: the running container's codename)")
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--files-dir", type=Path, default=DEFAULT_FILES_DIR)
     parser.add_argument("--report-file", type=Path,
@@ -194,6 +210,7 @@ def main() -> int:
     args = parser.parse_args()
 
     entries = load_entries(args.manifest)
+    release = args.release or detect_release()
     alerts: list[str] = []
     has_critical = False
 
@@ -206,23 +223,22 @@ def main() -> int:
 
     width = max(len(e["name"]) for e in entries)
     for entry in entries:
-        keyring = args.files_dir / entry["src"]
-        status, detail = check_static(keyring, args.days)
-        line = f"{entry['name']:<{width}}  static    {status:<8}  {detail}"
-        print(line)
+        status, detail = check_static(args.files_dir / entry["src"], args.days)
+        print(f"{entry['name']:<{width}}  {'static':<14}  {status:<8}  {detail}")
         if status in (WARNING, CRITICAL):
             alerts.append(f"{entry['name']}: {detail}")
             has_critical = has_critical or status == CRITICAL
 
         if args.live:
-            lstatus, ldetail = check_live(entry, args.files_dir, args.release)
-            print(f"{entry['name']:<{width}}  live      {lstatus:<8}  {ldetail}")
+            lstatus, ldetail = check_live(entry, args.files_dir, release)
+            print(f"{entry['name']:<{width}}  {f'live[{release}]':<14}  {lstatus:<8}  {ldetail}")
             if lstatus == CRITICAL:
                 alerts.append(f"{entry['name']}: {ldetail}")
                 has_critical = True
 
     if args.report_file and alerts:
-        header = "apt key check found issues:\n"
+        scope = f" on {release}" if args.live else ""
+        header = f"apt key check found issues{scope}:\n"
         args.report_file.write_text(header + "\n".join(f"- {a}" for a in alerts) + "\n")
 
     if (gh_out := os.environ.get("GITHUB_OUTPUT")):

@@ -29,9 +29,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
   per-playbook key fixes when a key has changed
 - **meta:** scheduled `key-check` workflow and `scripts/check_apt_keys.py` that warn 30
   days before a signing key expires, fail on revoked/expired keys, and verify each key
-  still validates its repository (catching upstream revocation, rotation, and signature
-  policy failures); alerts post to Slack via a `SLACK_WEBHOOK_URL` secret, and
-  `make check-keys` runs the same checks locally
+  still validates its repository on Debian bookworm and trixie (catching upstream
+  revocation, rotation, and signature policy failures); alerts post to Slack via a
+  `SLACK_WEBHOOK_URL` secret, and `make check-keys` runs the same checks locally
 
 ### Changed
 

@@ -17,27 +17,24 @@ env:
   SETUP: apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gpg ca-certificates python3 python3-yaml >/dev/null
 
 jobs:
-  check:
+  # Whether a signature verifies depends on the release's apt (trixie's sequoia
+  # rejects SHA1 bindings, bookworm's gpgv does not), so the check runs once in
+  # each release's own container. The script auto-detects the container's release.
+  key-check:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        release: [bookworm, trixie]
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
-      # Drift (unregistered/missing keyring) and an already expired/revoked
-      # committed key are mistakes we own, so this gate blocks PRs.
-      - name: Static gate (drift + expiry/revocation)
+      - name: Check keys (${{ matrix.release }})
         run: |
-          docker run --rm -v "$PWD:/w" -w /w debian:trixie \
-            sh -c "$SETUP && python3 scripts/check_apt_keys.py --days 30"
-
-      # Upstream keys/repos can break independently of a PR, so live failures
-      # alert (scheduled) but never block a PR.
-      - name: Live repository verification
-        if: ${{ always() }}
-        continue-on-error: ${{ github.event_name == 'pull_request' }}
-        run: |
-          docker run --rm -v "$PWD:/w" -w /w debian:trixie \
+          docker run --rm -v "$PWD:/w" -w /w debian:${{ matrix.release }} \
             sh -c "$SETUP && python3 scripts/check_apt_keys.py --live --days 30 --report-file /w/key-report.txt"
 
+      # Scheduled/manual runs alert via Slack; PRs just surface the check result.
       - name: Notify Slack
         if: ${{ always() && github.event_name != 'pull_request' }}
         env:
@@ -47,5 +44,5 @@ jobs:
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
             echo "::warning::key alerts present but SLACK_WEBHOOK_URL is not set"; cat key-report.txt; exit 0
           fi
-          payload=$(python3 -c 'import json; print(json.dumps({"text": open("key-report.txt").read()}))')
+          payload=$(python3 -c 'import json,sys; print(json.dumps({"text": sys.stdin.read().rstrip()}))' < key-report.txt)
           curl -fsS -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL"
