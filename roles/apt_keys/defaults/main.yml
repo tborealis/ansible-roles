@@ -9,7 +9,9 @@
 #
 # Adding a key for a new role: drop the keyring in this role's files/ and add one
 # entry below. Nothing else needs editing. The placeholder `{release}` in `suites`
-# is substituted with the target Debian release by the live verifier.
+# and `uris` is substituted with the target Debian release by the live verifier.
+# An optional `releases:` list restricts the live check to those releases (for a
+# repo that only verifies on some of them).
 apt_keys_keyrings:
   - name: nginx
     src: nginx-archive-keyring.gpg
@@ -66,13 +68,26 @@ apt_keys_keyrings:
       suites: nodistro
       components: main
 
-  - name: rabbitmq
-    src: rabbitmq-repo.asc
-    dest: /etc/apt/keyrings/rabbitmq.asc
-    url: https://github.com/rabbitmq/signing-keys/releases/download/3.0/rabbitmq-release-signing-key.asc
+  # Erlang and server share the one Team RabbitMQ key. Live check is bookworm-only:
+  # the team key verifies under bookworm's apt but is rejected by trixie's sqv.
+  - name: rabbitmq-erlang
+    src: rabbitmq.gpg
+    dest: /etc/apt/keyrings/rabbitmq.gpg
+    url: https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA
+    releases: [bookworm]
     repo:
-      uris: https://www.rabbitmq.com/debian/
-      suites: testing
+      uris: https://deb1.rabbitmq.com/rabbitmq-erlang/debian/{release}
+      suites: "{release}"
+      components: main
+
+  - name: rabbitmq-server
+    src: rabbitmq.gpg
+    dest: /etc/apt/keyrings/rabbitmq.gpg
+    url: https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA
+    releases: [bookworm]
+    repo:
+      uris: https://deb1.rabbitmq.com/rabbitmq-server/debian/{release}
+      suites: "{release}"
       components: main
 
   - name: new-relic

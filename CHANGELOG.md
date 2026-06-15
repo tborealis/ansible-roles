@@ -39,6 +39,10 @@ flagged with **BREAKING** and require a MAJOR version bump.
   do_agent, pgsql, pgsql_client:** BREAKING repository signing keys now install to
   `/etc/apt/keyrings/` (was `/usr/share/keyrings/`) and are managed centrally by the new
   `apt_keys` role; each repo role now depends on `apt_keys`
+- **rabbitmq:** BREAKING migrate from the retired `www.rabbitmq.com/debian` repository (no
+  longer served) to RabbitMQ's official `deb1.rabbitmq.com` repositories (`rabbitmq-erlang`,
+  with its Erlang packages pinned, and `rabbitmq-server`), both signed by the Team RabbitMQ
+  key; the suite is now the distribution codename
 
 ### Removed
 
