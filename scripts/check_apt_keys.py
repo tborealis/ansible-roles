@@ -166,9 +166,10 @@ def check_live(entry: dict, files_dir: Path, release: str) -> tuple[str, str]:
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(files_dir / entry["src"], dest)
     suites = repo["suites"].replace("{release}", release)
+    uris = repo["uris"].replace("{release}", release)
     sources = (
         "Types: deb\n"
-        f"URIs: {repo['uris']}\n"
+        f"URIs: {uris}\n"
         f"Suites: {suites}\n"
         f"Components: {repo['components']}\n"
         f"Signed-By: {dest}\n"
@@ -230,11 +231,16 @@ def main() -> int:
             has_critical = has_critical or status == CRITICAL
 
         if args.live:
-            lstatus, ldetail = check_live(entry, args.files_dir, release)
-            print(f"{entry['name']:<{width}}  {f'live[{release}]':<14}  {lstatus:<8}  {ldetail}")
-            if lstatus == CRITICAL:
-                alerts.append(f"{entry['name']}: {ldetail}")
-                has_critical = True
+            kind = f"live[{release}]"
+            applicable = entry.get("releases")
+            if applicable and release not in applicable:
+                print(f"{entry['name']:<{width}}  {kind:<14}  {'SKIP':<8}  not offered on {release} (releases: {', '.join(applicable)})")
+            else:
+                lstatus, ldetail = check_live(entry, args.files_dir, release)
+                print(f"{entry['name']:<{width}}  {kind:<14}  {lstatus:<8}  {ldetail}")
+                if lstatus == CRITICAL:
+                    alerts.append(f"{entry['name']}: {ldetail}")
+                    has_critical = True
 
     if args.report_file and alerts:
         scope = f" on {release}" if args.live else ""

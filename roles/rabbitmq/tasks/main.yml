@@ -6,14 +6,39 @@
     update_cache: true
     cache_valid_time: 3600
 
-- name: Add RabbitMQ repository
+- name: Add RabbitMQ Erlang repository
   ansible.builtin.deb822_repository:
-    name: rabbitmq
+    name: rabbitmq-erlang
     types: [deb]
-    uris: https://www.rabbitmq.com/debian/
-    suites: testing
+    uris: "https://deb1.rabbitmq.com/rabbitmq-erlang/debian/{{ ansible_facts['distribution_release'] }}"
+    suites: "{{ ansible_facts['distribution_release'] }}"
     components: main
-    signed_by: /etc/apt/keyrings/rabbitmq.asc
+    signed_by: /etc/apt/keyrings/rabbitmq.gpg
+
+- name: Add RabbitMQ server repository
+  ansible.builtin.deb822_repository:
+    name: rabbitmq-server
+    types: [deb]
+    uris: "https://deb1.rabbitmq.com/rabbitmq-server/debian/{{ ansible_facts['distribution_release'] }}"
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: main
+    signed_by: /etc/apt/keyrings/rabbitmq.gpg
+
+- name: Prefer RabbitMQ upstream Erlang packages
+  ansible.builtin.copy:
+    dest: /etc/apt/preferences.d/rabbitmq-erlang.pref
+    content: |
+      Package: erlang*
+      Pin: origin deb1.rabbitmq.com
+      Pin-Priority: 1000
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Remove superseded RabbitMQ repository file
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d/rabbitmq.sources
+    state: absent
 
 - name: Find legacy RabbitMQ list file
   ansible.builtin.find:
