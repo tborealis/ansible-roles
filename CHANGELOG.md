@@ -11,6 +11,15 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Fixed
+
+- **node:** refresh the NodeSource repository signing key; the previous copy used a
+  SHA1-bound signature rejected by Debian trixie's apt (disallowed since 2026-02-01). The
+  current upstream key verifies on both bookworm and trixie
+- **new_relic:** refresh the New Relic repository signing key to the current `2DAD550E`
+  key; the previous `548C16BF` key used SHA1-bound signatures rejected by trixie and no
+  longer matches the key signing the repository's `Release`
+
 ### Added
 
 - **apt_keys:** new role that installs every collection-managed apt repository signing
