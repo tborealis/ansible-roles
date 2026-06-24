@@ -20,6 +20,7 @@
     paths: /etc/apt/sources.list.d
     patterns: "*.list"
     contains: 'packages\.sury\.org'
+    read_whole_file: true
   register: php_repo_sury_legacy_list
 
 - name: Remove legacy PHP list file

@@ -20,6 +20,7 @@
     paths: /etc/apt/sources.list.d
     patterns: "*.list"
     contains: 'nginx\.org/packages'
+    read_whole_file: true
   register: nginx_legacy_list
 
 - name: Remove legacy Nginx list file

@@ -20,6 +20,7 @@
     paths: /etc/apt/sources.list.d
     patterns: "*.list"
     contains: 'apt\.newrelic\.com'
+    read_whole_file: true
   register: new_relic_legacy_list
 
 - name: Remove legacy New Relic list file

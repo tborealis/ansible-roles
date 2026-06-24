@@ -11,6 +11,15 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Fixed
+
+- **mysql, rabbitmq, node, new_relic, nginx, pgsql, pgsql_client, yarn, php_repo_sury,
+  base:** legacy apt-source cleanup now removes stale `.list` files whose repository URL
+  is not at the start of the line. The `find`/`contains` filter defaulted to anchored
+  matching (`re.match`), so source files left by pre-key-centralization installs were
+  never deleted, producing `Conflicting values set for option Signed-By` errors during
+  `apt-get update`. Added `read_whole_file: true` to the legacy-source `find` tasks.
+
 ## [4.0.0] - 2026-06-15
 
 ### Fixed

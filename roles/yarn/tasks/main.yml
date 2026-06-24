@@ -20,6 +20,7 @@
     paths: /etc/apt/sources.list.d
     patterns: "*.list"
     contains: 'dl\.yarnpkg\.com'
+    read_whole_file: true
   register: yarn_legacy_list
 
 - name: Remove legacy Yarn list file
