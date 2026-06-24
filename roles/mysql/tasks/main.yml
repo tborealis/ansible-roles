@@ -20,6 +20,7 @@
     paths: /etc/apt/sources.list.d
     patterns: "*.list"
     contains: 'repo\.mysql\.com'
+    read_whole_file: true
   register: mysql_legacy_list
 
 - name: Remove legacy MySQL list file

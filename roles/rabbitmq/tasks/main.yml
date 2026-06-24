@@ -45,6 +45,7 @@
     paths: /etc/apt/sources.list.d
     patterns: "*.list"
     contains: 'rabbitmq\.com'
+    read_whole_file: true
   register: rabbitmq_legacy_list
 
 - name: Remove legacy RabbitMQ list file

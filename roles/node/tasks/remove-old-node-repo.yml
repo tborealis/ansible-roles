@@ -4,6 +4,7 @@
     paths: /etc/apt/sources.list.d
     patterns: "*.list"
     contains: 'deb\.nodesource\.com'
+    read_whole_file: true
   register: node_legacy_list
 
 - name: Remove legacy Node list files

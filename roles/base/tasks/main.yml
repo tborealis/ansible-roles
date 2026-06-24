@@ -46,6 +46,7 @@
         paths: /etc/apt/sources.list.d
         patterns: "*.list"
         contains: 'deb\.debian\.org/debian.*backports'
+        read_whole_file: true
       register: base_legacy_backports
 
     - name: Remove legacy backports list file

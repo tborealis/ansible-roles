@@ -21,6 +21,7 @@
     paths: /etc/apt/sources.list.d
     patterns: "*.list"
     contains: 'apt\.postgresql\.org'
+    read_whole_file: true
   register: postgres_legacy_list
 
 - name: Remove legacy PostgreSQL list file
