@@ -11,6 +11,11 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Changed
+
+- **meta:** bump `actions/setup-python` to v6.3.0 (was v6.2.0) and pin it with the full
+  `#.#.#` version in the SHA comment for consistency with the other workflow actions.
+
 ### Fixed
 
 - **pgsql, pgsql_client, nginx, mysql, redis, rabbitmq, node, yarn, new_relic,
