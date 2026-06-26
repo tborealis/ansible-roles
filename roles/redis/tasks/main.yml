@@ -14,6 +14,12 @@
     suites: "{{ ansible_facts['distribution_release'] }}"
     components: main
     signed_by: /etc/apt/keyrings/redis-archive-keyring.gpg
+  register: redis_repo
+
+- name: Update apt cache after adding repository # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: redis_repo is changed
 
 - name: Pin Redis version
   ansible.builtin.template:

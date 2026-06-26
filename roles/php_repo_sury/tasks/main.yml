@@ -14,6 +14,12 @@
     suites: "{{ ansible_facts['distribution_release'] }}"
     components: main
     signed_by: /etc/apt/keyrings/php-sury-repo.gpg
+  register: php_repo_sury_repo
+
+- name: Update apt cache after adding repository # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: php_repo_sury_repo is changed
 
 - name: Find legacy PHP list file
   ansible.builtin.find:

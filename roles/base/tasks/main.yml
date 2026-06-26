@@ -40,6 +40,12 @@
         suites: "{{ ansible_facts['distribution_release'] }}-backports"
         components: main
         state: present
+      register: base_backports_repo
+
+    - name: Update apt cache after adding repository # noqa: no-handler
+      ansible.builtin.apt:
+        update_cache: true
+      when: base_backports_repo is changed
 
     - name: Find legacy backports list file
       ansible.builtin.find:

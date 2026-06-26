@@ -14,6 +14,12 @@
     suites: newrelic
     components: non-free
     signed_by: /etc/apt/keyrings/newrelic-repo.gpg
+  register: new_relic_repo
+
+- name: Update apt cache after adding repository # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: new_relic_repo is changed
 
 - name: Find legacy New Relic list file
   ansible.builtin.find:

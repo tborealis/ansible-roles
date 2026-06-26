@@ -14,6 +14,12 @@
     suites: stable
     components: main
     signed_by: /etc/apt/keyrings/yarn-repo.gpg
+  register: yarn_repo
+
+- name: Update apt cache after adding repository # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: yarn_repo is changed
 
 - name: Find legacy Yarn list file
   ansible.builtin.find:

@@ -15,6 +15,12 @@
     components: main
     signed_by: /etc/apt/keyrings/postgresql.gpg
     state: present
+  register: postgres_repo
+
+- name: Update apt cache after adding repository # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: postgres_repo is changed
 
 - name: Find legacy PostgreSQL list file
   ansible.builtin.find:
