@@ -11,6 +11,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+## [4.0.2] - 2026-06-26
+
 ### Changed
 
 - **meta:** bump `actions/setup-python` to v6.3.0 (was v6.2.0) and pin it with the full
