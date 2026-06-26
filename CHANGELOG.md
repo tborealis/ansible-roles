@@ -11,6 +11,13 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Fixed
+
+- **aws_cli:** stop leaking per-user AWS credentials in playbook output. The
+  `Per-user config` loop used `with_items`, so Ansible printed each item's full
+  dict — including `access_key_id` and `secret_access_key` — in the `included:`
+  task line. A `loop_control` label now shows only the user name.
+
 ## [4.0.2] - 2026-06-26
 
 ### Changed
