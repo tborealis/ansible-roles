@@ -14,6 +14,12 @@
     suites: "{{ ansible_facts['distribution_release'] }}"
     components: nginx
     signed_by: /etc/apt/keyrings/nginx-archive-keyring.gpg
+  register: nginx_repo
+
+- name: Update apt cache after adding repository # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: nginx_repo is changed
 
 - name: Find legacy Nginx list file
   ansible.builtin.find:

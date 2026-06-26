@@ -14,6 +14,12 @@
     suites: "{{ ansible_facts['distribution_release'] }}"
     components: "mysql-{{ mysql_version }}"
     signed_by: /etc/apt/keyrings/mysql-repo.gpg
+  register: mysql_repo
+
+- name: Update apt cache after adding repository # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: mysql_repo is changed
 
 - name: Find legacy MySQL list file
   ansible.builtin.find:

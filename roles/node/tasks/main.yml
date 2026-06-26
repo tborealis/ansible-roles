@@ -19,6 +19,11 @@
     signed_by: /etc/apt/keyrings/nodesource.gpg
   register: node_repo
 
+- name: Update apt cache after adding repository # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: node_repo is changed
+
 - name: Install Node
   ansible.builtin.apt:
     pkg: nodejs

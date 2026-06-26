@@ -11,6 +11,17 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Fixed
+
+- **pgsql, pgsql_client, nginx, mysql, redis, rabbitmq, node, yarn, new_relic,
+  php_repo_sury, base:** refresh the apt cache immediately after adding a third-party
+  repository so freshly added repos are visible to the install step. The
+  `deb822_repository` module does not update the cache, and the following install task's
+  `cache_valid_time` could treat the cache refreshed seconds earlier (before the repo
+  existed) as fresh and skip the update, producing errors such as
+  `No package matching 'postgresql-15' is available` on first provision. The new refresh
+  runs only when the repository file changes.
+
 ## [4.0.1] - 2026-06-24
 
 ### Fixed

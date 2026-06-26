@@ -14,6 +14,7 @@
     suites: "{{ ansible_facts['distribution_release'] }}"
     components: main
     signed_by: /etc/apt/keyrings/rabbitmq.gpg
+  register: rabbitmq_erlang_repo
 
 - name: Add RabbitMQ server repository
   ansible.builtin.deb822_repository:
@@ -23,6 +24,12 @@
     suites: "{{ ansible_facts['distribution_release'] }}"
     components: main
     signed_by: /etc/apt/keyrings/rabbitmq.gpg
+  register: rabbitmq_server_repo
+
+- name: Update apt cache after adding repositories # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: rabbitmq_erlang_repo is changed or rabbitmq_server_repo is changed
 
 - name: Prefer RabbitMQ upstream Erlang packages
   ansible.builtin.copy:
