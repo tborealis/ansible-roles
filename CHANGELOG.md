@@ -11,6 +11,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+## [4.0.3] - 2026-07-03
+
 ### Fixed
 
 - **pgsql, pgsql_client, nginx, mysql, rabbitmq, yarn, new_relic, php_repo_sury, base:**
