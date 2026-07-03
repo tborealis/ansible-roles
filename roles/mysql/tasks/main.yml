@@ -16,11 +16,6 @@
     signed_by: /etc/apt/keyrings/mysql-repo.gpg
   register: mysql_repo
 
-- name: Update apt cache after adding repository # noqa: no-handler
-  ansible.builtin.apt:
-    update_cache: true
-  when: mysql_repo is changed
-
 - name: Find legacy MySQL list file
   ansible.builtin.find:
     paths: /etc/apt/sources.list.d
@@ -36,6 +31,11 @@
   loop: "{{ mysql_legacy_list.files }}"
   loop_control:
     label: "{{ item.path }}"
+
+- name: Update apt cache after adding repository # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: mysql_repo is changed
 
 - name: Check if MySQL server installed
   ansible.builtin.shell: dpkg-query -W -f='${db:Status-Abbrev}' mysql-server || true

@@ -26,11 +26,6 @@
     signed_by: /etc/apt/keyrings/rabbitmq.gpg
   register: rabbitmq_server_repo
 
-- name: Update apt cache after adding repositories # noqa: no-handler
-  ansible.builtin.apt:
-    update_cache: true
-  when: rabbitmq_erlang_repo is changed or rabbitmq_server_repo is changed
-
 - name: Prefer RabbitMQ upstream Erlang packages
   ansible.builtin.copy:
     dest: /etc/apt/preferences.d/rabbitmq-erlang.pref
@@ -62,6 +57,11 @@
   loop: "{{ rabbitmq_legacy_list.files }}"
   loop_control:
     label: "{{ item.path }}"
+
+- name: Update apt cache after adding repositories # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: rabbitmq_erlang_repo is changed or rabbitmq_server_repo is changed
 
 - name: Install RabbitMQ
   ansible.builtin.apt:
