@@ -13,6 +13,11 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Fixed
 
+- **pgsql, pgsql_client, nginx, mysql, rabbitmq, yarn, new_relic, php_repo_sury, base:**
+  run the post-repo-add apt cache refresh *after* the legacy `.list` cleanup instead of
+  before it. On hosts still carrying a stale legacy source, the v4.0.2 refresh ran
+  `apt-get update` while the conflicting file was still present, crashing with
+  `Conflicting values set for option Signed-By` before the cleanup could remove it.
 - **aws_cli:** stop leaking per-user AWS credentials in playbook output. The
   `Per-user config` loop used `with_items`, so Ansible printed each item's full
   dict — including `access_key_id` and `secret_access_key` — in the `included:`

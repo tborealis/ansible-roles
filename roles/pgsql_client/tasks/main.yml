@@ -17,11 +17,6 @@
     state: present
   register: postgres_repo
 
-- name: Update apt cache after adding repository # noqa: no-handler
-  ansible.builtin.apt:
-    update_cache: true
-  when: postgres_repo is changed
-
 - name: Find legacy PostgreSQL list file
   ansible.builtin.find:
     paths: /etc/apt/sources.list.d
@@ -37,6 +32,11 @@
   loop: "{{ postgres_legacy_list.files }}"
   loop_control:
     label: "{{ item.path }}"
+
+- name: Update apt cache after adding repository # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: postgres_repo is changed
 
 - name: Install PostgreSQL client packages
   ansible.builtin.apt:

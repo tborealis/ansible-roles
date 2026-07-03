@@ -16,11 +16,6 @@
     signed_by: /etc/apt/keyrings/php-sury-repo.gpg
   register: php_repo_sury_repo
 
-- name: Update apt cache after adding repository # noqa: no-handler
-  ansible.builtin.apt:
-    update_cache: true
-  when: php_repo_sury_repo is changed
-
 - name: Find legacy PHP list file
   ansible.builtin.find:
     paths: /etc/apt/sources.list.d
@@ -36,6 +31,11 @@
   loop: "{{ php_repo_sury_legacy_list.files }}"
   loop_control:
     label: "{{ item.path }}"
+
+- name: Update apt cache after adding repository # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: php_repo_sury_repo is changed
 
 - name: Install xdebug control scripts
   ansible.builtin.template:
