@@ -1,0 +1,106 @@
+name: molecule
+
+on:
+  pull_request:
+    paths:
+      - roles/**
+      - docker/**
+      - .config/molecule/**
+      - requirements.yml
+      - requirements-dev.txt
+      - scripts/molecule_matrix.py
+      - .github/workflows/molecule.yml
+  schedule:
+    - cron: "0 5 * * 1" # Mondays 05:00 UTC (images rebuilt Sundays)
+  workflow_dispatch:
+    inputs:
+      roles:
+        description: Space-separated role names (empty = all)
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: molecule-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.gen.outputs.matrix }}
+      any: ${{ steps.gen.outputs.any }}
+      build_image: ${{ steps.gen.outputs.build_image }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Generate matrix
+        id: gen
+        run: |
+          pip install -q pyyaml
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD > changed.txt
+            python3 scripts/molecule_matrix.py --changed changed.txt
+          else
+            python3 scripts/molecule_matrix.py --all --roles "${{ inputs.roles }}"
+          fi
+
+  test:
+    needs: detect
+    if: needs.detect.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix: ${{ fromJSON(needs.detect.outputs.matrix) }}
+    name: ${{ matrix.role }} (${{ matrix.distro }})
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.x"
+
+      - run: pip install -r requirements-dev.txt
+
+      - run: ansible-galaxy install -r requirements.yml
+
+      - name: Link collection into collections path
+        run: |
+          mkdir -p ~/.ansible/collections/ansible_collections/tborealis
+          ln -sfn "$PWD" ~/.ansible/collections/ansible_collections/tborealis/roles
+
+      - name: Build test image from this branch's Dockerfile
+        if: needs.detect.outputs.build_image == 'true'
+        run: |
+          docker build --build-arg RELEASE="${{ matrix.distro }}" \
+            -t "ghcr.io/${{ github.repository }}/molecule-debian:${{ matrix.distro }}" \
+            docker/molecule-debian
+
+      - name: Molecule test
+        working-directory: roles/${{ matrix.role }}
+        env:
+          PY_COLORS: "1"
+          ANSIBLE_FORCE_COLOR: "1"
+        run: molecule test --platform-name "${{ matrix.distro }}"
+
+  notify:
+    needs: [detect, test]
+    if: ${{ always() && github.event_name != 'pull_request' && needs.detect.outputs.any == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Slack on failure
+        if: ${{ contains(needs.test.result, 'failure') }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "::warning::molecule failures but SLACK_WEBHOOK_URL is not set"; exit 0
+          fi
+          text="molecule: full-matrix run FAILED: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          payload=$(python3 -c 'import json,sys; print(json.dumps({"text": sys.argv[1]}))' "$text")
+          curl -fsS -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL"
