@@ -20,6 +20,10 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /tmp/* /var/tmp/*
 
+# The base image blocks service starts during apt installs; real Debian
+# servers don't, and roles rely on packages starting their own units.
+RUN rm -f /usr/sbin/policy-rc.d
+
 # Trim units that hang, spam, or serve no purpose in a container.
 RUN find /etc/systemd/system /lib/systemd/system \
         \( -path '*.wants/*getty*' \
