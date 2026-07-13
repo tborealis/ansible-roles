@@ -31,6 +31,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Changed
 
+- **base:** **BREAKING** — user authorized keys are now exclusive: any key present on
+  the server that is not listed in the user's `authorized_keys` is removed.
 - **mysql:** the tuning config now sets `innodb_redo_log_capacity` (new variable
   `mysql_innodb_redo_log_capacity`, default `256M` — the same effective capacity as the
   old defaults) instead of the InnoDB parameters deprecated since MySQL 8.0.30. Also
