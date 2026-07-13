@@ -1,0 +1,51 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert MySQL service is running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['mysql.service'].state == 'running'
+
+    - name: Query server info as root over the unix socket
+      ansible.mysql.mysql_info:
+        filter: version
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+      register: mysql_verify_info
+
+    - name: Assert MySQL 8.4 LTS is installed
+      ansible.builtin.assert:
+        that:
+          - mysql_verify_info.version.major | int == 8
+          - mysql_verify_info.version.minor | int == 4
+
+    - name: Log in as the created user over TCP and query the created database
+      ansible.builtin.command: >-
+        mysql --protocol=tcp --host=127.0.0.1
+        --user=molecule_user --password={{ mysql_molecule_user_password }}
+        molecule_db --execute='SELECT 1'
+      changed_when: false
+
+    - name: Read tuning config
+      ansible.builtin.slurp:
+        src: /etc/mysql/conf.d/tuning.cnf
+      register: mysql_verify_tuning
+
+    - name: Assert redo log capacity is configured
+      ansible.builtin.assert:
+        that:
+          - "'innodb_redo_log_capacity       = 256M' in mysql_verify_tuning.content | b64decode"
+
+    - name: Check the native-password migration shim was cleaned up
+      ansible.builtin.stat:
+        path: /etc/mysql/conf.d/native_password_migration.cnf
+      register: mysql_verify_shim
+      failed_when: mysql_verify_shim.stat.exists
