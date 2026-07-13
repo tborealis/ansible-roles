@@ -4,7 +4,6 @@
 [mysqld]
 innodb_buffer_pool_size        = {{ mysql_innodb_buffer_pool_size }}
 innodb_flush_log_at_trx_commit = {{ mysql_innodb_flush_log_at_trx_commit }}
-innodb_log_files_in_group      = {{ mysql_innodb_log_files_in_group }}
-innodb_log_file_size           = {{ mysql_innodb_log_file_size }}
+innodb_redo_log_capacity       = {{ mysql_innodb_redo_log_capacity }}
 
 slow_query_log                 = {{ mysql_slow_query_log }}
