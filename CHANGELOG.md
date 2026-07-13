@@ -11,6 +11,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-07-13
+
 ### Added
 
 - **mysql:** `mysql_login_unix_socket` variable (default `/var/run/mysqld/mysqld.sock`);
