@@ -1,0 +1,7 @@
+---
+# Throwaway test credentials shared by converge.yml and verify.yml.
+# The salts (exactly 20 characters) make the password tasks idempotent.
+mysql_root_password: molecule-Root-Passw0rd1
+mysql_root_password_salt: molecule0root0salt00
+mysql_molecule_user_password: molecule-User-Passw0rd1
+mysql_molecule_user_salt: molecule0user0salt00

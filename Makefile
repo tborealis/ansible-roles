@@ -1,4 +1,4 @@
-.PHONY: lint check-keys release
+.PHONY: lint check-keys release test test-images
 
 # Packages each release container needs to run the key checker.
 APT_KEYS_SETUP = apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gpg ca-certificates python3 python3-yaml
@@ -22,3 +22,21 @@ ifndef VERSION
 	$(error VERSION is required, e.g. make release VERSION=v1.2.3)
 endif
 	./scripts/cut-release.sh $(VERSION)
+
+COLLECTION_LINK = $(HOME)/.ansible/collections/ansible_collections/tborealis/roles
+
+# Molecule tests for one role (see docs/testing.md for setup).
+test:
+ifndef ROLE
+	$(error ROLE is required, e.g. make test ROLE=nginx [DISTRO=bookworm])
+endif
+	mkdir -p $(dir $(COLLECTION_LINK))
+	ln -sfn $(CURDIR) $(COLLECTION_LINK)
+	cd roles/$(ROLE) && molecule test $(if $(DISTRO),--platform-name $(DISTRO),)
+
+# Build the molecule test images locally under the same tags CI pulls.
+test-images:
+	@for r in $(RELEASES); do \
+		docker build --build-arg RELEASE=$$r \
+			-t ghcr.io/tborealis/ansible-roles/molecule-debian:$$r docker/molecule-debian; \
+	done

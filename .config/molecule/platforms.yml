@@ -1,0 +1,5 @@
+---
+# Roles restricted to a subset of releases. Consumed by
+# scripts/molecule_matrix.py when generating the CI matrix. The role's own
+# molecule.yml must override `platforms:` to match.
+rabbitmq: [bookworm] # upstream signing key rejected by trixie's apt (SHA1 binding)

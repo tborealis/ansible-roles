@@ -1,0 +1,28 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  tasks:
+    - name: Run git # noqa: command-instead-of-module (functional check that the binary works)
+      ansible.builtin.command: git --version
+      changed_when: false
+
+    - name: Read global git config
+      ansible.builtin.slurp:
+        src: /etc/gitconfig
+      register: git_verify_gitconfig
+
+    - name: Assert deprecated git protocol is rewritten
+      ansible.builtin.assert:
+        that:
+          - "'insteadOf = git://' in git_verify_gitconfig.content | b64decode"
+
+    - name: Read SSH known hosts
+      ansible.builtin.slurp:
+        src: /etc/ssh/ssh_known_hosts
+      register: git_verify_known_hosts
+
+    - name: Assert GitHub host keys are present
+      ansible.builtin.assert:
+        that:
+          - "'ecdsa-sha2-nistp256' in git_verify_known_hosts.content | b64decode"

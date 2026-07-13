@@ -1,0 +1,34 @@
+name: test-images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docker/**
+      - .github/workflows/test-images.yml
+  schedule:
+    - cron: "0 5 * * 0" # Sundays 05:00 UTC, ahead of Monday's full molecule run
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        release: [bookworm, trixie]
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build and push (${{ matrix.release }})
+        run: |
+          img="ghcr.io/${{ github.repository }}/molecule-debian:${{ matrix.release }}"
+          docker build --pull --build-arg RELEASE="${{ matrix.release }}" -t "$img" docker/molecule-debian
+          docker push "$img"
