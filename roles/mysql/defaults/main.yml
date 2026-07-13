@@ -1,5 +1,8 @@
 ---
-# - { name: example, host: 127.0.0.1, password: secret, priv: *.*:USAGE }
+# - { name: example, host: 127.0.0.1, password: secret, salt: exactly20characters., priv: *.*:USAGE }
+# Without salt (and mysql_root_password_salt for root) the stored
+# caching_sha2_password hash cannot be compared, so the password tasks
+# report changed on every run.
 mysql_users: []
 # - { name: example, collation: utf8_general_ci, encoding: utf8 }
 mysql_databases: []
