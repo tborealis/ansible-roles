@@ -8,18 +8,18 @@
     groups: ssh-users
     shell: /bin/dash
 
-- name: "Assign client (write-only) authorized key"
+- name: "Assign authorized keys"
+  vars:
+    dbcd_server_write_keys:
+      - 'command="rrsync -wo {{ dbcd_data_dir }}" {{ dbcd_server_client_public_key }}'
+    dbcd_server_read_keys: >-
+      {{ dbcd_server_consumer_public_keys
+         | map('ansible.builtin.regex_replace', '^', 'command="rrsync -ro ' ~ dbcd_data_dir ~ '" ')
+         | list }}
   ansible.posix.authorized_key:
     user: "{{ dbcd_server_user }}"
-    key: "{{ dbcd_server_client_public_key }}"
-    key_options: 'command="rrsync -wo {{ dbcd_data_dir }}"'
-
-- name: "Assign consumer (read-only) authorized keys"
-  ansible.posix.authorized_key:
-    user: "{{ dbcd_server_user }}"
-    key: "{{ item }}"
-    key_options: 'command="rrsync -ro {{ dbcd_data_dir }}"'
-  with_items: "{{ dbcd_server_consumer_public_keys }}"
+    key: "{{ (dbcd_server_write_keys + dbcd_server_read_keys) | join('\n') }}"
+    exclusive: true
 
 - name: "Create directory"
   ansible.builtin.file:

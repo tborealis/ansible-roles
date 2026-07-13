@@ -116,13 +116,12 @@
 
 - name: Assign authorized keys
   ansible.posix.authorized_key:
-    user: "{{ item.0.name }}"
-    key: "{{ lookup('file', item.1) }}"
-  with_subelements:
-    - "{{ default_users + users }}"
-    - authorized_keys
+    user: "{{ item.name }}"
+    key: "{% for key in item.authorized_keys %}{{ lookup('file', key) }}\n{% endfor %}"
+    exclusive: true
+  with_items: "{{ default_users + users }}"
   loop_control:
-    label: "{{ item.0.name }} - {{ item.1 }}"
+    label: "{{ item.name }}"
 
 - name: Install openssh from backports
   ansible.builtin.apt:
