@@ -81,6 +81,7 @@
     host_all: true
     login_user: root
     login_password: "{{ mysql_root_password }}"
+    login_unix_socket: "{{ mysql_login_unix_socket }}"
     plugin: caching_sha2_password
     plugin_auth_string: "{{ mysql_root_password }}"
     check_implicit_admin: true
@@ -94,6 +95,7 @@
     state: present
     login_user: root
     login_password: "{{ mysql_root_password }}"
+    login_unix_socket: "{{ mysql_login_unix_socket }}"
   with_items: "{{ mysql_databases }}"
 
 - name: Create users
@@ -106,6 +108,7 @@
     state: present
     login_user: root
     login_password: "{{ mysql_root_password }}"
+    login_unix_socket: "{{ mysql_login_unix_socket }}"
     column_case_sensitive: true
   no_log: false
   loop_control:

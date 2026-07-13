@@ -14,3 +14,4 @@ Installs and configures MySQL server.
 | `mysql_innodb_flush_log_at_trx_commit` | `1` | Flush log at commit (0 for VM performance) |
 | `mysql_innodb_log_files_in_group` | `2` | Log files in group (4 if >2GB RAM) |
 | `mysql_slow_query_log` | `0` | Enable slow query logging |
+| `mysql_login_unix_socket` | `/var/run/mysqld/mysqld.sock` | Socket used for role logins (always matches `root@localhost`) |

@@ -7,5 +7,6 @@ mysql_innodb_log_file_size: 128M
 mysql_innodb_flush_log_at_trx_commit: 1
 mysql_innodb_log_files_in_group: 2
 mysql_slow_query_log: 0
+mysql_login_unix_socket: /var/run/mysqld/mysqld.sock
 
 mysql_version: 8.4-lts
