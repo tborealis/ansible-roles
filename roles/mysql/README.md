@@ -10,7 +10,12 @@ Installs and configures MySQL server.
 | `mysql_users` | `[]` | Users to create |
 | `mysql_databases` | `[]` | Databases to create |
 | `mysql_innodb_buffer_pool_size` | | InnoDB buffer pool size (required, max 0.5 * RAM) |
-| `mysql_innodb_log_file_size` | `128M` | InnoDB log file size (256M if >8GB RAM) |
+| `mysql_innodb_redo_log_capacity` | `256M` | InnoDB redo log capacity (e.g. 1G if >8GB RAM) |
 | `mysql_innodb_flush_log_at_trx_commit` | `1` | Flush log at commit (0 for VM performance) |
-| `mysql_innodb_log_files_in_group` | `2` | Log files in group (4 if >2GB RAM) |
 | `mysql_slow_query_log` | `0` | Enable slow query logging |
+| `mysql_login_unix_socket` | `/var/run/mysqld/mysqld.sock` | Socket used for role logins (always matches `root@localhost`) |
+
+The deprecated `mysql_innodb_log_file_size` and `mysql_innodb_log_files_in_group`
+variables are still honoured if set (redo capacity is derived as `size × group`,
+overriding `mysql_innodb_redo_log_capacity`), but they will be removed in a future
+major release.

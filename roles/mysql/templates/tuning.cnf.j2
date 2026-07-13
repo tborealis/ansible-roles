@@ -4,7 +4,10 @@
 [mysqld]
 innodb_buffer_pool_size        = {{ mysql_innodb_buffer_pool_size }}
 innodb_flush_log_at_trx_commit = {{ mysql_innodb_flush_log_at_trx_commit }}
-innodb_log_files_in_group      = {{ mysql_innodb_log_files_in_group }}
-innodb_log_file_size           = {{ mysql_innodb_log_file_size }}
+{% if mysql_innodb_log_file_size is defined or mysql_innodb_log_files_in_group is defined %}
+innodb_redo_log_capacity       = {{ (mysql_innodb_log_file_size | default('128M') | ansible.builtin.human_to_bytes) * (mysql_innodb_log_files_in_group | default(2) | int) }}
+{% else %}
+innodb_redo_log_capacity       = {{ mysql_innodb_redo_log_capacity }}
+{% endif %}
 
 slow_query_log                 = {{ mysql_slow_query_log }}

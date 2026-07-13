@@ -55,10 +55,14 @@
     state: stopped
   when: mysql_installed.stdout != "ii "
 
-- name: Delete InnoDB logs if fresh install # changing logfile size causes restart issue until logs deleted
-  ansible.builtin.shell: rm -f /var/lib/mysql/ib_logfile[01]
-  changed_when: true
-  when: mysql_installed.stdout != "ii "
+- name: Warn about deprecated InnoDB redo log variables
+  ansible.builtin.debug:
+    msg: >-
+      DEPRECATION WARNING: mysql_innodb_log_file_size and
+      mysql_innodb_log_files_in_group are deprecated and will be removed in a
+      future major release; set mysql_innodb_redo_log_capacity (size * group)
+      instead.
+  when: mysql_innodb_log_file_size is defined or mysql_innodb_log_files_in_group is defined
 
 - name: Configure
   ansible.builtin.template:
@@ -75,16 +79,70 @@
     state: started
   when: mysql_installed.stdout != "ii "
 
+- name: Check MySQL root login
+  ansible.mysql.mysql_info:
+    filter: version
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    login_unix_socket: "{{ mysql_login_unix_socket }}"
+  register: mysql_root_login
+  failed_when: false
+  changed_when: false
+
+- name: Register whether mysql_native_password is disabled
+  ansible.builtin.set_fact:
+    mysql_native_password_disabled: "{{ \"Plugin 'mysql_native_password' is not loaded\" in mysql_root_login.msg | default('') }}"
+
+- name: Fail if mysql_native_password cannot be enabled
+  ansible.builtin.fail:
+    msg: >-
+      root still authenticates with mysql_native_password but MySQL
+      {{ mysql_version }} has removed the plugin. Install 8.4-lts to
+      migrate authentication first.
+  when:
+    - mysql_native_password_disabled
+    - not (mysql_version | string).startswith('8')
+
+- name: Enable mysql_native_password for auth migration
+  ansible.builtin.copy:
+    content: |
+      [mysqld]
+      mysql_native_password=ON
+    dest: /etc/mysql/conf.d/native_password_migration.cnf
+    owner: root
+    group: root
+    mode: "0644"
+  when: mysql_native_password_disabled
+
+- name: Restart MySQL to load mysql_native_password
+  ansible.builtin.service:
+    name: mysql
+    state: restarted
+  when: mysql_native_password_disabled
+
 - name: Set MySQL root password
   ansible.mysql.mysql_user:
     name: root
     host_all: true
     login_user: root
     login_password: "{{ mysql_root_password }}"
+    login_unix_socket: "{{ mysql_login_unix_socket }}"
     plugin: caching_sha2_password
     plugin_auth_string: "{{ mysql_root_password }}"
     check_implicit_admin: true
     column_case_sensitive: true
+
+- name: Remove redundant root user for {{ item }}
+  ansible.mysql.mysql_user:
+    name: root
+    host: "{{ item }}"
+    state: absent
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    login_unix_socket: "{{ mysql_login_unix_socket }}"
+  loop:
+    - 127.0.0.1
+    - "::1"
 
 - name: Create databases
   ansible.mysql.mysql_db:
@@ -94,6 +152,7 @@
     state: present
     login_user: root
     login_password: "{{ mysql_root_password }}"
+    login_unix_socket: "{{ mysql_login_unix_socket }}"
   with_items: "{{ mysql_databases }}"
 
 - name: Create users
@@ -106,8 +165,18 @@
     state: present
     login_user: root
     login_password: "{{ mysql_root_password }}"
+    login_unix_socket: "{{ mysql_login_unix_socket }}"
     column_case_sensitive: true
   no_log: false
   loop_control:
     label: "{{ item.name }}@{{ item.host | default('localhost') }}"
   with_items: "{{ mysql_users }}"
+
+- name: Remove temporary mysql_native_password config
+  ansible.builtin.file:
+    path: /etc/mysql/conf.d/native_password_migration.cnf
+    state: absent
+  notify: Restart mysql
+
+- name: Restart MySQL if notified
+  ansible.builtin.meta: flush_handlers
