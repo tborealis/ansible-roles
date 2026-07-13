@@ -70,6 +70,47 @@
     state: started
   when: mysql_installed.stdout != "ii "
 
+- name: Check MySQL root login
+  ansible.mysql.mysql_info:
+    filter: version
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    login_unix_socket: "{{ mysql_login_unix_socket }}"
+  register: mysql_root_login
+  failed_when: false
+  changed_when: false
+
+- name: Register whether mysql_native_password is disabled
+  ansible.builtin.set_fact:
+    mysql_native_password_disabled: "{{ \"Plugin 'mysql_native_password' is not loaded\" in mysql_root_login.msg | default('') }}"
+
+- name: Fail if mysql_native_password cannot be enabled
+  ansible.builtin.fail:
+    msg: >-
+      root still authenticates with mysql_native_password but MySQL
+      {{ mysql_version }} has removed the plugin. Install 8.4-lts to
+      migrate authentication first.
+  when:
+    - mysql_native_password_disabled
+    - not (mysql_version | string).startswith('8')
+
+- name: Enable mysql_native_password for auth migration
+  ansible.builtin.copy:
+    content: |
+      [mysqld]
+      mysql_native_password=ON
+    dest: /etc/mysql/conf.d/native_password_migration.cnf
+    owner: root
+    group: root
+    mode: "0644"
+  when: mysql_native_password_disabled
+
+- name: Restart MySQL to load mysql_native_password
+  ansible.builtin.service:
+    name: mysql
+    state: restarted
+  when: mysql_native_password_disabled
+
 - name: Set MySQL root password
   ansible.mysql.mysql_user:
     name: root
@@ -109,3 +150,12 @@
   loop_control:
     label: "{{ item.name }}@{{ item.host | default('localhost') }}"
   with_items: "{{ mysql_users }}"
+
+- name: Remove temporary mysql_native_password config
+  ansible.builtin.file:
+    path: /etc/mysql/conf.d/native_password_migration.cnf
+    state: absent
+  notify: Restart mysql
+
+- name: Restart MySQL if notified
+  ansible.builtin.meta: flush_handlers
