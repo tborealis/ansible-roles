@@ -79,11 +79,14 @@
     state: started
   when: mysql_installed.stdout != "ii "
 
-- name: Check MySQL root login
+# The dummy password is deliberate: the 1524 plugin error precedes password
+# verification, and a fixed non-secret value can never be masked out of the
+# registered error message by no_log censoring (unlike the real password).
+- name: Check MySQL root auth plugin
   ansible.mysql.mysql_info:
     filter: version
     login_user: root
-    login_password: "{{ mysql_root_password }}"
+    login_password: plugin-probe
     login_unix_socket: "{{ mysql_login_unix_socket }}"
   register: mysql_root_login
   failed_when: false
