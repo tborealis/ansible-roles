@@ -1,0 +1,14 @@
+---
+# Certificate issuance needs a real ACME challenge, which is impossible in the
+# container, so certbot_certs stays empty (its default) and the scenario tests
+# what the role manages locally: the certbot package, the DNS plugin (apt on
+# bookworm, pip on trixie), and the credentials file.
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    certbot_mode: dns-digitalocean
+  roles:
+    - role: tborealis.roles.certbot
