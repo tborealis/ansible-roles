@@ -11,6 +11,14 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Fixed
+
+- **mysql:** probe the root auth plugin with a fixed dummy password (the 1524 plugin
+  error precedes password verification) so Ansible's `no_log` censoring can never
+  rewrite the error message. Previously, when the real root password value appeared in
+  the message text, the plugin name was masked and detection never fired, failing the
+  role on the very error it was meant to handle.
+
 ## [5.0.0] - 2026-07-13
 
 ### Added
