@@ -123,6 +123,18 @@
     check_implicit_admin: true
     column_case_sensitive: true
 
+- name: Remove redundant root user for {{ item }}
+  ansible.mysql.mysql_user:
+    name: root
+    host: "{{ item }}"
+    state: absent
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    login_unix_socket: "{{ mysql_login_unix_socket }}"
+  loop:
+    - 127.0.0.1
+    - "::1"
+
 - name: Create databases
   ansible.mysql.mysql_db:
     name: "{{ item.name }}"
