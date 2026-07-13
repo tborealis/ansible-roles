@@ -1,0 +1,28 @@
+---
+# The role installs git from backports on bookworm and assumes the backports
+# source is already configured (the base role does this on real hosts).
+- name: Prepare
+  hosts: all
+  become: true
+  tasks:
+    - name: Configure backports repo
+      when: ansible_facts['distribution_release'] == 'bookworm'
+      block:
+        - name: Install deb822 dependency
+          ansible.builtin.apt:
+            pkg: python3-debian
+            state: present
+            update_cache: true
+
+        - name: Add backports repo
+          ansible.builtin.deb822_repository:
+            name: debian-backports
+            types: [deb]
+            uris: https://deb.debian.org/debian
+            suites: "{{ ansible_facts['distribution_release'] }}-backports"
+            components: main
+            state: present
+
+        - name: Update apt cache after adding repository
+          ansible.builtin.apt:
+            update_cache: true
