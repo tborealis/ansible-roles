@@ -55,6 +55,15 @@
     state: stopped
   when: mysql_installed.stdout != "ii "
 
+- name: Warn about deprecated InnoDB redo log variables
+  ansible.builtin.debug:
+    msg: >-
+      DEPRECATION WARNING: mysql_innodb_log_file_size and
+      mysql_innodb_log_files_in_group are deprecated and will be removed in a
+      future major release; set mysql_innodb_redo_log_capacity (size * group)
+      instead.
+  when: mysql_innodb_log_file_size is defined or mysql_innodb_log_files_in_group is defined
+
 - name: Configure
   ansible.builtin.template:
     src: tuning.cnf.j2
