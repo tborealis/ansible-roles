@@ -11,6 +11,32 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Added
+
+- **mysql:** `mysql_login_unix_socket` variable (default `/var/run/mysqld/mysqld.sock`);
+  all role logins now connect via the unix socket so they always run as
+  `root@localhost`.
+
+### Fixed
+
+- **mysql:** temporarily enable `mysql_native_password` (drop-in config + restart) when
+  root still authenticates with it after a 5.x upgrade, migrate managed accounts to
+  `caching_sha2_password`, then remove the drop-in and restart. Previously the role
+  failed outright on MySQL 8.4, where the plugin is disabled by default. Accounts not
+  listed in `mysql_users` remain on the disabled plugin once the drop-in is removed.
+- **mysql:** remove legacy `root@'127.0.0.1'` and `root@'::1'` rows left over from 5.x
+  installs; their grants break after upgrades and the default TCP login could match one
+  of them, failing the role with `SELECT command denied to user 'root'@'localhost'`.
+  `root@localhost` is the canonical superuser.
+
+### Removed
+
+- **mysql:** **BREAKING** replace `mysql_innodb_log_file_size` and
+  `mysql_innodb_log_files_in_group` with `mysql_innodb_redo_log_capacity` (default
+  `256M`, the same effective capacity) — the old parameters are deprecated since MySQL
+  8.0.30. If you overrode them, set `capacity = size × group`. Also drop the obsolete
+  `ib_logfile` deletion on fresh installs.
+
 ## [4.0.3] - 2026-07-03
 
 ### Fixed
