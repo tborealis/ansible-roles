@@ -11,6 +11,17 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Added
+
+- **meta:** Molecule test infrastructure (systemd-enabled bookworm/trixie test images
+  on GHCR, shared base config, changed-role CI detection with a weekly full matrix,
+  `make test ROLE=<name>`) and pilot scenarios for the `mysql` and `git` roles. See
+  `docs/testing.md`.
+- **mysql:** optional `mysql_root_password_salt` and per-user `salt` (exactly 20
+  characters). Without a salt the caching_sha2_password hash cannot be compared, so
+  the root-password and user tasks reported changed on every run; providing one makes
+  them idempotent.
+
 ### Fixed
 
 - **mysql:** probe the root auth plugin with a fixed dummy password (the 1524 plugin

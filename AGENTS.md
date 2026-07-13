@@ -7,7 +7,7 @@ This is an Ansible Galaxy collection (`tborealis.roles`) containing reusable rol
 ## Commands
 
 - **Lint**: `make lint` (runs ansible-lint in a Docker container with the version pinned in `requirements-dev.txt`)
-- **Test**: No automated tests currently
+- **Test**: `make test ROLE=<name> [DISTRO=bookworm|trixie]` (Molecule with the Docker driver; see [`docs/testing.md`](docs/testing.md))
 
 ## Code Style
 
@@ -63,6 +63,17 @@ without a manifest entry (or vice versa). The live verification runs against eac
 supported Debian release (bookworm and trixie) in its own container, because whether a
 signature is accepted depends on that release's apt. Slack alerts require a
 `SLACK_WEBHOOK_URL` repository secret. Run `make check-keys` to run all checks locally.
+
+## Testing
+
+Every role must ship a Molecule scenario at `roles/<role>/molecule/default/`
+(`molecule.yml`, `converge.yml`, `verify.yml`). Scenarios inherit the shared base
+config at `.config/molecule/config.yml`; verification must be functional (real client
+probes and config-content assertions), not just package/service existence checks.
+Roles that no-op on default variables must be converged with realistic test values.
+A role restricted to a subset of releases overrides `platforms:` in its own
+`molecule.yml` **and** gets an entry in `.config/molecule/platforms.yml`. Scenario
+files must pass `make lint`. Full guide: [`docs/testing.md`](docs/testing.md).
 
 ## Documentation
 
