@@ -11,6 +11,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+## [5.1.0] - 2026-07-14
+
 ### Added
 
 - **meta:** Molecule test infrastructure (systemd-enabled bookworm/trixie test images
