@@ -1,0 +1,28 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    environment_files:
+      # group/mode left unset to exercise the role's default(omit) branch.
+      - file: "{{ environment_test_profile_file }}"
+        owner: root
+        vars:
+          - name: APP_ENV
+            value: staging
+          - name: APP_MESSAGE
+            value: molecule says hi
+    dotenv_files:
+      - file: "{{ environment_test_dotenv_file }}"
+        owner: "{{ environment_test_owner }}"
+        group: "{{ environment_test_owner }}"
+        mode: "0640"
+        vars:
+          - name: APP_ENV
+            value: staging
+          - name: DATABASE_URL
+            value: "{{ environment_test_database_url }}"
+  roles:
+    - role: tborealis.roles.environment
