@@ -1,0 +1,9 @@
+---
+mailpit_version: 1.30.4
+# Upstream publishes no checksum manifest; these are pinned from the release
+# tarballs. Update both when bumping mailpit_version (see README).
+mailpit_checksums:
+  amd64: "sha256:e9c104154c22b83ac4c7d19f9d665a5c933585a3caafcd790805d732fa8d03fb"
+  arm64: "sha256:27f6556c4d922d5ee2afb8b85a799dc2445b894782e7ec0196a566598d107221"
+mailpit_install_dir: /opt/mailpit
+mailpit_user: mailpit

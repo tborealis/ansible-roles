@@ -1,0 +1,68 @@
+---
+- name: Assert the architecture is supported
+  ansible.builtin.assert:
+    that: ansible_facts['architecture'] in mailpit_architecture_map
+    fail_msg: "The role pins checksums for {{ mailpit_architecture_map.keys() | join(', ') }} only."
+
+- name: Create mailpit user
+  ansible.builtin.user:
+    name: "{{ mailpit_user }}"
+    createhome: false
+    shell: /bin/false
+    system: true
+    password: "*"
+
+- name: Create mailpit directory
+  ansible.builtin.file:
+    path: "{{ mailpit_install_dir }}"
+    owner: root
+    group: root
+    state: directory
+    mode: "0755"
+
+- name: Check the installed mailpit version
+  ansible.builtin.command: "{{ mailpit_install_dir }}/mailpit version"
+  register: mailpit_installed
+  failed_when: false
+  changed_when: false
+
+- name: Install mailpit
+  when: mailpit_installed.rc != 0 or ('v' ~ mailpit_version) not in mailpit_installed.stdout
+  vars:
+    mailpit_architecture: "{{ mailpit_architecture_map[ansible_facts['architecture']] }}"
+  block:
+    - name: Download the mailpit release
+      ansible.builtin.get_url:
+        url: "https://github.com/axllent/mailpit/releases/download/v{{ mailpit_version }}/mailpit-linux-{{ mailpit_architecture }}.tar.gz"
+        dest: /var/tmp/mailpit.tar.gz
+        checksum: "{{ mailpit_checksums[mailpit_architecture] }}"
+        mode: "0644"
+
+    - name: Unpack mailpit
+      ansible.builtin.unarchive:
+        src: /var/tmp/mailpit.tar.gz
+        dest: "{{ mailpit_install_dir }}"
+        remote_src: true
+        owner: root
+        group: root
+      notify: Restart mailpit
+
+    - name: Clean up the release download
+      ansible.builtin.file:
+        path: /var/tmp/mailpit.tar.gz
+        state: absent
+
+- name: Install mailpit service
+  ansible.builtin.template:
+    src: mailpit.service.j2
+    dest: /lib/systemd/system/mailpit.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart mailpit
+
+- name: Enable mailpit service
+  ansible.builtin.systemd_service:
+    name: mailpit.service
+    enabled: true
+    state: started
