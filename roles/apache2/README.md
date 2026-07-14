@@ -15,3 +15,10 @@ Installs and configures Apache2 web server with virtual hosts and modules.
 | `apache2_modules` | `[proxy_fcgi, setenvif, rewrite, headers, ssl]` | Modules to enable |
 | `apache2_disable_modules` | `[mpm_prefork]` | Modules to disable |
 | `apache2_env_vars` | `{}` | Environment variables to set |
+
+## Templates
+
+The `src` of each `apache2_vhosts` entry is resolved relative to the consuming
+playbook, so the vhost templates must live next to it in
+`templates/apache2/vhosts/`. See this role's molecule scenario
+(`molecule/default/templates/`) for a working example.
