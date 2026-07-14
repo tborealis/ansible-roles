@@ -31,8 +31,22 @@ flagged with **BREAKING** and require a MAJOR version bump.
   `stripe_cli`, and `gpg`.
 - **meta:** Molecule scenarios for the system config roles: `cron`, `sudo`, `dotenv`,
   `environment`, `apt_keys`, `rrsync`, and `exim4`.
+- **meta:** Molecule scenarios for the cloud and heavy roles: `base`, `aws_cli`,
+  `aws_config`, `do_agent`, and `dbcd` — every role in the collection now has one.
+- **base:** `base_hosts_unsafe_writes` (default `false`) writes `/etc/hosts` in place
+  for containers, where the bind mount breaks the default atomic rename.
 
 ### Fixed
+
+- **do_agent:** refresh the apt cache after adding the repository; the install task's
+  `cache_valid_time` treated the pre-repo cache as fresh, so a first install failed
+  with `No package matching 'do-agent'`. Same fix the other repo roles received in
+  v4.0.2.
+- **base:** the default locale is written through the `/etc/default/locale` symlink
+  the locales package creates; without `follow` the template replaced the symlink on
+  the run after a fresh install, so the role was never idempotent on first provision.
+- **aws_cli:** the role now creates `/etc/bash_completion.d` instead of assuming
+  another package has installed it.
 
 - **nvm:** version installs and the default alias reported changed on every run; they
   now detect the existing state. The installer's `creates:` guard checked the wrong
