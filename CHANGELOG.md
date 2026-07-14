@@ -57,6 +57,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Changed
 
+- **do_agent:** the tasks file is renamed from `main.yaml` to `main.yml`, matching
+  every other role. Internal only — Ansible loads either extension. (#139)
 - **nginx, apache2, sudo:** document the playbook-relative template contract —
   the `src` entries of `nginx_conf`/`nginx_snippets`/`nginx_vhosts`,
   `apache2_vhosts`, and `sudo_additional_config` resolve to `templates/<role>/...`
