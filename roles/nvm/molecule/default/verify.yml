@@ -36,3 +36,34 @@
       ansible.builtin.assert:
         that:
           - nvm_verify_node_version.stdout.startswith('v' ~ nvm_molecule_node_major ~ '.')
+
+    - name: Run the installed global package's CLI
+      become_user: "{{ nvm_molecule_user }}"
+      become: true
+      ansible.builtin.shell: . "$HOME/.nvm/nvm.sh" && {{ nvm_molecule_global_package }} 1.2.3
+      args:
+        executable: /bin/bash
+      register: nvm_verify_global_package
+      changed_when: false
+
+    - name: Assert the global package works
+      ansible.builtin.assert:
+        that:
+          - nvm_verify_global_package.stdout == '1.2.3'
+
+    # Corepack shims are created next to the version's node binary; invoking
+    # them would download yarn/pnpm at run time, so assert their presence.
+    - name: Check the corepack yarn shim location
+      become_user: "{{ nvm_molecule_user }}"
+      become: true
+      ansible.builtin.shell: . "$HOME/.nvm/nvm.sh" && command -v yarn && command -v pnpm
+      args:
+        executable: /bin/bash
+      register: nvm_verify_corepack_shims
+      changed_when: false
+
+    - name: Assert the corepack shims live in the nvm version's bin dir
+      ansible.builtin.assert:
+        that:
+          - "'/.nvm/versions/node/' in nvm_verify_corepack_shims.stdout_lines[0]"
+          - "'/.nvm/versions/node/' in nvm_verify_corepack_shims.stdout_lines[1]"

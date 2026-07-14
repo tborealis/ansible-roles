@@ -34,5 +34,6 @@ be attempted using `user` but need root permissions, resulting in a failure.
 Updating
 --------
 
-When updating the NVM version (see defaults/main.yml) you need to all update the checksum of the
-archive.
+To update NVM, set `nvm_version` (see defaults/main.yml) to the new release tag. The installer
+is fetched from that tag on GitHub; users whose installed nvm version differs are re-run through
+the installer.
