@@ -1,0 +1,20 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    aws_config:
+      - user: "{{ aws_config_molecule_user }}"
+        profiles:
+          - name: default
+            region: "{{ aws_config_molecule_default_region }}"
+            access_key_id: "{{ aws_config_molecule_default_access_key_id }}"
+            secret_access_key: "{{ aws_config_molecule_default_secret_access_key }}"
+          - name: backup
+            region: "{{ aws_config_molecule_backup_region }}"
+            access_key_id: "{{ aws_config_molecule_backup_access_key_id }}"
+            secret_access_key: "{{ aws_config_molecule_backup_secret_access_key }}"
+  roles:
+    - role: tborealis.roles.aws_config
