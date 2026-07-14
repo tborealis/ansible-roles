@@ -1,0 +1,19 @@
+---
+# The role templates its ini into /etc/php/<version>/mods-available and
+# notifies a php-fpm restart, so PHP must already be installed (the
+# php_repo_sury and php_fpm roles do this on real hosts).
+- name: Prepare
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  roles:
+    - role: tborealis.roles.php_repo_sury
+  tasks:
+    - name: Install PHP {{ php_version }}
+      ansible.builtin.apt:
+        pkg:
+          - php{{ php_version }}-cli
+          - php{{ php_version }}-fpm
+        state: present
+        update_cache: true

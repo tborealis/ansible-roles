@@ -1,0 +1,58 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+
+    - name: Assert the New Relic PHP agent package is installed
+      ansible.builtin.assert:
+        that:
+          - "'newrelic-php5' in ansible_facts.packages"
+
+    - name: Stat the New Relic apt source
+      ansible.builtin.stat:
+        path: /etc/apt/sources.list.d/newrelic.sources
+      register: new_relic_verify_source
+
+    - name: Assert the deb822 apt source is installed
+      ansible.builtin.assert:
+        that:
+          - new_relic_verify_source.stat.exists
+
+    - name: Stat the agent ini file
+      ansible.builtin.stat:
+        path: /etc/php/{{ php_version }}/mods-available/newrelic.ini
+      register: new_relic_verify_ini_stat
+
+    - name: Assert ini ownership and mode
+      ansible.builtin.assert:
+        that:
+          - new_relic_verify_ini_stat.stat.exists
+          - new_relic_verify_ini_stat.stat.pw_name == 'root'
+          - new_relic_verify_ini_stat.stat.gr_name == 'root'
+          - new_relic_verify_ini_stat.stat.mode == '0644'
+
+    - name: Read the agent ini file
+      ansible.builtin.slurp:
+        src: /etc/php/{{ php_version }}/mods-available/newrelic.ini
+      register: new_relic_verify_ini
+
+    - name: Assert converge values are rendered in the ini
+      vars:
+        new_relic_verify_ini_content: "{{ new_relic_verify_ini.content | b64decode }}"
+        new_relic_verify_expected_license: 'newrelic.license = "{{ newrelic_key }}"'
+        new_relic_verify_expected_appname: 'newrelic.appname = "{{ newrelic_appname }}"'
+      ansible.builtin.assert:
+        that:
+          - new_relic_verify_expected_license in new_relic_verify_ini_content
+          - new_relic_verify_expected_appname in new_relic_verify_ini_content
+          - "'newrelic.browser_monitoring.auto_instrument = false' in new_relic_verify_ini_content"
+          - "'newrelic.distributed_tracing_enabled = true' in new_relic_verify_ini_content"
+
+    - name: Validate the PHP-FPM configuration with the agent installed
+      ansible.builtin.command: /usr/sbin/php-fpm{{ php_version }} -t
+      changed_when: false
