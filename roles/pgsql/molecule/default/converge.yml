@@ -1,0 +1,19 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    # Non-default tuning values so verify can assert the templates took them.
+    postgres_max_connections: 50
+    postgres_shared_buffers: 128MB
+    postgres_effective_cache_size: 512MB
+    postgres_max_wal_size: 2GB
+    postgres_databases:
+      - molecule_db
+    postgres_users:
+      - user: molecule_user
+        password: "{{ postgres_molecule_user_password }}"
+  roles:
+    - role: tborealis.roles.pgsql
