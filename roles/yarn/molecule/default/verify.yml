@@ -1,0 +1,27 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  tasks:
+    # yarn is a Node script, so this also proves the deb's nodejs dependency
+    # was satisfied.
+    - name: Run yarn # noqa: command-instead-of-module (functional check that the binary works)
+      ansible.builtin.command: yarn --version
+      register: yarn_verify_version
+      changed_when: false
+
+    - name: Assert yarn reports a version string
+      ansible.builtin.assert:
+        that:
+          - "yarn_verify_version.stdout is match('^[0-9]+\\.[0-9]+\\.[0-9]+$')"
+
+    - name: Read the Yarn apt source
+      ansible.builtin.slurp:
+        src: /etc/apt/sources.list.d/yarn.sources
+      register: yarn_verify_sources
+
+    - name: Assert the Yarn repo is configured with the central keyring
+      ansible.builtin.assert:
+        that:
+          - "'https://dl.yarnpkg.com/debian/' in yarn_verify_sources.content | b64decode"
+          - "'Signed-By: /etc/apt/keyrings/yarn-repo.gpg' in yarn_verify_sources.content | b64decode"

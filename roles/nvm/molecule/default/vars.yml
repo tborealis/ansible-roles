@@ -1,0 +1,4 @@
+---
+# Shared by prepare.yml, converge.yml and verify.yml.
+nvm_molecule_user: molecule
+nvm_molecule_node_major: 22

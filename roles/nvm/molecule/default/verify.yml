@@ -1,0 +1,38 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    # nvm appends its init lines to ~/.bashrc, which non-interactive shells
+    # return from early, so source nvm.sh explicitly instead of using bash -l.
+    - name: Check nvm version as the test user
+      become_user: "{{ nvm_molecule_user }}"
+      become: true
+      ansible.builtin.shell: . "$HOME/.nvm/nvm.sh" && nvm --version
+      args:
+        executable: /bin/bash
+      register: nvm_verify_version
+      changed_when: false
+
+    - name: Assert nvm reports a version string
+      ansible.builtin.assert:
+        that:
+          - "nvm_verify_version.stdout is match('^[0-9]+\\.[0-9]+\\.[0-9]+$')"
+
+    # Sourcing nvm.sh activates the default alias, so this checks both the
+    # installed version and the default set by converge.
+    - name: Check the default Node version as the test user
+      become_user: "{{ nvm_molecule_user }}"
+      become: true
+      ansible.builtin.shell: . "$HOME/.nvm/nvm.sh" && node --version
+      args:
+        executable: /bin/bash
+      register: nvm_verify_node_version
+      changed_when: false
+
+    - name: Assert the default Node major matches the converge config
+      ansible.builtin.assert:
+        that:
+          - nvm_verify_node_version.stdout.startswith('v' ~ nvm_molecule_node_major ~ '.')

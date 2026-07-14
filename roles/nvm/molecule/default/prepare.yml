@@ -1,0 +1,22 @@
+---
+# The role configures nvm for existing accounts and relies on become_user
+# switching to them, which needs acl for unprivileged users. On real hosts the
+# base role installs acl and other roles create the accounts; neither is part
+# of the nvm role's contract.
+- name: Prepare
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Install acl for unprivileged become
+      ansible.builtin.apt:
+        pkg: acl
+        state: present
+        update_cache: true
+
+    - name: Create test user
+      ansible.builtin.user:
+        name: "{{ nvm_molecule_user }}"
+        shell: /bin/bash
+        create_home: true

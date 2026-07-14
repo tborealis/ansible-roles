@@ -1,0 +1,9 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars:
+    # Matches the version the apt_keys manifest pins for live key verification.
+    node_version: 22
+  roles:
+    - role: tborealis.roles.node

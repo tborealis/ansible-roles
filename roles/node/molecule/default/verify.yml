@@ -1,0 +1,45 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  tasks:
+    - name: Print the Node version
+      ansible.builtin.command: node --eval 'console.log(process.version)'
+      register: node_verify_version
+      changed_when: false
+
+    - name: Assert Node 22 is installed
+      ansible.builtin.assert:
+        that:
+          - node_verify_version.stdout.startswith('v22.')
+
+    - name: Run npm # noqa: command-instead-of-module (functional check that the binary works)
+      ansible.builtin.command: npm --version
+      register: node_verify_npm
+      changed_when: false
+
+    - name: Assert npm reports a version string
+      ansible.builtin.assert:
+        that:
+          - "node_verify_npm.stdout is match('^[0-9]+\\.[0-9]+\\.[0-9]+$')"
+
+    - name: Check the nodejs package origin
+      ansible.builtin.command: apt-cache policy nodejs
+      register: node_verify_policy
+      changed_when: false
+
+    - name: Assert nodejs comes from NodeSource
+      ansible.builtin.assert:
+        that:
+          - "'deb.nodesource.com' in node_verify_policy.stdout"
+
+    - name: Read the NodeSource apt source
+      ansible.builtin.slurp:
+        src: /etc/apt/sources.list.d/nodesource.sources
+      register: node_verify_sources
+
+    - name: Assert the NodeSource repo targets Node 22 and the central keyring
+      ansible.builtin.assert:
+        that:
+          - "'https://deb.nodesource.com/node_22.x' in node_verify_sources.content | b64decode"
+          - "'Signed-By: /etc/apt/keyrings/nodesource.gpg' in node_verify_sources.content | b64decode"
