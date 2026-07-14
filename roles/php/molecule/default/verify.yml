@@ -1,0 +1,300 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    # --- packages and repo -------------------------------------------------
+    - name: Check the default CLI version
+      ansible.builtin.command: php -v
+      register: php_verify_version
+      changed_when: false
+
+    - name: Assert the requested PHP version is the default CLI
+      ansible.builtin.assert:
+        that:
+          - php_verify_version.stdout is search('^PHP ' ~ php_test_version, multiline=True)
+
+    - name: Check the package origin of PHP {{ php_test_version }}
+      ansible.builtin.command: apt-cache policy php{{ php_test_version }}-cli
+      register: php_verify_policy
+      changed_when: false
+
+    - name: Assert the packages came from the Sury repository
+      ansible.builtin.assert:
+        that:
+          - "'packages.sury.org' in php_verify_policy.stdout"
+
+    # --- CLI drop-in -------------------------------------------------------
+    # E_ALL's value differs between PHP versions (E_STRICT was removed in
+    # 8.5), so the error_reporting comparison happens inside PHP.
+    - name: Probe CLI ini settings
+      ansible.builtin.command: >-
+        php -r 'echo ini_get("date.timezone"), "\n",
+                     ini_get("error_reporting") == E_ALL ? "E_ALL" : ini_get("error_reporting"), "\n",
+                     ini_get("error_log"), "\n",
+                     ini_get("precision"), "\n";'
+      register: php_verify_cli_ini
+      changed_when: false
+
+    - name: Assert the CLI drop-in settings are live
+      ansible.builtin.assert:
+        that:
+          - php_verify_cli_ini.stdout_lines[0] == 'Pacific/Auckland'
+          - php_verify_cli_ini.stdout_lines[1] == 'E_ALL'
+          - php_verify_cli_ini.stdout_lines[2] == '/var/log/php-cli-molecule.log'
+          - php_verify_cli_ini.stdout_lines[3] == '16'
+
+    - name: Check the curl extension is loaded in the CLI
+      ansible.builtin.command: >-
+        php -r 'exit(extension_loaded("curl") ? 0 : 1);'
+      changed_when: false
+
+    - name: Check the stock CLI php.ini is not managed by Ansible
+      ansible.builtin.command: grep -q "Ansible managed" /etc/php/{{ php_test_version }}/cli/php.ini
+      register: php_verify_cli_stock
+      changed_when: false
+      failed_when: php_verify_cli_stock.rc != 1
+
+    # --- FPM service and pool ----------------------------------------------
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert the FPM service is running and enabled
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['php' ~ php_test_version ~ '-fpm.service'].state == 'running'
+          - ansible_facts.services['php' ~ php_test_version ~ '-fpm.service'].status == 'enabled'
+
+    # The success notice goes to the configured error log, not stderr, so the
+    # command's exit code (the task fails on non-zero rc) is the whole check.
+    - name: Validate the FPM configuration with php-fpm{{ php_test_version }}
+      ansible.builtin.command: php-fpm{{ php_test_version }} -t
+      changed_when: false
+
+    - name: Count running workers of the molecule pool
+      ansible.builtin.command: "pgrep -fc 'php-fpm: pool molecule'"
+      register: php_verify_workers
+      changed_when: false
+
+    - name: Assert the static pool spawned the configured number of workers
+      ansible.builtin.assert:
+        that:
+          - php_verify_workers.stdout | int == php_test_pool_max_children
+
+    - name: Stat the pool listen socket
+      ansible.builtin.stat:
+        path: "{{ php_test_pool_socket }}"
+      register: php_verify_socket
+
+    - name: Assert the pool is listening on its unix socket
+      ansible.builtin.assert:
+        that:
+          - php_verify_socket.stat.exists
+          - php_verify_socket.stat.issock
+          - php_verify_socket.stat.pw_name == 'www-data'
+
+    - name: Stat the installed pool config of PHP {{ php_test_version }}
+      ansible.builtin.stat:
+        path: "/etc/php/{{ php_test_version }}/fpm/pool.d/molecule.conf"
+      register: php_verify_pool_stat
+
+    - name: Assert pool config ownership and mode
+      ansible.builtin.assert:
+        that:
+          - php_verify_pool_stat.stat.pw_name == 'root'
+          - php_verify_pool_stat.stat.gr_name == 'root'
+          - php_verify_pool_stat.stat.mode == '0600'
+
+    - name: Read the installed pool config of PHP {{ php_test_version }}
+      ansible.builtin.slurp:
+        src: "/etc/php/{{ php_test_version }}/fpm/pool.d/molecule.conf"
+      register: php_verify_pool
+
+    - name: Assert the pool fixture values were templated
+      ansible.builtin.assert:
+        that:
+          - "'listen = ' ~ php_test_pool_socket in php_verify_pool.content | b64decode"
+          - "'pm.max_children = ' ~ php_test_pool_max_children in php_verify_pool.content | b64decode"
+          - "'php_admin_value[session.save_path] = ' ~ php_test_pool_session_dir in php_verify_pool.content | b64decode"
+
+    - name: Check the default www pool was removed for PHP {{ php_test_version }}
+      ansible.builtin.stat:
+        path: "/etc/php/{{ php_test_version }}/fpm/pool.d/www.conf"
+      register: php_verify_www_pool
+      failed_when: php_verify_www_pool.stat.exists
+
+    # --- FPM drop-in (probed through the FPM SAPI, proving conf.d is read) --
+    - name: Dump the FPM SAPI configuration
+      ansible.builtin.command: php-fpm{{ php_test_version }} -i
+      register: php_verify_fpm_info
+      changed_when: false
+
+    - name: Assert the FPM drop-in settings are live
+      ansible.builtin.assert:
+        that:
+          - "'memory_limit => 96M => 96M' in php_verify_fpm_info.stdout"
+          - "'max_execution_time => 45 => 45' in php_verify_fpm_info.stdout"
+          - "'post_max_size => 16M => 16M' in php_verify_fpm_info.stdout"
+          - "'upload_max_filesize => 12M => 12M' in php_verify_fpm_info.stdout"
+          - "'expose_php => Off => Off' in php_verify_fpm_info.stdout"
+          - "'max_input_vars => 3000 => 3000' in php_verify_fpm_info.stdout"
+          - "'session.save_path => /var/lib/php/sessions => /var/lib/php/sessions' in php_verify_fpm_info.stdout"
+          - "'session.use_strict_mode => On => On' in php_verify_fpm_info.stdout"
+          - "'session.cookie_httponly => On => On' in php_verify_fpm_info.stdout"
+          - "'opcache.memory_consumption => 64 => 64' in php_verify_fpm_info.stdout"
+          - "'opcache.max_accelerated_files => 20000 => 20000' in php_verify_fpm_info.stdout"
+          - "'opcache.interned_strings_buffer => 24 => 24' in php_verify_fpm_info.stdout"
+          - "'opcache.jit_buffer_size => 64M => 64M' in php_verify_fpm_info.stdout"
+          - "'opcache.file_cache => ' ~ php_test_opcache_file_cache_dir in php_verify_fpm_info.stdout"
+
+    - name: Check the stock FPM php.ini is not managed by Ansible
+      ansible.builtin.command: grep -q "Ansible managed" /etc/php/{{ php_test_version }}/fpm/php.ini
+      register: php_verify_fpm_stock
+      changed_when: false
+      failed_when: php_verify_fpm_stock.rc != 1
+
+    # --- session and opcache directories -------------------------------------
+    - name: Stat the pool session directory
+      ansible.builtin.stat:
+        path: "{{ php_test_pool_session_dir }}"
+      register: php_verify_session_dir
+
+    - name: Assert the pool session directory is private to the pool user
+      ansible.builtin.assert:
+        that:
+          - php_verify_session_dir.stat.isdir
+          - php_verify_session_dir.stat.pw_name == 'www-data'
+          - php_verify_session_dir.stat.mode == '0700'
+
+    - name: Stat the opcache file cache directory
+      ansible.builtin.stat:
+        path: "{{ php_test_opcache_file_cache_dir }}"
+      register: php_verify_file_cache_dir
+
+    - name: Assert the opcache file cache directory is private to the FPM user
+      ansible.builtin.assert:
+        that:
+          - php_verify_file_cache_dir.stat.isdir
+          - php_verify_file_cache_dir.stat.pw_name == 'www-data'
+          - php_verify_file_cache_dir.stat.mode == '0700'
+
+    # --- xdebug --------------------------------------------------------------
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+        manager: apt
+
+    - name: Assert the xdebug package is installed
+      ansible.builtin.assert:
+        that:
+          - "'php' ~ php_test_version ~ '-xdebug' in ansible_facts.packages"
+
+    - name: Check xdebug is disabled in the CLI
+      ansible.builtin.stat:
+        path: "/etc/php/{{ php_test_version }}/cli/conf.d/20-xdebug.ini"
+      register: php_verify_xdebug_link
+      failed_when: php_verify_xdebug_link.stat.exists
+
+    - name: Read the CLI drop-in
+      ansible.builtin.slurp:
+        src: "/etc/php/{{ php_test_version }}/cli/conf.d/99-ansible.ini"
+      register: php_verify_cli_dropin
+
+    - name: Assert the xdebug settings were templated into the CLI drop-in
+      ansible.builtin.assert:
+        that:
+          - "'xdebug.client_host = 192.0.2.10' in php_verify_cli_dropin.content | b64decode"
+          - "'xdebug.idekey = molecule' in php_verify_cli_dropin.content | b64decode"
+
+    - name: Stat the xdebug-enable helper script
+      ansible.builtin.stat:
+        path: /usr/local/bin/xdebug-enable
+      register: php_verify_xdebug_script
+
+    - name: Assert the xdebug helper script is executable and targets the version
+      ansible.builtin.assert:
+        that:
+          - php_verify_xdebug_script.stat.exists
+          - php_verify_xdebug_script.stat.mode == '0755'
+          - php_verify_xdebug_script.stat.pw_name == 'root'
+
+    # --- composer ------------------------------------------------------------
+    - name: Check the Composer version
+      ansible.builtin.command: composer --version --no-ansi
+      register: php_verify_composer
+      changed_when: false
+      environment:
+        COMPOSER_ALLOW_SUPERUSER: "1"
+
+    - name: Assert Composer 2 is installed
+      ansible.builtin.assert:
+        that:
+          - "'Composer version 2' in php_verify_composer.stdout"
+
+    - name: Check the global phpstan package runs
+      ansible.builtin.command: /root/.config/composer/vendor/bin/phpstan --version
+      register: php_verify_phpstan
+      changed_when: false
+
+    - name: Assert phpstan was installed globally
+      ansible.builtin.assert:
+        that:
+          - "'PHPStan' in php_verify_phpstan.stdout"
+
+    - name: Read the Composer bash completion
+      ansible.builtin.slurp:
+        src: /etc/bash_completion.d/composer
+      register: php_verify_completion
+
+    - name: Assert the Composer completion script was generated
+      ansible.builtin.assert:
+        that:
+          - "'complete' in php_verify_completion.content | b64decode"
+
+    # --- new relic -----------------------------------------------------------
+    - name: Assert the New Relic package is installed
+      ansible.builtin.assert:
+        that:
+          - "'newrelic-php5' in ansible_facts.packages"
+
+    - name: Stat the New Relic deb822 source
+      ansible.builtin.stat:
+        path: /etc/apt/sources.list.d/newrelic.sources
+      register: php_verify_newrelic_sources
+      failed_when: not php_verify_newrelic_sources.stat.exists
+
+    - name: Read the New Relic module config
+      ansible.builtin.slurp:
+        src: "/etc/php/{{ php_test_version }}/mods-available/newrelic.ini"
+      register: php_verify_newrelic_ini
+
+    - name: Assert the New Relic settings were templated
+      ansible.builtin.assert:
+        that:
+          - "'newrelic.license = \"' ~ php_test_newrelic_key ~ '\"' in php_verify_newrelic_ini.content | b64decode"
+          - "'newrelic.appname = \"Molecule Test App\"' in php_verify_newrelic_ini.content | b64decode"
+          - "'newrelic.browser_monitoring.auto_instrument = false' in php_verify_newrelic_ini.content | b64decode"
+          - "'newrelic.distributed_tracing_enabled = true' in php_verify_newrelic_ini.content | b64decode"
+
+    - name: Find New Relic entries in each SAPI conf.d
+      ansible.builtin.find:
+        paths: "/etc/php/{{ php_test_version }}/{{ item }}/conf.d"
+        patterns: "*newrelic*"
+        file_type: any
+      register: php_verify_newrelic_confd
+      loop: [cli, fpm]
+
+    - name: Assert exactly one New Relic entry per SAPI
+      ansible.builtin.assert:
+        that:
+          - item.files | length == 1
+        fail_msg: "Expected exactly one newrelic entry in {{ item.item }} conf.d, found {{ item.files | map(attribute='path') | list }}"
+      loop: "{{ php_verify_newrelic_confd.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Check the New Relic extension is loaded in the CLI
+      ansible.builtin.command: >-
+        php -r 'exit(extension_loaded("newrelic") ? 0 : 1);'
+      changed_when: false
