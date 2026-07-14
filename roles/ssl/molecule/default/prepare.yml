@@ -1,0 +1,36 @@
+---
+# The role copies pre-existing key/cert material and chowns it to the
+# ssl-cert group, which the ssl-cert package provides on real hosts.
+# Generate a throwaway self-signed certificate on the target; converge
+# slurps it into the role's content variables. The creates: guard keeps
+# the material stable if prepare ever re-runs.
+- name: Prepare
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Install openssl and the ssl-cert package (provides the ssl-cert group)
+      ansible.builtin.apt:
+        pkg:
+          - openssl
+          - ssl-cert
+        state: present
+        update_cache: true
+
+    - name: Create fixture directory
+      ansible.builtin.file:
+        path: "{{ ssl_molecule_fixture_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+
+    - name: Generate throwaway self-signed certificate and key
+      ansible.builtin.command: >-
+        openssl req -x509 -newkey rsa:2048 -nodes
+        -keyout {{ ssl_molecule_fixture_dir }}/{{ ssl_molecule_cert_name }}.key
+        -out {{ ssl_molecule_fixture_dir }}/{{ ssl_molecule_cert_name }}.pem
+        -days 365 -subj /CN={{ ssl_molecule_cert_cn }}
+      args:
+        creates: "{{ ssl_molecule_fixture_dir }}/{{ ssl_molecule_cert_name }}.key"

@@ -1,0 +1,78 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert nginx service is running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['nginx.service'].state == 'running'
+
+    - name: Validate nginx configuration
+      ansible.builtin.command: nginx -t
+      changed_when: false
+
+    - name: Request the vhost root
+      ansible.builtin.uri:
+        url: http://127.0.0.1/
+        return_content: true
+      register: nginx_verify_root
+
+    - name: Assert the vhost serves content and hides the server version
+      ansible.builtin.assert:
+        that:
+          - nginx_verify_root.status == 200
+          - "'molecule vhost ok' in nginx_verify_root.content"
+          - nginx_verify_root.server == 'nginx'
+
+    - name: Request the protected location without credentials
+      ansible.builtin.uri:
+        url: http://127.0.0.1/secure/
+        status_code: 401
+
+    - name: Request the protected location with credentials
+      ansible.builtin.uri:
+        url: http://127.0.0.1/secure/
+        url_username: "{{ nginx_molecule_auth_user }}"
+        url_password: "{{ nginx_molecule_auth_password }}"
+        force_basic_auth: true
+        return_content: true
+      register: nginx_verify_auth
+
+    - name: Assert basic auth grants access
+      ansible.builtin.assert:
+        that:
+          - "'molecule secure ok' in nginx_verify_auth.content"
+
+    - name: Read nginx.conf
+      ansible.builtin.slurp:
+        src: /etc/nginx/nginx.conf
+      register: nginx_verify_conf
+
+    - name: Assert converge values are rendered into nginx.conf
+      ansible.builtin.assert:
+        that:
+          - "'client_max_body_size 16m;' in nginx_verify_conf.content | b64decode"
+          - "'server_tokens off;' in nginx_verify_conf.content | b64decode"
+
+    - name: Check vhost symlink
+      ansible.builtin.stat:
+        path: /etc/nginx/sites-enabled/molecule.conf
+      register: nginx_verify_vhost_link
+
+    - name: Assert vhost is enabled from sites-available
+      ansible.builtin.assert:
+        that:
+          - nginx_verify_vhost_link.stat.islnk
+          - nginx_verify_vhost_link.stat.lnk_source == '/etc/nginx/sites-available/molecule.conf'
+
+    - name: Check default site was removed
+      ansible.builtin.stat:
+        path: /etc/nginx/conf.d/default.conf
+      register: nginx_verify_default_site
+      failed_when: nginx_verify_default_site.stat.exists

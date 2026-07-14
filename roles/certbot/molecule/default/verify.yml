@@ -1,0 +1,63 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Run certbot # noqa: command-instead-of-module (functional check that the binary works)
+      ansible.builtin.command: certbot --version
+      changed_when: false
+
+    - name: List certbot plugins
+      ansible.builtin.command: certbot plugins
+      register: certbot_verify_plugins
+      changed_when: false
+
+    - name: Assert DigitalOcean DNS plugin is registered with certbot
+      ansible.builtin.assert:
+        that:
+          - "'dns-digitalocean' in certbot_verify_plugins.stdout"
+
+    - name: Check renewal timer state # noqa: command-instead-of-module (service_facts does not report timer units)
+      ansible.builtin.command: systemctl is-active certbot.timer
+      register: certbot_verify_timer_active
+      changed_when: false
+      failed_when: false
+
+    - name: Check renewal timer enablement # noqa: command-instead-of-module (service_facts does not report timer units)
+      ansible.builtin.command: systemctl is-enabled certbot.timer
+      register: certbot_verify_timer_enabled
+      changed_when: false
+      failed_when: false
+
+    - name: Assert renewal timer is active and enabled
+      ansible.builtin.assert:
+        that:
+          - certbot_verify_timer_active.stdout == 'active'
+          - certbot_verify_timer_enabled.stdout == 'enabled'
+
+    - name: Stat DigitalOcean credentials file
+      ansible.builtin.stat:
+        path: /etc/letsencrypt/digitalocean.ini
+      register: certbot_verify_credentials_stat
+
+    - name: Assert credentials file is root-owned and private
+      ansible.builtin.assert:
+        that:
+          - certbot_verify_credentials_stat.stat.exists
+          - certbot_verify_credentials_stat.stat.pw_name == 'root'
+          - certbot_verify_credentials_stat.stat.gr_name == 'root'
+          - certbot_verify_credentials_stat.stat.mode == '0600'
+
+    - name: Read DigitalOcean credentials file
+      ansible.builtin.slurp:
+        src: /etc/letsencrypt/digitalocean.ini
+      register: certbot_verify_credentials
+
+    - name: Assert the configured token is written to the credentials file
+      ansible.builtin.assert:
+        that:
+          - >-
+            'dns_digitalocean_token = "' ~ certbot_digitalocean_dns_token ~ '"'
+            in certbot_verify_credentials.content | b64decode

@@ -1,0 +1,120 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Stat installed private key
+      ansible.builtin.stat:
+        path: "/etc/ssl/private/{{ ssl_molecule_cert_name }}.key"
+      register: ssl_verify_key_stat
+
+    - name: Assert key is root/ssl-cert owned and not world-readable
+      ansible.builtin.assert:
+        that:
+          - ssl_verify_key_stat.stat.exists
+          - ssl_verify_key_stat.stat.pw_name == 'root'
+          - ssl_verify_key_stat.stat.gr_name == 'ssl-cert'
+          - ssl_verify_key_stat.stat.mode == '0640'
+
+    - name: Stat installed certificate
+      ansible.builtin.stat:
+        path: "/etc/ssl/certs/{{ ssl_molecule_cert_name }}.pem"
+      register: ssl_verify_cert_stat
+
+    - name: Assert certificate is root-owned and world-readable
+      ansible.builtin.assert:
+        that:
+          - ssl_verify_cert_stat.stat.exists
+          - ssl_verify_cert_stat.stat.pw_name == 'root'
+          - ssl_verify_cert_stat.stat.gr_name == 'root'
+          - ssl_verify_cert_stat.stat.mode == '0644'
+
+    - name: Read installed private key
+      ansible.builtin.slurp:
+        src: "/etc/ssl/private/{{ ssl_molecule_cert_name }}.key"
+      register: ssl_verify_key
+
+    - name: Assert key is PEM-encoded
+      ansible.builtin.assert:
+        that:
+          - "'BEGIN PRIVATE KEY' in ssl_verify_key.content | b64decode"
+
+    - name: Read installed certificate
+      ansible.builtin.slurp:
+        src: "/etc/ssl/certs/{{ ssl_molecule_cert_name }}.pem"
+      register: ssl_verify_cert
+
+    - name: Read fixture certificate for comparison
+      ansible.builtin.slurp:
+        src: "{{ ssl_molecule_fixture_dir }}/{{ ssl_molecule_cert_name }}.pem"
+      register: ssl_verify_fixture_cert
+
+    - name: Assert installed certificate is PEM-encoded and matches the fixture
+      ansible.builtin.assert:
+        that:
+          - "'BEGIN CERTIFICATE' in ssl_verify_cert.content | b64decode"
+          - ssl_verify_cert.content == ssl_verify_fixture_cert.content
+
+    - name: Read installed stapling certificate
+      ansible.builtin.slurp:
+        src: "/etc/ssl/certs/{{ ssl_molecule_cert_name }}.stapling.pem"
+      register: ssl_verify_stapling
+
+    - name: Assert stapling certificate is PEM-encoded
+      ansible.builtin.assert:
+        that:
+          - "'BEGIN CERTIFICATE' in ssl_verify_stapling.content | b64decode"
+
+    - name: Validate installed certificate with openssl
+      ansible.builtin.command: >-
+        openssl x509 -noout -subject
+        -in /etc/ssl/certs/{{ ssl_molecule_cert_name }}.pem
+      register: ssl_verify_x509
+      changed_when: false
+
+    - name: Assert certificate subject carries the test CN
+      ansible.builtin.assert:
+        that:
+          - ssl_molecule_cert_cn in ssl_verify_x509.stdout
+
+    - name: Assert installed key matches the installed certificate
+      ansible.builtin.shell: >-
+        set -o pipefail;
+        cmp
+        <(openssl x509 -noout -pubkey -in /etc/ssl/certs/{{ ssl_molecule_cert_name }}.pem)
+        <(openssl pkey -pubout -in /etc/ssl/private/{{ ssl_molecule_cert_name }}.key)
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Stat DH params directory
+      ansible.builtin.stat:
+        path: /etc/ssl/dh
+      register: ssl_verify_dh_dir
+
+    - name: Assert DH directory permissions
+      ansible.builtin.assert:
+        that:
+          - ssl_verify_dh_dir.stat.isdir
+          - ssl_verify_dh_dir.stat.pw_name == 'root'
+          - ssl_verify_dh_dir.stat.gr_name == 'ssl-cert'
+          - ssl_verify_dh_dir.stat.mode == '0710'
+
+    - name: Stat generated DH params
+      ansible.builtin.stat:
+        path: /etc/ssl/dh/dhparam.pem
+      register: ssl_verify_dh_stat
+
+    - name: Assert DH params are root/ssl-cert owned and not world-readable
+      ansible.builtin.assert:
+        that:
+          - ssl_verify_dh_stat.stat.exists
+          - ssl_verify_dh_stat.stat.pw_name == 'root'
+          - ssl_verify_dh_stat.stat.gr_name == 'ssl-cert'
+          - ssl_verify_dh_stat.stat.mode == '0640'
+
+    - name: Validate DH params with openssl
+      ansible.builtin.command: openssl dhparam -in /etc/ssl/dh/dhparam.pem -check -noout
+      changed_when: false

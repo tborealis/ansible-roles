@@ -1,0 +1,19 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    php_version: "{{ php_repo_sury_test_version }}"
+    php_cli_xdebug: true
+  roles:
+    - role: tborealis.roles.php_repo_sury
+  tasks:
+    # The role only configures the repository; installing a package from it
+    # is the functional proof that the repo works (php_cli does this on real
+    # hosts). CLI only, to keep the scenario fast.
+    - name: Install PHP CLI from the Sury repository
+      ansible.builtin.apt:
+        pkg: "php{{ php_repo_sury_test_version }}-cli"
+        state: present

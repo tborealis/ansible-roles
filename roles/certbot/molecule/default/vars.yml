@@ -1,0 +1,5 @@
+---
+# Throwaway test credential shared by converge.yml and verify.yml. Deliberately
+# NOT shaped like a real DigitalOcean token so secret scanning cannot mistake
+# it for one; no ACME requests are made because certbot_certs stays empty.
+certbot_digitalocean_dns_token: molecule-fake-do-token-0123456789

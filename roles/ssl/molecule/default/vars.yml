@@ -1,0 +1,5 @@
+---
+# Shared between prepare.yml, converge.yml and verify.yml.
+ssl_molecule_fixture_dir: /root/molecule-ssl-fixtures
+ssl_molecule_cert_name: molecule
+ssl_molecule_cert_cn: molecule.example.com

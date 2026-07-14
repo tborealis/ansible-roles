@@ -1,0 +1,61 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Run php # noqa: command-instead-of-module (functional check that the binary works)
+      ansible.builtin.command: php -v
+      register: php_repo_sury_verify_php
+      changed_when: false
+
+    - name: Assert the requested PHP version is installed
+      ansible.builtin.assert:
+        that:
+          - php_repo_sury_verify_php.stdout is search('^PHP ' ~ php_repo_sury_test_version ~ '\.')
+
+    - name: Check apt policy for the CLI package of PHP {{ php_repo_sury_test_version }}
+      ansible.builtin.command: apt-cache policy php{{ php_repo_sury_test_version }}-cli
+      register: php_repo_sury_verify_policy
+      changed_when: false
+
+    - name: Assert the package was installed from the Sury repository
+      ansible.builtin.assert:
+        that:
+          - "'packages.sury.org' in php_repo_sury_verify_policy.stdout"
+
+    - name: Read the Sury deb822 source
+      ansible.builtin.slurp:
+        src: /etc/apt/sources.list.d/php-sury.sources
+      register: php_repo_sury_verify_source
+
+    - name: Assert the source targets the Sury repo for this release
+      ansible.builtin.assert:
+        that:
+          - "'URIs: https://packages.sury.org/php/' in php_repo_sury_verify_source.content | b64decode"
+          - "'Suites: ' ~ ansible_facts['distribution_release'] in php_repo_sury_verify_source.content | b64decode"
+          - "'Signed-By: /etc/apt/keyrings/php-sury-repo.gpg' in php_repo_sury_verify_source.content | b64decode"
+
+    - name: Stat the xdebug-enable control script
+      ansible.builtin.stat:
+        path: /usr/local/bin/xdebug-enable
+      register: php_repo_sury_verify_xdebug_stat
+
+    - name: Assert the control script is executable and root-owned
+      ansible.builtin.assert:
+        that:
+          - php_repo_sury_verify_xdebug_stat.stat.exists
+          - php_repo_sury_verify_xdebug_stat.stat.mode == '0755'
+          - php_repo_sury_verify_xdebug_stat.stat.pw_name == 'root'
+
+    - name: Read the xdebug-enable control script
+      ansible.builtin.slurp:
+        src: /usr/local/bin/xdebug-enable
+      register: php_repo_sury_verify_xdebug_script
+
+    - name: Assert the control script targets the requested PHP version
+      ansible.builtin.assert:
+        that:
+          - "'/etc/php/' ~ php_repo_sury_test_version ~ '/mods-available/xdebug.ini'
+             in php_repo_sury_verify_xdebug_script.content | b64decode"

@@ -1,0 +1,28 @@
+---
+# The converge vhost serves static files; providing web content is outside
+# the role's contract, so create the docroot fixture here.
+- name: Prepare
+  hosts: all
+  become: true
+  tasks:
+    - name: Create docroot directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /var/www/molecule
+        - /var/www/molecule/secure
+
+    - name: Write index pages
+      ansible.builtin.copy:
+        content: "{{ item.content }}\n"
+        dest: "{{ item.dest }}"
+        mode: "0644"
+      loop:
+        - dest: /var/www/molecule/index.html
+          content: molecule vhost ok
+        - dest: /var/www/molecule/secure/index.html
+          content: molecule secure ok
+      loop_control:
+        label: "{{ item.dest }}"

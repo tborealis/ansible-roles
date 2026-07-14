@@ -1,0 +1,4 @@
+---
+# Throwaway test credentials shared by converge.yml and verify.yml.
+apache2_molecule_auth_user: molecule
+apache2_molecule_auth_password: molecule-Basic-Passw0rd1
