@@ -11,6 +11,14 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Added
+
+- **mailpit:** new role installing [Mailpit](https://github.com/axllent/mailpit), the
+  maintained MailHog successor (same default ports: SMTP 1025, web UI/API 8025), with
+  a pinned version, per-architecture sha256 checksums (amd64/arm64), a correctly-moded
+  systemd unit, and a daemon-reloading restart handler. Replaces the deprecated
+  `mailhog` role. (#130)
+
 ### Fixed
 
 - **certbot:** apache mode now works standalone: the role ships the `Restart apache2`
@@ -27,6 +35,12 @@ flagged with **BREAKING** and require a MAJOR version bump.
   every run; they now probe the existing shims/packages first, so converges with those
   options enabled are idempotent. The nvm installer is bumped to v0.40.5 and the
   README no longer references a nonexistent archive checksum. (#131)
+
+### Deprecated
+
+- **mailhog:** upstream is archived/unmaintained, the binary download is unverified
+  and amd64-only. Use the new `mailpit` role instead; `mailhog` will be removed in the
+  next major release. (#130)
 
 ## [5.1.0] - 2026-07-14
 

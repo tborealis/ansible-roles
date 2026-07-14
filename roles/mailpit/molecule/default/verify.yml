@@ -1,0 +1,75 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars:
+    mailpit_verify_subject: molecule-round-trip-test
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert mailpit service is running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['mailpit.service'].state == 'running'
+
+    - name: Wait for the SMTP port to accept connections
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 1025
+        timeout: 30
+
+    - name: Request the web UI
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8025/
+        return_content: true
+      register: mailpit_verify_ui
+
+    - name: Assert the web UI serves Mailpit
+      ansible.builtin.assert:
+        that:
+          - mailpit_verify_ui.status == 200
+          - "'Mailpit' in mailpit_verify_ui.content"
+
+    - name: Send a test mail through the SMTP port
+      community.general.mail:
+        host: 127.0.0.1
+        port: 1025
+        secure: never
+        from: molecule@example.com
+        to: inbox@example.com
+        subject: "{{ mailpit_verify_subject }}"
+        body: Functional SMTP round-trip sent by molecule verify.
+
+    - name: Query the messages API
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8025/api/v1/messages
+        return_content: true
+      register: mailpit_verify_messages
+
+    - name: Assert the test mail was captured
+      ansible.builtin.assert:
+        that:
+          - mailpit_verify_messages.json.total | int >= 1
+          - mailpit_verify_messages.json.messages[0].Subject == mailpit_verify_subject
+
+    - name: Read the systemd unit
+      ansible.builtin.slurp:
+        src: /lib/systemd/system/mailpit.service
+      register: mailpit_verify_unit
+
+    - name: Assert the unit runs the installed binary as the mailpit user
+      ansible.builtin.assert:
+        that:
+          - "'ExecStart=/opt/mailpit/mailpit' in mailpit_verify_unit.content | b64decode"
+          - "'User=mailpit' in mailpit_verify_unit.content | b64decode"
+
+    - name: Stat the systemd unit
+      ansible.builtin.stat:
+        path: /lib/systemd/system/mailpit.service
+      register: mailpit_verify_unit_stat
+
+    - name: Assert the unit is not executable
+      ansible.builtin.assert:
+        that:
+          - mailpit_verify_unit_stat.stat.mode == '0644'
