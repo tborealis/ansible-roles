@@ -14,6 +14,13 @@
 - name: Install PHP packages
   ansible.builtin.import_tasks: packages.yml
 
+- name: Remove other PHP versions
+  ansible.builtin.import_tasks: remove-other-versions.yml
+  when: php_remove_other_versions
+
+- name: Restore stock config on hosts migrated from the old PHP roles
+  ansible.builtin.import_tasks: restore-stock-ini.yml
+
 - name: Apply PHP configuration drop-ins
   ansible.builtin.import_tasks: config.yml
 

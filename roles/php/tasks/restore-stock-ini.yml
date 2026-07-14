@@ -1,0 +1,58 @@
+---
+# The old php_cli/php_fpm roles templated the full php.ini and php-fpm.conf
+# with an "Ansible managed" marker. This role never touches those files, so on
+# hosts migrated at the same PHP version the old managed values would linger.
+# Detect the marker and restore the packaged reference config exactly once;
+# after that the marker is gone and none of this fires again.
+
+- name: Check whether the CLI php.ini was templated by the old php_cli role
+  ansible.builtin.command: grep -q "Ansible managed" /etc/php/{{ php_version }}/cli/php.ini
+  register: php_cli_ini_managed
+  changed_when: false
+  failed_when: php_cli_ini_managed.rc not in [0, 1]
+
+- name: Restore stock CLI php.ini
+  ansible.builtin.copy:
+    src: "/usr/lib/php/{{ php_version }}/php.ini-production.cli"
+    dest: "/etc/php/{{ php_version }}/cli/php.ini"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0644"
+  when: php_cli_ini_managed.rc == 0
+
+- name: Check whether the FPM php.ini was templated by the old php_fpm role
+  ansible.builtin.command: grep -q "Ansible managed" /etc/php/{{ php_version }}/fpm/php.ini
+  register: php_fpm_ini_managed
+  changed_when: false
+  failed_when: php_fpm_ini_managed.rc not in [0, 1]
+  when: php_fpm
+
+- name: Restore stock FPM php.ini
+  ansible.builtin.copy:
+    src: "/usr/lib/php/{{ php_version }}/php.ini-production"
+    dest: "/etc/php/{{ php_version }}/fpm/php.ini"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0644"
+  when: php_fpm and php_fpm_ini_managed.rc == 0
+  notify: Restart php-fpm
+
+- name: Check whether php-fpm.conf was templated by the old php_fpm role
+  ansible.builtin.command: grep -q "Ansible managed" /etc/php/{{ php_version }}/fpm/php-fpm.conf
+  register: php_fpm_conf_managed
+  changed_when: false
+  failed_when: php_fpm_conf_managed.rc not in [0, 1]
+  when: php_fpm
+
+- name: Restore stock php-fpm.conf
+  ansible.builtin.copy:
+    src: "/usr/lib/php/{{ php_version }}/php-fpm.conf"
+    dest: "/etc/php/{{ php_version }}/fpm/php-fpm.conf"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0644"
+  when: php_fpm and php_fpm_conf_managed.rc == 0
+  notify: Restart php-fpm
