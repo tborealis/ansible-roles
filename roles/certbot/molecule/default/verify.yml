@@ -14,10 +14,11 @@
       register: certbot_verify_plugins
       changed_when: false
 
-    - name: Assert DigitalOcean DNS plugin is registered with certbot
+    - name: Assert DigitalOcean DNS and apache plugins are registered with certbot
       ansible.builtin.assert:
         that:
           - "'dns-digitalocean' in certbot_verify_plugins.stdout"
+          - "'apache' in certbot_verify_plugins.stdout"
 
     - name: Check renewal timer state # noqa: command-instead-of-module (service_facts does not report timer units)
       ansible.builtin.command: systemctl is-active certbot.timer
@@ -61,3 +62,27 @@
           - >-
             'dns_digitalocean_token = "' ~ certbot_digitalocean_dns_token ~ '"'
             in certbot_verify_credentials.content | b64decode
+
+    - name: Stat enabled SSL vhost symlink
+      ansible.builtin.stat:
+        path: /etc/apache2/sites-enabled/molecule-ssl.conf
+      register: certbot_verify_vhost_link
+
+    - name: Assert SSL vhost is enabled
+      ansible.builtin.assert:
+        that:
+          - certbot_verify_vhost_link.stat.islnk | default(false)
+          - certbot_verify_vhost_link.stat.lnk_source == '/etc/apache2/sites-available/molecule-ssl.conf'
+
+    - name: Probe the SSL vhost over HTTP
+      ansible.builtin.uri:
+        url: http://127.0.0.1/
+        headers:
+          Host: "{{ certbot_test_vhost_server_name }}"
+        return_content: true
+      register: certbot_verify_vhost_response
+
+    - name: Assert the vhost serves its document root
+      ansible.builtin.assert:
+        that:
+          - certbot_test_vhost_marker in certbot_verify_vhost_response.content
