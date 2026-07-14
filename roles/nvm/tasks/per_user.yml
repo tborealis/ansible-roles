@@ -15,7 +15,7 @@
         set -o pipefail && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v{{ nvm_version }}/install.sh | bash
       args:
         executable: /bin/bash
-        creates: "{{ ansible_facts['env']['HOME'] }}/.nvm/nvm.sh"
+      changed_when: true
       when: nvm_installed_version.stdout != nvm_version
 
     - name: Per-version nvm config
@@ -24,6 +24,13 @@
       loop_control:
         loop_var: nvm_user_config_version
 
+    - name: Check default Node version alias
+      ansible.builtin.command: 'bash -ic "cat \"$NVM_DIR/alias/default\""'
+      register: nvm_default_alias
+      failed_when: false
+      changed_when: false
+
     - name: "Set default Node version to {{ nvm_user_config.default_version }}"
       ansible.builtin.command: 'bash -ic "nvm alias default {{ nvm_user_config.default_version }}"'
       changed_when: true
+      when: nvm_default_alias.stdout != nvm_user_config.default_version | string

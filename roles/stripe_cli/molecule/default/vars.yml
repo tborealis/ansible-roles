@@ -1,0 +1,4 @@
+---
+# The role has no default for stripe_cli_version (it is required) and pins
+# the exact release it installs, so any published version stays valid here.
+stripe_cli_version: 1.43.8

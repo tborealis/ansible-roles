@@ -1,0 +1,11 @@
+---
+# The role installs Chrome with `npx @puppeteer/browsers` but does not
+# install Node.js itself. Real playbooks apply the node role first, so
+# mirror that here.
+- name: Prepare
+  hosts: all
+  become: true
+  vars:
+    node_version: 22
+  roles:
+    - role: tborealis.roles.node

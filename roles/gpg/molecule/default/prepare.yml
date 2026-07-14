@@ -1,0 +1,138 @@
+---
+# The role imports existing key material for existing users, so create the
+# user and generate throwaway keys to feed it: one passphrase-protected
+# private key and one public key. Generation happens on the control node
+# (requires gpg there; the container image deliberately ships without GnuPG
+# because installing it is the role's job) and the armoured exports are
+# staged on the target for converge.yml and verify.yml to slurp.
+- name: Prepare
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Create the target user
+      ansible.builtin.user:
+        name: "{{ gpg_test_user }}"
+        shell: /bin/bash
+
+    - name: Create a scratch GNUPGHOME on the control node
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: .molecule-gpg
+      run_once: true
+      delegate_to: localhost
+      become: false
+      register: gpg_prepare_homedir
+
+    - name: Generate a throwaway private fixture key on the control node
+      ansible.builtin.command:
+        cmd: gpg --homedir {{ gpg_prepare_homedir.path }} --batch --pinentry-mode loopback --gen-key
+        stdin: |
+          Key-Type: RSA
+          Key-Length: 3072
+          Subkey-Type: RSA
+          Subkey-Length: 3072
+          Name-Real: Molecule Test Private
+          Name-Email: {{ gpg_test_private_uid }}
+          Expire-Date: 0
+          Passphrase: {{ gpg_test_passphrase }}
+          %commit
+      run_once: true
+      delegate_to: localhost
+      become: false
+      changed_when: true
+
+    - name: Generate a throwaway public fixture key on the control node
+      ansible.builtin.command:
+        cmd: gpg --homedir {{ gpg_prepare_homedir.path }} --batch --pinentry-mode loopback --gen-key
+        stdin: |
+          Key-Type: RSA
+          Key-Length: 3072
+          Subkey-Type: RSA
+          Subkey-Length: 3072
+          Name-Real: Molecule Test Public
+          Name-Email: {{ gpg_test_public_uid }}
+          Expire-Date: 0
+          %no-protection
+          %commit
+      run_once: true
+      delegate_to: localhost
+      become: false
+      changed_when: true
+
+    - name: Read the fixture key fingerprints
+      ansible.builtin.shell:
+        cmd: >-
+          set -o pipefail;
+          gpg --homedir {{ gpg_prepare_homedir.path }} --list-keys --with-colons {{ item }}
+          | awk -F: '$1 == "fpr" {print $10; exit}'
+        executable: /bin/bash
+      loop:
+        - "{{ gpg_test_private_uid }}"
+        - "{{ gpg_test_public_uid }}"
+      run_once: true
+      delegate_to: localhost
+      become: false
+      changed_when: false
+      register: gpg_prepare_fprs
+
+    - name: Export the armoured private fixture key
+      ansible.builtin.command: >-
+        gpg --homedir {{ gpg_prepare_homedir.path }} --batch --pinentry-mode loopback
+        --passphrase {{ gpg_test_passphrase }} --armor
+        --export-secret-keys {{ gpg_prepare_fprs.results[0].stdout }}
+      run_once: true
+      delegate_to: localhost
+      become: false
+      changed_when: false
+      register: gpg_prepare_private_key
+
+    - name: Export the armoured public fixture key
+      ansible.builtin.command: >-
+        gpg --homedir {{ gpg_prepare_homedir.path }} --armor
+        --export {{ gpg_prepare_fprs.results[1].stdout }}
+      run_once: true
+      delegate_to: localhost
+      become: false
+      changed_when: false
+      register: gpg_prepare_public_key
+
+    - name: Stop the scratch gpg-agent on the control node
+      ansible.builtin.command: gpgconf --homedir {{ gpg_prepare_homedir.path }} --kill gpg-agent
+      run_once: true
+      delegate_to: localhost
+      become: false
+      changed_when: true
+      failed_when: false
+
+    - name: Remove the scratch GNUPGHOME
+      ansible.builtin.file:
+        path: "{{ gpg_prepare_homedir.path }}"
+        state: absent
+      run_once: true
+      delegate_to: localhost
+      become: false
+
+    - name: Create the fixture directory on the target
+      ansible.builtin.file:
+        path: "{{ gpg_fixture_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Stage the fixture material on the target
+      ansible.builtin.copy:
+        content: "{{ item.content }}"
+        dest: "{{ gpg_fixture_dir }}/{{ item.dest }}"
+        mode: "0644"
+      loop:
+        - dest: private.fpr
+          content: "{{ gpg_prepare_fprs.results[0].stdout }}"
+        - dest: private.asc
+          content: "{{ gpg_prepare_private_key.stdout }}"
+        - dest: public.fpr
+          content: "{{ gpg_prepare_fprs.results[1].stdout }}"
+        - dest: public.asc
+          content: "{{ gpg_prepare_public_key.stdout }}"
+      loop_control:
+        label: "{{ item.dest }}"

@@ -6,6 +6,7 @@ chrome_remove_system_chrome: false
 
 # See https://source.chromium.org/chromium/chromium/src/+/main:chrome/installer/linux/debian/dist_package_versions.json
 chrome_system_dependencies:
+  - unzip # @puppeteer/browsers needs it to extract the chrome archive
   - libasound2
   - libatk-bridge2.0-0
   - libatk1.0-0

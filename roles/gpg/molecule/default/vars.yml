@@ -1,0 +1,9 @@
+---
+# Shared by prepare.yml, converge.yml and verify.yml. The key material
+# itself is generated fresh by prepare.yml (throwaway keys, obviously
+# synthetic UIDs) and staged on the target under gpg_fixture_dir.
+gpg_test_user: molecule
+gpg_test_passphrase: molecule-Fixture-Passphrase1
+gpg_test_private_uid: molecule-test-private@example.invalid
+gpg_test_public_uid: molecule-test-public@example.invalid
+gpg_fixture_dir: /opt/molecule-gpg-fixtures

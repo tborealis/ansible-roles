@@ -6,3 +6,6 @@ skip_list:
 kinds:
   # Shared molecule scenario values, not playbooks (see docs/testing.md)
   - vars: "**/molecule/*/vars.yml"
+exclude_paths:
+  # Agent worktrees and session tooling, not part of the collection
+  - .claude

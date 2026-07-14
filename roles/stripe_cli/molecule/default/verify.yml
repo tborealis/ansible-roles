@@ -1,0 +1,25 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Check the stripe version
+      ansible.builtin.command: stripe --version
+      register: stripe_cli_verify_version
+      changed_when: false
+
+    - name: Assert the pinned stripe version is installed
+      ansible.builtin.assert:
+        that:
+          - stripe_cli_verify_version.stdout is search('stripe version ' ~ stripe_cli_version)
+
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+
+    - name: Assert the deb is registered with dpkg at the pinned version
+      ansible.builtin.assert:
+        that:
+          - "'stripe' in ansible_facts.packages"
+          - ansible_facts.packages['stripe'][0].version == stripe_cli_version | string

@@ -1,0 +1,15 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    nvm_config:
+      - user: "{{ nvm_molecule_user }}"
+        default_version: "{{ nvm_molecule_node_major }}"
+        versions:
+          - version: "{{ nvm_molecule_node_major }}"
+            global_packages: []
+  roles:
+    - role: tborealis.roles.nvm
