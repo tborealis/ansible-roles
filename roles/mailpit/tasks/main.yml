@@ -4,6 +4,41 @@
     that: ansible_facts['architecture'] in mailpit_architecture_map
     fail_msg: "The role pins checksums for {{ mailpit_architecture_map.keys() | join(', ') }} only."
 
+# Migration from the removed mailhog role: both bind SMTP 1025 and HTTP 8025,
+# so a leftover MailHog install (stock paths) must go before mailpit starts.
+- name: Check for a legacy mailhog unit
+  ansible.builtin.stat:
+    path: /lib/systemd/system/mailhog.service
+  register: mailpit_mailhog_unit
+
+- name: Remove legacy mailhog
+  when: mailpit_mailhog_unit.stat.exists
+  block:
+    - name: Stop and disable the mailhog service
+      ansible.builtin.systemd_service:
+        name: mailhog.service
+        enabled: false
+        state: stopped
+
+    - name: Remove the mailhog unit
+      ansible.builtin.file:
+        path: /lib/systemd/system/mailhog.service
+        state: absent
+
+    - name: Reload systemd after removing the mailhog unit
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Remove the mailhog install directory
+      ansible.builtin.file:
+        path: /opt/mailhog
+        state: absent
+
+    - name: Remove the mailhog user
+      ansible.builtin.user:
+        name: mailhog
+        state: absent
+
 - name: Create mailpit user
   ansible.builtin.user:
     name: "{{ mailpit_user }}"

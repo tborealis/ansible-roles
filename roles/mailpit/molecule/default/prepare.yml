@@ -1,0 +1,48 @@
+---
+# Simulate a host previously provisioned by the removed mailhog role so the
+# scenario proves the migration path. The stub binds MailHog's web port; if
+# the role failed to stop it before starting mailpit, the converge would fail.
+- name: Prepare
+  hosts: all
+  become: true
+  tasks:
+    - name: Create legacy mailhog user
+      ansible.builtin.user:
+        name: mailhog
+        createhome: false
+        shell: /bin/false
+        system: true
+        password: "*"
+
+    - name: Create legacy mailhog directory
+      ansible.builtin.file:
+        path: /opt/mailhog
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install legacy mailhog unit
+      ansible.builtin.copy:
+        content: |
+          [Unit]
+          Description=MailHog Email Catcher
+
+          [Service]
+          Type=simple
+          ExecStart=/usr/bin/python3 -m http.server 8025
+          User=mailhog
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /lib/systemd/system/mailhog.service
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Start legacy mailhog service
+      ansible.builtin.systemd_service:
+        name: mailhog.service
+        daemon_reload: true
+        enabled: true
+        state: started

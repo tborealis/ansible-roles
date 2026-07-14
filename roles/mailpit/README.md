@@ -4,7 +4,10 @@ Installs [Mailpit](https://github.com/axllent/mailpit) for email testing in deve
 environments. Mailpit is the maintained successor to MailHog and serves the same
 purpose with the same default ports: SMTP capture on 1025 and a web UI/API on 8025.
 
-This role replaces the deprecated `mailhog` role.
+This role replaces the removed `mailhog` role. Converging it removes a legacy MailHog
+install left by that role (stock paths: `/lib/systemd/system/mailhog.service`,
+`/opt/mailhog`, the `mailhog` user) before starting Mailpit, since both bind the same
+ports.
 
 ## Role Variables
 
