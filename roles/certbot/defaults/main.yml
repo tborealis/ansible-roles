@@ -1,3 +1,4 @@
 ---
 certbot_certs: []
 certbot_dry_run: false
+apache2_ssl_vhosts: []

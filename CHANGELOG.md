@@ -11,6 +11,12 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Fixed
+
+- **certbot:** apache mode now works standalone: the role ships the `Restart apache2`
+  handler it notifies, defaults `apache2_ssl_vhosts` to `[]`, and documents the
+  variable and its playbook-relative `templates/apache2/vhosts/` contract. (#124)
+
 ## [5.1.0] - 2026-07-14
 
 ### Added

@@ -12,3 +12,43 @@
     certbot_mode: dns-digitalocean
   roles:
     - role: tborealis.roles.certbot
+
+# Apache mode applied standalone (no apache2 role in the play) to prove the
+# role ships everything it notifies (#124). The vhost listens on :80 because
+# no certificate can be issued in the container; the template/handler path it
+# exercises is the same one real SSL vhosts take.
+- name: Converge (apache mode)
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    certbot_mode: apache
+    apache2_ssl_vhosts:
+      - src: molecule-ssl.conf.j2
+        dest: molecule-ssl.conf
+  pre_tasks:
+    - name: Install apache2
+      ansible.builtin.apt:
+        name: apache2
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Create vhost document root
+      ansible.builtin.file:
+        path: /var/www/molecule-ssl
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Write vhost index page
+      ansible.builtin.copy:
+        content: "{{ certbot_test_vhost_marker }}\n"
+        dest: /var/www/molecule-ssl/index.html
+        owner: root
+        group: root
+        mode: "0644"
+  roles:
+    - role: tborealis.roles.certbot

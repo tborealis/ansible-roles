@@ -3,3 +3,8 @@
 # NOT shaped like a real DigitalOcean token so secret scanning cannot mistake
 # it for one; no ACME requests are made because certbot_certs stays empty.
 certbot_digitalocean_dns_token: molecule-fake-do-token-0123456789
+
+# Apache-mode fixture shared by converge.yml, verify.yml and the vhost
+# template under templates/apache2/vhosts/.
+certbot_test_vhost_server_name: molecule-ssl.test
+certbot_test_vhost_marker: certbot-molecule-vhost-ok
