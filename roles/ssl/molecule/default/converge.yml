@@ -1,0 +1,34 @@
+---
+# The role no-ops on defaults, so feed it the throwaway material generated
+# in prepare. slurp returns base64, which is exactly what the role's
+# `data` fields expect. Idempotence re-runs this play only; the slurped
+# fixtures are stable, so the second converge copies identical content.
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  pre_tasks:
+    - name: Read throwaway private key generated in prepare
+      ansible.builtin.slurp:
+        src: "{{ ssl_molecule_fixture_dir }}/{{ ssl_molecule_cert_name }}.key"
+      register: ssl_molecule_key
+
+    - name: Read throwaway certificate generated in prepare
+      ansible.builtin.slurp:
+        src: "{{ ssl_molecule_fixture_dir }}/{{ ssl_molecule_cert_name }}.pem"
+      register: ssl_molecule_cert
+
+    - name: Stage the role's input variables
+      ansible.builtin.set_fact:
+        ssl_keys:
+          - name: "{{ ssl_molecule_cert_name }}"
+            data: "{{ ssl_molecule_key.content }}"
+        ssl_certs:
+          - name: "{{ ssl_molecule_cert_name }}"
+            data: "{{ ssl_molecule_cert.content }}"
+        ssl_stapling:
+          - name: "{{ ssl_molecule_cert_name }}"
+            data: "{{ ssl_molecule_cert.content }}"
+  roles:
+    - role: tborealis.roles.ssl
