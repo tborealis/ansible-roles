@@ -1,0 +1,11 @@
+---
+# The role templates the consumer-supplied playbook file
+# templates/phpbu/phpbu.xml (this scenario ships a tar-backup fixture) and
+# requires phpbu_cron_time to be set — it has no default.
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  roles:
+    - role: tborealis.roles.phpbu

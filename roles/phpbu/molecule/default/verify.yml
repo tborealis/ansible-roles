@@ -1,0 +1,84 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Run phpbu
+      ansible.builtin.command: /usr/local/bin/phpbu --version
+      register: phpbu_verify_version
+      changed_when: false
+
+    - name: Assert the pinned phpbu version is installed
+      ansible.builtin.assert:
+        that:
+          - "'phpbu 6.0.23' in phpbu_verify_version.stdout"
+
+    - name: Stat the config file
+      ansible.builtin.stat:
+        path: /etc/phpbu.xml
+      register: phpbu_verify_config_stat
+
+    - name: Assert the config is root-owned and group-readable by phpbu only
+      ansible.builtin.assert:
+        that:
+          - phpbu_verify_config_stat.stat.pw_name == 'root'
+          - phpbu_verify_config_stat.stat.gr_name == 'phpbu'
+          - phpbu_verify_config_stat.stat.mode == '0640'
+
+    - name: Read the config file
+      ansible.builtin.slurp:
+        src: /etc/phpbu.xml
+      register: phpbu_verify_config
+
+    - name: Assert the fixture backup is configured
+      ansible.builtin.assert:
+        that:
+          - "'<backup name=\"molecule-fixture\">' in phpbu_verify_config.content | b64decode"
+          - "'dirname=\"/var/lib/phpbu/backups\"' in phpbu_verify_config.content | b64decode"
+
+    - name: Stat the deployed private key
+      ansible.builtin.stat:
+        path: /home/phpbu/.ssh/id_ed25519
+      register: phpbu_verify_key
+
+    - name: Assert the private key is in place and only readable by phpbu
+      ansible.builtin.assert:
+        that:
+          - phpbu_verify_key.stat.exists
+          - phpbu_verify_key.stat.pw_name == 'phpbu'
+          - phpbu_verify_key.stat.mode == '0600'
+
+    - name: Read the phpbu user's crontab
+      ansible.builtin.command: crontab -l -u phpbu
+      register: phpbu_verify_crontab
+      changed_when: false
+
+    - name: Assert the backup cron entry is installed
+      ansible.builtin.assert:
+        that:
+          - "'#Ansible: PHPBU Database Backup' in phpbu_verify_crontab.stdout"
+          - >-
+            (phpbu_cron_time | join(' ') ~
+            ' /usr/local/bin/phpbu --configuration=/etc/phpbu.xml')
+            in phpbu_verify_crontab.stdout
+
+    - name: Run a real backup as the phpbu user
+      ansible.builtin.command: /usr/local/bin/phpbu --configuration=/etc/phpbu.xml -v
+      become: true
+      become_user: phpbu
+      register: phpbu_verify_run
+      changed_when: false
+
+    - name: Find the created backup archive
+      ansible.builtin.find:
+        paths: /var/lib/phpbu/backups
+        patterns: molecule-*.tar
+      register: phpbu_verify_backup
+
+    - name: Assert a non-empty backup archive was created
+      ansible.builtin.assert:
+        that:
+          - phpbu_verify_backup.files | length > 0
+          - phpbu_verify_backup.files[0].size > 0
