@@ -1,0 +1,244 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Check the runtime hostname # noqa: command-instead-of-module
+      ansible.builtin.command: hostname
+      register: base_verify_hostname
+      changed_when: false
+
+    - name: Assert the hostname matches the inventory name
+      ansible.builtin.assert:
+        that:
+          - base_verify_hostname.stdout == inventory_hostname
+
+    - name: Read /etc/hosts
+      ansible.builtin.slurp:
+        src: /etc/hosts
+      register: base_verify_hosts
+
+    - name: Assert /etc/hosts was templated with the local hostname aliases
+      ansible.builtin.assert:
+        that:
+          - >-
+            '127.0.1.1 ' ~ inventory_hostname_short ~ ' ' ~ inventory_hostname
+            in base_verify_hosts.content | b64decode
+          - "'molecule-base.example.invalid' in base_verify_hosts.content | b64decode"
+
+    - name: Query the system timezone
+      ansible.builtin.command: timedatectl show --property=Timezone --value
+      register: base_verify_timezone
+      changed_when: false
+
+    - name: Stat the localtime symlink
+      ansible.builtin.stat:
+        path: /etc/localtime
+      register: base_verify_localtime
+
+    - name: Assert the timezone is Europe/London
+      ansible.builtin.assert:
+        that:
+          - base_verify_timezone.stdout == 'Europe/London'
+          - base_verify_localtime.stat.lnk_source.endswith('/Europe/London')
+
+    - name: List generated locales
+      ansible.builtin.command: locale -a
+      register: base_verify_locales
+      changed_when: false
+
+    - name: Read the default locale file
+      ansible.builtin.slurp:
+        src: /etc/default/locale
+      register: base_verify_default_locale
+
+    - name: Assert the en_GB locale was generated and set as default
+      ansible.builtin.assert:
+        that:
+          - "'en_GB.utf8' in base_verify_locales.stdout_lines"
+          - >-
+            'LANG="en_GB.UTF-8"' in base_verify_default_locale.content | b64decode
+
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+
+    - name: Assert default and extra system packages are installed
+      ansible.builtin.assert:
+        that:
+          - "'htop' in ansible_facts.packages"
+          - "'zstd' in ansible_facts.packages"
+          - "'openssh-server' in ansible_facts.packages"
+          - "'cron' in ansible_facts.packages"
+
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert cron and sshd are running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['cron.service'].state == 'running'
+          - ansible_facts.services['ssh.service'].state == 'running'
+
+    - name: Read the passwd database
+      ansible.builtin.getent:
+        database: passwd
+
+    - name: Read the group database
+      ansible.builtin.getent:
+        database: group
+
+    - name: Assert managed users exist with a bash shell and group memberships
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.getent_passwd['molecule-admin'][5] == '/bin/bash'
+          - ansible_facts.getent_passwd['molecule-deploy'][5] == '/bin/bash'
+          - "'molecule-admin' in ansible_facts.getent_group['ssh-users'][2].split(',')"
+          - "'molecule-deploy' in ansible_facts.getent_group['ssh-users'][2].split(',')"
+          - "'molecule-admin' in ansible_facts.getent_group['sudo'][2].split(',')"
+          - "'molecule-deploy' in ansible_facts.getent_group['sftp-users'][2].split(',')"
+
+    - name: Stat the admin authorized_keys file
+      ansible.builtin.stat:
+        path: /home/molecule-admin/.ssh/authorized_keys
+      register: base_verify_admin_keys_stat
+
+    - name: Read the admin authorized_keys file
+      ansible.builtin.slurp:
+        src: /home/molecule-admin/.ssh/authorized_keys
+      register: base_verify_admin_keys
+
+    - name: Assert the admin key is authorized with safe ownership and mode
+      ansible.builtin.assert:
+        that:
+          - >-
+            lookup('file', base_molecule_admin_key_file)
+            in base_verify_admin_keys.content | b64decode
+          - base_verify_admin_keys_stat.stat.pw_name == 'molecule-admin'
+          - base_verify_admin_keys_stat.stat.mode == '0600'
+
+    - name: Read the deploy authorized_keys file
+      ansible.builtin.slurp:
+        src: /home/molecule-deploy/.ssh/authorized_keys
+      register: base_verify_deploy_keys
+
+    - name: Assert the deploy key is authorized and the stray key was removed
+      ansible.builtin.assert:
+        that:
+          - >-
+            lookup('file', base_molecule_deploy_key_file)
+            in base_verify_deploy_keys.content | b64decode
+          - >-
+            base_molecule_stray_public_key
+            not in base_verify_deploy_keys.content | b64decode
+
+    - name: Validate the full sshd configuration
+      ansible.builtin.command: sshd -t
+      changed_when: false
+
+    - name: Dump the effective sshd configuration
+      ansible.builtin.command: sshd -T
+      register: base_verify_sshd_config
+      changed_when: false
+
+    - name: Assert converge values are live in the effective sshd config
+      ansible.builtin.assert:
+        that:
+          - "'allowtcpforwarding yes' in base_verify_sshd_config.stdout_lines"
+          - "'allowgroups ssh-users' in base_verify_sshd_config.stdout_lines"
+          - "'allowgroups sftp-users' in base_verify_sshd_config.stdout_lines"
+          - "'x11forwarding no' in base_verify_sshd_config.stdout_lines"
+
+    - name: Stat the sshd drop-in
+      ansible.builtin.stat:
+        path: /etc/ssh/sshd_config.d/99-custom.conf
+      register: base_verify_sshd_dropin
+
+    - name: Read the sshd drop-in
+      ansible.builtin.slurp:
+        src: /etc/ssh/sshd_config.d/99-custom.conf
+      register: base_verify_sshd_dropin_content
+
+    - name: Assert the sshd drop-in content, ownership and mode
+      ansible.builtin.assert:
+        that:
+          - base_verify_sshd_dropin.stat.pw_name == 'root'
+          - base_verify_sshd_dropin.stat.mode == '0644'
+          - "'DebianBanner no' in base_verify_sshd_dropin_content.content | b64decode"
+
+    - name: Read the system known hosts file
+      ansible.builtin.slurp:
+        src: /etc/ssh/ssh_known_hosts
+      register: base_verify_known_hosts
+
+    - name: Assert the known host entry is present
+      ansible.builtin.assert:
+        that:
+          - base_molecule_known_host_entry in base_verify_known_hosts.content | b64decode
+
+    - name: Read the profile.d drop-in
+      ansible.builtin.slurp:
+        src: /etc/profile.d/molecule-profile.sh
+      register: base_verify_profile
+
+    - name: Assert the profile drop-in was templated
+      ansible.builtin.assert:
+        that:
+          - "'export MOLECULE_BASE_PROFILE=' in base_verify_profile.content | b64decode"
+          - base_molecule_profile_marker in base_verify_profile.content | b64decode
+
+    - name: Check the skel prompt uses the full-hostname escape
+      ansible.builtin.command: grep -F -c '\u@\H' /etc/skel/.bashrc
+      register: base_verify_skel_prompt
+      changed_when: false
+
+    - name: Check the short-hostname escape is gone from the skel prompt
+      ansible.builtin.command: grep -F -c '\u@\h' /etc/skel/.bashrc
+      register: base_verify_skel_prompt_short
+      changed_when: false
+      failed_when: base_verify_skel_prompt_short.rc != 1
+
+    - name: Verify bookworm-only networking and backports configuration
+      when: ansible_facts['distribution_release'] == 'bookworm'
+      block:
+        - name: Read dhclient.conf
+          ansible.builtin.slurp:
+            src: /etc/dhcp/dhclient.conf
+          register: base_verify_dhclient
+
+        - name: Assert the DNS servers are prepended in dhclient.conf
+          ansible.builtin.assert:
+            that:
+              - >-
+                'prepend domain-name-servers 9.9.9.9 149.112.112.112;'
+                in base_verify_dhclient.content | b64decode
+
+        - name: Stat the backports repo definition
+          ansible.builtin.stat:
+            path: /etc/apt/sources.list.d/debian-backports.sources
+          register: base_verify_backports
+
+        - name: Assert the backports repo is configured
+          ansible.builtin.assert:
+            that:
+              - base_verify_backports.stat.exists
+
+    - name: Verify trixie skips dhclient and backports
+      when: ansible_facts['distribution_release'] == 'trixie'
+      block:
+        - name: Stat dhclient.conf
+          ansible.builtin.stat:
+            path: /etc/dhcp/dhclient.conf
+          register: base_verify_dhclient_absent
+
+        - name: Stat the backports repo definition
+          ansible.builtin.stat:
+            path: /etc/apt/sources.list.d/debian-backports.sources
+          register: base_verify_backports_absent
+
+        - name: Assert dhclient.conf and backports are absent
+          ansible.builtin.assert:
+            that:
+              - not base_verify_dhclient_absent.stat.exists
+              - not base_verify_backports_absent.stat.exists

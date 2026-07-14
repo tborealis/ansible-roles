@@ -1,0 +1,136 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    # Role defaults: dbcd_server_user=dbcd, dbcd_data_dir=/home/dbcd/data
+    dbcd_verify_server_user: dbcd
+    dbcd_verify_data_dir: /home/dbcd/data
+  tasks:
+    # --- server mode ---
+    - name: Look up dbcd user
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ dbcd_verify_server_user }}"
+
+    - name: Assert dbcd user has the restricted shell
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.getent_passwd[dbcd_verify_server_user][5] == '/bin/dash'
+
+    - name: List dbcd user groups
+      ansible.builtin.command: id -nG {{ dbcd_verify_server_user }}
+      register: dbcd_verify_groups
+      changed_when: false
+
+    - name: Assert dbcd user is in the ssh-users group
+      ansible.builtin.assert:
+        that:
+          - "'ssh-users' in dbcd_verify_groups.stdout.split()"
+
+    - name: Look up dbcd password hash
+      ansible.builtin.getent:
+        database: shadow
+        key: "{{ dbcd_verify_server_user }}"
+
+    - name: Assert dbcd user cannot log in with a password
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.getent_shadow[dbcd_verify_server_user][0] == '*'
+
+    - name: Stat data directory
+      ansible.builtin.stat:
+        path: "{{ dbcd_verify_data_dir }}"
+      register: dbcd_verify_data_dir_stat
+
+    - name: Assert data directory ownership and mode
+      ansible.builtin.assert:
+        that:
+          - dbcd_verify_data_dir_stat.stat.isdir
+          - dbcd_verify_data_dir_stat.stat.pw_name == dbcd_verify_server_user
+          - dbcd_verify_data_dir_stat.stat.gr_name == dbcd_verify_server_user
+          - dbcd_verify_data_dir_stat.stat.mode == '0750'
+
+    - name: Stat authorized_keys file
+      ansible.builtin.stat:
+        path: "/home/{{ dbcd_verify_server_user }}/.ssh/authorized_keys"
+      register: dbcd_verify_authorized_keys_stat
+
+    - name: Assert authorized_keys ownership and mode
+      ansible.builtin.assert:
+        that:
+          - dbcd_verify_authorized_keys_stat.stat.pw_name == dbcd_verify_server_user
+          - dbcd_verify_authorized_keys_stat.stat.mode == '0600'
+
+    - name: Read authorized_keys
+      ansible.builtin.slurp:
+        src: "/home/{{ dbcd_verify_server_user }}/.ssh/authorized_keys"
+      register: dbcd_verify_authorized_keys
+
+    # Since v5.0.0 the key list is exclusive: the converged keys must be
+    # exactly what is present, nothing else.
+    - name: Assert authorized_keys contains exactly the converged keys with rrsync restrictions
+      vars:
+        dbcd_verify_expected_keys: >-
+          {{ ['command="rrsync -wo ' ~ dbcd_verify_data_dir ~ '" '
+              ~ dbcd_molecule_client_public_key]
+             + (dbcd_molecule_consumer_public_keys
+                | map('ansible.builtin.regex_replace', '^',
+                      'command="rrsync -ro ' ~ dbcd_verify_data_dir ~ '" ')
+                | list) }}
+        dbcd_verify_actual_keys: >-
+          {{ (dbcd_verify_authorized_keys.content | b64decode).splitlines()
+             | map('trim') | select | list }}
+      ansible.builtin.assert:
+        that:
+          - dbcd_verify_actual_keys | sort == dbcd_verify_expected_keys | sort
+
+    # --- consumer mode ---
+    - name: Stat consumer SSH config
+      ansible.builtin.stat:
+        path: "/home/{{ dbcd_molecule_consumer_user }}/.ssh/config"
+      register: dbcd_verify_ssh_config_stat
+
+    - name: Assert consumer SSH config ownership and mode
+      ansible.builtin.assert:
+        that:
+          - dbcd_verify_ssh_config_stat.stat.pw_name == dbcd_molecule_consumer_user
+          - dbcd_verify_ssh_config_stat.stat.mode == '0600'
+
+    - name: Read consumer SSH config
+      ansible.builtin.slurp:
+        src: "/home/{{ dbcd_molecule_consumer_user }}/.ssh/config"
+      register: dbcd_verify_ssh_config
+
+    - name: Assert consumer SSH config defines the read host alias
+      vars:
+        dbcd_verify_ssh_config_content: "{{ dbcd_verify_ssh_config.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - "'Host dbcd-server-r' in dbcd_verify_ssh_config_content"
+          - "'HostName ' ~ dbcd_molecule_server_host in dbcd_verify_ssh_config_content"
+          - "'User ' ~ dbcd_verify_server_user in dbcd_verify_ssh_config_content"
+          - "'# BEGIN-DBCD-R ANSIBLE MANAGED BLOCK' in dbcd_verify_ssh_config_content"
+
+    - name: Stat global known hosts
+      ansible.builtin.stat:
+        path: /etc/ssh/ssh_known_hosts
+      register: dbcd_verify_known_hosts_stat
+
+    - name: Assert global known hosts ownership and mode
+      ansible.builtin.assert:
+        that:
+          - dbcd_verify_known_hosts_stat.stat.pw_name == 'root'
+          - dbcd_verify_known_hosts_stat.stat.mode == '0644'
+
+    - name: Read global known hosts
+      ansible.builtin.slurp:
+        src: /etc/ssh/ssh_known_hosts
+      register: dbcd_verify_known_hosts
+
+    - name: Assert the server host key is a known host
+      ansible.builtin.assert:
+        that:
+          - dbcd_molecule_known_host in dbcd_verify_known_hosts.content | b64decode

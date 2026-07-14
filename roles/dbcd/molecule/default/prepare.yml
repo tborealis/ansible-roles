@@ -1,0 +1,30 @@
+---
+# Server mode adds the dbcd user to the ssh-users group, which the base role
+# creates on real hosts; consumer mode configures an existing user's SSH
+# client config. Both are outside this role's contract.
+- name: Prepare
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Create ssh-users group
+      ansible.builtin.group:
+        name: ssh-users
+        system: true
+
+    - name: Create consumer user
+      ansible.builtin.user:
+        name: "{{ dbcd_molecule_consumer_user }}"
+        password: "*"
+        shell: /bin/bash
+
+    # On real hosts the base role's authorized_key task creates ~/.ssh;
+    # the role's blockinfile only creates the config file, not the directory.
+    - name: Create consumer .ssh directory
+      ansible.builtin.file:
+        path: "/home/{{ dbcd_molecule_consumer_user }}/.ssh"
+        state: directory
+        owner: "{{ dbcd_molecule_consumer_user }}"
+        group: "{{ dbcd_molecule_consumer_user }}"
+        mode: "0700"

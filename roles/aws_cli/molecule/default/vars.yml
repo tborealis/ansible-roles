@@ -1,0 +1,10 @@
+---
+# Shared by prepare.yml, converge.yml and verify.yml.
+# The credentials are deliberately synthetic shapes: a real access key ID
+# matches AKIA[0-9A-Z]{16} and a real secret is 40 base64-ish characters,
+# both of which trip GitHub push protection and secret scanners. XKIA is not
+# a valid AWS prefix and the secret is a readable placeholder string.
+aws_cli_molecule_user: molecule
+aws_cli_molecule_region: eu-west-1
+aws_cli_molecule_access_key_id: XKIAMOLECULETEST0000
+aws_cli_molecule_secret_access_key: molecule-test-secret-access-key-not-real

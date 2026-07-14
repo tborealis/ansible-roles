@@ -1,0 +1,18 @@
+---
+# Throwaway fixtures shared by converge.yml and verify.yml. The SSH keys are
+# freshly generated ed25519 PUBLIC keys whose private halves were discarded.
+dbcd_molecule_client_public_key: >-
+  ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGmhl5yymEsq/ETnS6NvXvrjIv8mtR71cBV5O8m/PhWB
+  molecule-client@example.invalid
+dbcd_molecule_consumer_public_keys:
+  - >-
+    ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMcPYUsUPytrmdyqgCHoH4+CwuEWPCF8cJOq46TrpaEW
+    molecule-consumer1@example.invalid
+  - >-
+    ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICXlDJC0QW1C40hYxxHUPavKblM8vNRaCaJGn0/6T8VW
+    molecule-consumer2@example.invalid
+dbcd_molecule_consumer_user: molecule-consumer
+dbcd_molecule_server_host: dbcd-server.example.invalid
+dbcd_molecule_known_host: >-
+  dbcd-server.example.invalid ssh-ed25519
+  AAAAC3NzaC1lZDI1NTE5AAAAIGmhl5yymEsq/ETnS6NvXvrjIv8mtR71cBV5O8m/PhWB

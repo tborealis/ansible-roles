@@ -1,0 +1,21 @@
+---
+# Throwaway fixtures shared by prepare.yml, converge.yml and verify.yml.
+# The hashes are `openssl passwd -6` of molecule-only passwords; the public
+# keys are synthetic ed25519 keys whose private halves were discarded.
+base_molecule_admin_password_hash: >-
+  $6$moleculeAdmin000$0uKXh68arnRtxE2MUi/50vogX1pSuM6sV1BYeWeht0Dl1X.GgNJY/MaQB6MmALdBy4WrvZRSC3Vp6/DJMYgzP.
+base_molecule_deploy_password_hash: >-
+  $6$moleculeDeploy00$qb27YKPZks2EyONPoEtFR8/3bmRtIatVli0VFVPsZZnRaiHVncujkk/NBpL.UF6LjRZ8wN.QU6wSdh.TZV2BX/
+# Public keys the role must authorize (looked up from the controller by the
+# role's `lookup('file', ...)`).
+base_molecule_admin_key_file: "{{ playbook_dir }}/files/molecule_admin_ed25519.pub"
+base_molecule_deploy_key_file: "{{ playbook_dir }}/files/molecule_deploy_ed25519.pub"
+# Pre-seeded by prepare.yml; the role's exclusive authorized_keys handling
+# must remove it.
+base_molecule_stray_public_key: >-
+  ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOJ+QKrnxd+r/3XFDmz1SDzRLoxBDftQ7fk8ORY4Weld
+  molecule-stray@example.invalid
+base_molecule_known_host_entry: >-
+  git.example.invalid ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIP8QQcF+eRz4HQgPTdz/Zxjrlxm++Y4aLWF18nZinmf
+  molecule-knownhost@example.invalid
+base_molecule_profile_marker: molecule-base-profile-marker
