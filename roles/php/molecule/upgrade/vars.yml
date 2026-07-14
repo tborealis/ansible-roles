@@ -1,0 +1,13 @@
+---
+# Exercises the two real migration paths, split across the platforms:
+#   bookworm: distro-native 8.2 is pre-installed, the role converges 8.5 —
+#     the version-bump path (old FPM stopped, php8.2-* purged, /etc/php/8.2
+#     removed).
+#   trixie: distro-native 8.4 is pre-installed with php.ini/php-fpm.conf
+#     doctored the way the old php_cli/php_fpm roles left them, the role
+#     converges 8.4 — the same-version migration path (stock config
+#     restored once, drop-in wins).
+php_test_old_version: "{{ '8.2' if ansible_facts['distribution_release'] == 'bookworm' else '8.4' }}"
+php_test_version: "{{ '8.5' if ansible_facts['distribution_release'] == 'bookworm' else '8.4' }}"
+php_test_pool_socket: "/run/php/php{{ php_test_version }}-fpm-molecule.sock"
+php_test_pool_max_children: 3

@@ -25,14 +25,15 @@ endif
 
 COLLECTION_LINK = $(HOME)/.ansible/collections/ansible_collections/tborealis/roles
 
-# Molecule tests for one role (see docs/testing.md for setup).
+# Molecule tests for one role (see docs/testing.md for setup). Runs every
+# scenario the role ships; use SCENARIO=<name> to run just one.
 test:
 ifndef ROLE
 	$(error ROLE is required, e.g. make test ROLE=nginx [DISTRO=bookworm])
 endif
 	mkdir -p $(dir $(COLLECTION_LINK))
 	ln -sfn $(CURDIR) $(COLLECTION_LINK)
-	cd roles/$(ROLE) && molecule test $(if $(DISTRO),--platform-name $(DISTRO),)
+	cd roles/$(ROLE) && molecule test $(if $(SCENARIO),-s $(SCENARIO),--all) $(if $(DISTRO),--platform-name $(DISTRO),)
 
 # Build the molecule test images locally under the same tags CI pulls.
 test-images:

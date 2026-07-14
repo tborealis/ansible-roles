@@ -1,0 +1,36 @@
+---
+# Simulates a host built with the removed php_cli/php_fpm roles: the
+# distro-native PHP is installed and running, and its config files carry the
+# old roles' Ansible-managed marker plus a stale managed value.
+- name: Prepare
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Install the distro PHP packages
+      ansible.builtin.apt:
+        pkg:
+          - "php{{ php_test_old_version }}-cli"
+          - "php{{ php_test_old_version }}-fpm"
+        state: present
+        update_cache: true
+
+    - name: Start and enable the old FPM service
+      ansible.builtin.service:
+        name: "php{{ php_test_old_version }}-fpm"
+        state: started
+        enabled: true
+
+    - name: Mark the php.ini files as templated by the old roles
+      ansible.builtin.lineinfile:
+        path: "/etc/php/{{ php_test_old_version }}/{{ item }}/php.ini"
+        line: "; Ansible managed"
+        insertbefore: BOF
+      loop: [cli, fpm]
+
+    - name: Plant a stale managed value in the FPM php.ini
+      ansible.builtin.lineinfile:
+        path: "/etc/php/{{ php_test_old_version }}/fpm/php.ini"
+        regexp: '^;?memory_limit ='
+        line: memory_limit = 6666M
