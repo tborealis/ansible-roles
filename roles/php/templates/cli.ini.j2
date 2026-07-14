@@ -1,0 +1,24 @@
+; {{ ansible_managed }}
+; Runtime overrides for the PHP CLI. The stock php.ini is left untouched;
+; this file is loaded last (99-) so its values win.
+
+date.timezone = {{ php_date_timezone }}
+error_reporting = {{ php_error_reporting }}
+display_errors = {{ 'On' if php_display_errors else 'Off' }}
+display_startup_errors = {{ 'On' if php_display_startup_errors else 'Off' }}
+mysqlnd.collect_statistics = {{ 'On' if php_mysqlnd_collect_statistics else 'Off' }}
+error_log = {{ php_cli_error_log }}
+{% if php_cli_xdebug %}
+
+xdebug.mode = {{ php_xdebug_mode }}
+xdebug.client_host = {{ php_xdebug_client_host }}
+xdebug.start_with_request = trigger
+xdebug.idekey = {{ php_cli_xdebug_idekey }}
+xdebug.max_nesting_level = {{ php_xdebug_max_nesting_level }}
+{% endif %}
+{% if php_cli_extra_ini | length > 0 %}
+
+{% for key, value in php_cli_extra_ini.items() %}
+{{ key }} = {{ value }}
+{% endfor %}
+{% endif %}

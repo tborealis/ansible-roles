@@ -1,0 +1,7 @@
+---
+- name: Restart php-fpm
+  ansible.builtin.service:
+    name: "php{{ php_version }}-fpm"
+    state: restarted
+    enabled: true
+  when: php_fpm and php_fpm_pools | length > 0

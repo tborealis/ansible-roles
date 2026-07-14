@@ -1,0 +1,18 @@
+---
+- name: Assert php_version is a supported version
+  ansible.builtin.assert:
+    that:
+      - php_version is defined
+      - php_version | string in php_supported_versions | map('string') | list
+    fail_msg: >-
+      php_version must be set to a PHP version the role supports
+      ({{ php_supported_versions | join(', ') }}).
+
+- name: Configure the Sury PHP repository
+  ansible.builtin.import_tasks: repo.yml
+
+- name: Install PHP packages
+  ansible.builtin.import_tasks: packages.yml
+
+- name: Apply PHP configuration drop-ins
+  ansible.builtin.import_tasks: config.yml
