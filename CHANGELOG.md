@@ -61,6 +61,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
   the `src` entries of `nginx_conf`/`nginx_snippets`/`nginx_vhosts`,
   `apache2_vhosts`, and `sudo_additional_config` resolve to `templates/<role>/...`
   directories next to the consuming playbook. (#137)
+- **yarn:** document that the `node` role must be ordered before `yarn`, because
+  the Yarn deb's `nodejs` dependency is otherwise satisfied by Debian's distro
+  Node.js rather than the NodeSource build. (#134)
 
 ### Deprecated
 
