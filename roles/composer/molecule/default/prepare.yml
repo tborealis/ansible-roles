@@ -1,0 +1,14 @@
+---
+# The role runs the Composer installer with PHP but does not install PHP
+# itself. Real playbooks apply php_repo_sury and php_cli first, so mirror
+# that order here: add the sury repo, then install a PHP CLI.
+- name: Prepare
+  hosts: all
+  become: true
+  roles:
+    - role: tborealis.roles.php_repo_sury
+  tasks:
+    - name: Install PHP CLI
+      ansible.builtin.apt:
+        pkg: php8.3-cli
+        state: present

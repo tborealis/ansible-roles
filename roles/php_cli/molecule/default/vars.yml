@@ -1,0 +1,5 @@
+---
+# PHP version shared by prepare.yml, converge.yml and verify.yml. 8.3 is
+# shipped by neither bookworm (8.2) nor trixie (8.4), so the packages the
+# role installs can only come from the Sury repo configured in prepare.
+php_cli_test_version: "8.3"

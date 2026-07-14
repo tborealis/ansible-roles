@@ -37,7 +37,8 @@
 
 - name: Install Composer global packages
   community.general.composer:
-    command: 'global require "{{ item.name }}={{ item.version }}"'
+    command: require
+    global_command: true
+    arguments: "{{ item.name }}={{ item.version }}"
     prefer_dist: true
-    working_dir: /
   with_items: "{{ composer_global_packages }}"

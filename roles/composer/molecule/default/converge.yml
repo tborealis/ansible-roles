@@ -1,0 +1,13 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars:
+    composer_php_version: "8.3"
+    # phpstan ships as a single dependency-free package with a binary,
+    # keeping the global-install download small but still runnable.
+    composer_global_packages:
+      - name: phpstan/phpstan
+        version: "2.1.*"
+  roles:
+    - role: tborealis.roles.composer

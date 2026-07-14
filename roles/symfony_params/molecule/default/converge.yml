@@ -1,0 +1,13 @@
+---
+# The role no-ops unless symfony_params_template is set, so converge provides
+# realistic test values. The role resolves the template relative to the
+# playbook, so the fixture lives in templates/symfony-params/ here.
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    symfony_params_template: parameters.yaml.j2
+  roles:
+    - role: tborealis.roles.symfony_params

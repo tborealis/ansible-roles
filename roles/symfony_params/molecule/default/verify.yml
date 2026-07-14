@@ -1,0 +1,47 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Stat the params directory
+      ansible.builtin.stat:
+        path: "{{ symfony_params_file_path }}"
+      register: symfony_params_verify_dir
+
+    - name: Assert directory ownership and mode
+      ansible.builtin.assert:
+        that:
+          - symfony_params_verify_dir.stat.isdir
+          - symfony_params_verify_dir.stat.pw_name == symfony_params_file_user
+          - symfony_params_verify_dir.stat.gr_name == symfony_params_file_group
+          - symfony_params_verify_dir.stat.mode == '0750'
+
+    - name: Stat the parameters file
+      ansible.builtin.stat:
+        path: "{{ symfony_params_file_path }}/parameters.yaml"
+      register: symfony_params_verify_file
+
+    - name: Assert file ownership and mode
+      ansible.builtin.assert:
+        that:
+          - symfony_params_verify_file.stat.exists
+          - symfony_params_verify_file.stat.pw_name == symfony_params_file_user
+          - symfony_params_verify_file.stat.gr_name == symfony_params_file_group
+          - symfony_params_verify_file.stat.mode == '0640'
+
+    - name: Read the parameters file
+      ansible.builtin.slurp:
+        src: "{{ symfony_params_file_path }}/parameters.yaml"
+      register: symfony_params_verify_content
+
+    - name: Assert the rendered file parses as YAML with the converge values
+      vars:
+        symfony_params_verify_params: >-
+          {{ (symfony_params_verify_content.content | b64decode | from_yaml).parameters }}
+      ansible.builtin.assert:
+        that:
+          - symfony_params_verify_params.database_host == symfony_params_database_host
+          - symfony_params_verify_params.database_password == symfony_params_database_password
+          - symfony_params_verify_params.secret == symfony_params_app_secret

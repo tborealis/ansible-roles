@@ -1,0 +1,15 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  roles:
+    - role: tborealis.roles.new_relic
+  # The role notifies this handler but does not define it; on real hosts it is
+  # owned by the php_fpm role.
+  handlers:
+    - name: Restart php-fpm
+      ansible.builtin.service:
+        name: php{{ php_version }}-fpm
+        state: restarted

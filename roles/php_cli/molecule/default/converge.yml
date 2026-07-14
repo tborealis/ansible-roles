@@ -1,0 +1,19 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    php_version: "{{ php_cli_test_version }}"
+    php_cli_date_timezone: Pacific/Auckland
+    php_cli_error_reporting: E_ALL
+    php_cli_error_log: /var/log/php-cli-molecule.log
+    php_cli_xdebug: true
+    php_cli_xdebug_client_host: 192.0.2.10
+    php_cli_xdebug_idekey: molecule
+    php_cli_xdebug_max_nesting_level: 512
+    php_cli_packages:
+      - "php{{ php_cli_test_version }}-curl"
+  roles:
+    - role: tborealis.roles.php_cli

@@ -1,0 +1,9 @@
+---
+# Test values shared by converge.yml and verify.yml. Secrets are throwaway
+# with a realistic shape, never real ones.
+symfony_params_file_path: /var/www/molecule-app/config
+symfony_params_file_user: www-data
+symfony_params_file_group: www-data
+symfony_params_database_host: db.molecule.internal
+symfony_params_database_password: molecule-Db-Passw0rd1
+symfony_params_app_secret: 5f4dcc3b5aa765d61d8327deb882cf99molecule
