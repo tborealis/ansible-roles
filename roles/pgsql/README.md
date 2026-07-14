@@ -6,6 +6,7 @@ Installs and configures PostgreSQL server.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `postgres_version` | — (required) | PostgreSQL major version to install; must be one the role ships config templates for (12, 13 or 15) |
 | `postgres_databases` | `[]` | Databases to create |
 | `postgres_users` | `[]` | Users to create |
 | `postgres_schemas` | `[]` | Schemas to create (keys: `db`, `name`, `owner`) |

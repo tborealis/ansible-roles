@@ -1,4 +1,13 @@
 ---
+- name: Assert postgres_version is a supported major
+  ansible.builtin.assert:
+    that:
+      - postgres_version is defined
+      - postgres_version | string in pgsql_supported_versions | map('string') | list
+    fail_msg: >-
+      postgres_version must be set to a PostgreSQL major the role ships config
+      templates for ({{ pgsql_supported_versions | join(', ') }}).
+
 - name: Install deb822 dependency
   ansible.builtin.apt:
     pkg: python3-debian
