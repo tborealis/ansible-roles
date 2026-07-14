@@ -136,7 +136,7 @@
     check_implicit_admin: true
     column_case_sensitive: true
 
-- name: Remove redundant root user for {{ item }}
+- name: Remove redundant root users
   ansible.mysql.mysql_user:
     name: root
     host: "{{ item }}"

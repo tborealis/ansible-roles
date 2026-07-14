@@ -21,6 +21,10 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Fixed
 
+- **mysql:** removed the undefined `{{ item }}` reference from the looped
+  root-user-removal task name, fixing the "'item' is undefined" template warning
+  emitted on every run.
+- **apt_keys:** same fix for two looped task names in the Molecule verify playbook.
 - **certbot:** apache mode now works standalone: the role ships the `Restart apache2`
   handler it notifies, defaults `apache2_ssl_vhosts` to `[]`, and documents the
   variable and its playbook-relative `templates/apache2/vhosts/` contract. (#124)

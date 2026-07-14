@@ -26,7 +26,7 @@
           - apt_keys_verify_dir.stat.gr_name == 'root'
           - apt_keys_verify_dir.stat.mode == '0755'
 
-    - name: Stat keyring for {{ item.name }}
+    - name: Stat manifest keyrings
       ansible.builtin.stat:
         path: "{{ item.dest }}"
       loop: "{{ apt_keys_verify_defaults.apt_keys_keyrings }}"
@@ -46,7 +46,7 @@
       loop_control:
         label: "{{ item.item.name }}"
 
-    - name: Parse installed keyring {{ item }}
+    - name: Parse installed keyrings
       ansible.builtin.command: gpg --show-keys --with-colons {{ item }}
       changed_when: false
       loop: "{{ apt_keys_verify_defaults.apt_keys_keyrings | map(attribute='dest') | unique | list }}"
