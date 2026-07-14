@@ -55,6 +55,13 @@ flagged with **BREAKING** and require a MAJOR version bump.
   options enabled are idempotent. The nvm installer is bumped to v0.40.5 and the
   README no longer references a nonexistent archive checksum. (#131)
 
+### Changed
+
+- **nginx, apache2, sudo:** document the playbook-relative template contract —
+  the `src` entries of `nginx_conf`/`nginx_snippets`/`nginx_vhosts`,
+  `apache2_vhosts`, and `sudo_additional_config` resolve to `templates/<role>/...`
+  directories next to the consuming playbook. (#137)
+
 ### Deprecated
 
 - **mailhog:** upstream is archived/unmaintained, the binary download is unverified
