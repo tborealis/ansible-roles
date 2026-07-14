@@ -24,6 +24,12 @@ flagged with **BREAKING** and require a MAJOR version bump.
 - **nginx, apache2, supervisor, rabbitmq, exim4:** the roles now explicitly enable
   and start their services instead of relying on Debian's start-on-install policy
   and config-change handlers, so a re-run recovers a stopped or disabled unit. (#132)
+- **chrome:** system dependencies now use the t64 package names on trixie instead of
+  relying on virtual-package resolution, and the target version is resolved from the
+  Chrome for Testing channel data before installing, so the browser is only downloaded
+  when the installed version differs (previously `npx @puppeteer/browsers` ran on
+  every play, and a stable promotion between runs broke idempotence).
+  Same for chromedriver. (#133)
 - **mysql:** removed the undefined `{{ item }}` reference from the looped
   root-user-removal task name, fixing the "'item' is undefined" template warning
   emitted on every run.

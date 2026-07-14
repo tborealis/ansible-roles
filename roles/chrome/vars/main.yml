@@ -1,0 +1,20 @@
+---
+# Channels @puppeteer/browsers accepts; anything else is treated as a pinned version.
+chrome_release_channels: [stable, beta, dev, canary]
+
+# Dependencies renamed by the 64-bit time_t transition in Debian 13 "trixie".
+chrome_release_dependencies:
+  bookworm:
+    - libasound2
+    - libatk-bridge2.0-0
+    - libatk1.0-0
+    - libatspi2.0-0
+    - libcups2
+    - libglib2.0-0
+  trixie:
+    - libasound2t64
+    - libatk-bridge2.0-0t64
+    - libatk1.0-0t64
+    - libatspi2.0-0t64
+    - libcups2t64
+    - libglib2.0-0t64
