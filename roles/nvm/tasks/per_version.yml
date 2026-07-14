@@ -1,7 +1,8 @@
 ---
 - name: "Install Node version {{ nvm_user_config_version.version }}"
   ansible.builtin.command: 'bash -ic "nvm install {{ nvm_user_config_version.version }}"'
-  changed_when: true
+  register: nvm_install_result
+  changed_when: "'is already installed' not in nvm_install_result.stderr"
   when: nvm_user_config_version.version != 'system'
 
 - name: "Enable package managers for Node version {{ nvm_user_config_version.version }}"
