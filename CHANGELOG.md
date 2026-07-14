@@ -29,6 +29,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
   `redis`, `rabbitmq` (bookworm only), `supervisor`, and `mailhog`.
 - **meta:** Molecule scenarios for the tooling roles: `node`, `nvm`, `yarn`, `chrome`,
   `stripe_cli`, and `gpg`.
+- **meta:** Molecule scenarios for the system config roles: `cron`, `sudo`, `dotenv`,
+  `environment`, `apt_keys`, `rrsync`, and `exim4`.
 
 ### Fixed
 
@@ -40,6 +42,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
   installs `/usr/bin/stripe`, so the deb was re-downloaded on every run.
 - **chrome:** `unzip` joined `chrome_system_dependencies` — `@puppeteer/browsers`
   cannot extract the chrome archive without it.
+- **rrsync:** the symlink now points at `/usr/bin/rrsync`; since bookworm, rsync ships
+  the binary there and no longer includes the doc-scripts copy the role linked to, so
+  the role failed on every supported release.
 
 - **apache2:** the `apache2_env_vars` default was a list, which broke the role's own
   envvars template (it iterates `.items()`); the default is now `{}`.
