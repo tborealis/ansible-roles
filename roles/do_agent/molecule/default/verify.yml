@@ -1,0 +1,74 @@
+---
+# The agent authenticates against the DigitalOcean droplet metadata service,
+# which does not exist in a Molecule container, so the process may exit or
+# crash-loop after start. Verification therefore checks installation, repo
+# configuration and unit enablement, but deliberately does not assert the
+# service is in the "running" state.
+- name: Verify
+  hosts: all
+  become: true
+  tasks:
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+
+    - name: Assert do-agent package is installed
+      ansible.builtin.assert:
+        that:
+          - "'do-agent' in ansible_facts.packages"
+
+    - name: Read apt repository source
+      ansible.builtin.slurp:
+        src: /etc/apt/sources.list.d/digitalocean-agent.sources
+      register: do_agent_verify_source
+
+    - name: Assert repository points at DigitalOcean and is pinned to the managed keyring
+      vars:
+        do_agent_verify_source_content: "{{ do_agent_verify_source.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - "'URIs: https://repos.insights.digitalocean.com/apt/do-agent' in do_agent_verify_source_content"
+          - "'Signed-By: /etc/apt/keyrings/digitalocean-agent-keyring.gpg' in do_agent_verify_source_content"
+
+    - name: Check legacy repository list file
+      ansible.builtin.stat:
+        path: /etc/apt/sources.list.d/digitalocean-agent.list
+      register: do_agent_verify_legacy_list
+      failed_when: do_agent_verify_legacy_list.stat.exists
+
+    - name: Check the managed keyring is installed
+      ansible.builtin.stat:
+        path: /etc/apt/keyrings/digitalocean-agent-keyring.gpg
+      register: do_agent_verify_keyring
+      failed_when: not do_agent_verify_keyring.stat.exists
+
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert do-agent unit exists and is enabled
+      ansible.builtin.assert:
+        that:
+          - "'do-agent.service' in ansible_facts.services"
+          - ansible_facts.services['do-agent.service'].status == 'enabled'
+
+    - name: Read do-agent unit file # noqa: command-instead-of-module (querying the unit file, no module equivalent)
+      ansible.builtin.command: systemctl cat do-agent.service
+      register: do_agent_verify_unit
+      changed_when: false
+
+    - name: Assert unit file starts the agent binary
+      ansible.builtin.assert:
+        that:
+          - "'do-agent' in do_agent_verify_unit.stdout"
+
+    - name: Check the agent binary referenced by ExecStart
+      vars:
+        do_agent_verify_binary: >-
+          {{ do_agent_verify_unit.stdout
+             | regex_search('ExecStart=(\S+)', '\1')
+             | first }}
+      ansible.builtin.stat:
+        path: "{{ do_agent_verify_binary }}"
+      register: do_agent_verify_binary_stat
+      failed_when: >-
+        not do_agent_verify_binary_stat.stat.exists
+        or not do_agent_verify_binary_stat.stat.executable
