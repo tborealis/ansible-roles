@@ -5,9 +5,6 @@
   vars_files:
     - vars.yml
   vars:
-    # The container mounts /tmp as tmpfs, which docker mounts noexec; the
-    # external role's installer must run from its download dir.
-    awscli_download_path: /var/tmp
     aws_cli_config:
       - user: "{{ aws_cli_molecule_user }}"
         default_region: "{{ aws_cli_molecule_region }}"

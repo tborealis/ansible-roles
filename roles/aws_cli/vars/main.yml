@@ -1,0 +1,4 @@
+---
+aws_cli_ssm_architecture_map:
+  x86_64: ubuntu_64bit
+  aarch64: ubuntu_arm64

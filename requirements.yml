@@ -6,5 +6,3 @@ collections:
   - name: community.postgresql
   - name: community.rabbitmq
   - name: community.docker # dev/test only: used by the molecule docker driver
-roles:
-  - name: ecgalaxy.aws_cli

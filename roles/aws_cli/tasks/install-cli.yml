@@ -1,0 +1,52 @@
+---
+- name: Download the AWS CLI archive and signature
+  ansible.builtin.get_url:
+    url: "https://awscli.amazonaws.com/awscli-exe-linux-{{ ansible_facts['architecture'] }}-{{ aws_cli_version }}.zip{{ item }}"
+    dest: "{{ aws_cli_download_path }}/awscli.zip{{ item }}"
+    mode: "0644"
+  with_items: ["", ".sig"]
+
+- name: Copy the AWS CLI signing key
+  ansible.builtin.copy:
+    src: aws-cli-signing-key.asc
+    dest: "{{ aws_cli_download_path }}/aws-cli-signing-key.asc"
+    mode: "0644"
+
+- name: Import the signing key into a scratch keyring
+  ansible.builtin.command: >-
+    gpg --no-default-keyring --keyring {{ aws_cli_download_path }}/aws-cli-keyring.kbx
+    --import {{ aws_cli_download_path }}/aws-cli-signing-key.asc
+  changed_when: true
+
+# GOODSIG is only emitted for a valid signature from a non-expired key; an
+# expired key gives EXPKEYSIG, so this cannot silently rot the way an
+# rc-based check does.
+- name: Verify the archive signature
+  ansible.builtin.command: >-
+    gpg --no-default-keyring --keyring {{ aws_cli_download_path }}/aws-cli-keyring.kbx
+    --status-fd 1 --verify {{ aws_cli_download_path }}/awscli.zip.sig {{ aws_cli_download_path }}/awscli.zip
+  register: aws_cli_signature
+  changed_when: false
+  failed_when: "'GOODSIG' not in aws_cli_signature.stdout"
+
+- name: Unpack the archive
+  ansible.builtin.unarchive:
+    src: "{{ aws_cli_download_path }}/awscli.zip"
+    dest: "{{ aws_cli_download_path }}"
+    remote_src: true
+
+- name: Run the AWS CLI installer
+  ansible.builtin.command: "{{ aws_cli_download_path }}/aws/install --update"
+  changed_when: true
+
+- name: Clean up the download files
+  ansible.builtin.file:
+    path: "{{ aws_cli_download_path }}/{{ item }}"
+    state: absent
+  with_items:
+    - awscli.zip
+    - awscli.zip.sig
+    - aws
+    - aws-cli-signing-key.asc
+    - aws-cli-keyring.kbx
+    - aws-cli-keyring.kbx~
