@@ -1,0 +1,10 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars:
+    sudo_additional_config:
+      - src: deploy.j2
+        dest: deploy
+  roles:
+    - role: tborealis.roles.sudo
