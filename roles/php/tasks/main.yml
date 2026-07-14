@@ -16,3 +16,15 @@
 
 - name: Apply PHP configuration drop-ins
   ansible.builtin.import_tasks: config.yml
+
+- name: Configure PHP-FPM
+  ansible.builtin.import_tasks: fpm.yml
+  when: php_fpm
+
+- name: Install Composer
+  ansible.builtin.import_tasks: composer.yml
+  when: php_composer
+
+- name: Install the New Relic PHP agent
+  ansible.builtin.import_tasks: newrelic.yml
+  when: php_new_relic
