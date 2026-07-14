@@ -20,4 +20,4 @@ apache2_modules:
 apache2_disable_modules:
   - mpm_prefork
 
-apache2_env_vars: []
+apache2_env_vars: {}

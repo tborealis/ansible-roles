@@ -14,4 +14,4 @@ Installs and configures Apache2 web server with virtual hosts and modules.
 | `apache2_packages` | `[apache2, apache2-utils, python3-passlib]` | Packages to install |
 | `apache2_modules` | `[proxy_fcgi, setenvif, rewrite, headers, ssl]` | Modules to enable |
 | `apache2_disable_modules` | `[mpm_prefork]` | Modules to disable |
-| `apache2_env_vars` | `[]` | Environment variables to set |
+| `apache2_env_vars` | `{}` | Environment variables to set |
