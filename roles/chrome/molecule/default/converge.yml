@@ -1,0 +1,9 @@
+---
+# Defaults install the current Chrome stable, which is the real contract.
+# chrome_install_chromedriver stays at its default (false) to keep the
+# scenario to one ~150 MB browser download.
+- name: Converge
+  hosts: all
+  become: true
+  roles:
+    - role: tborealis.roles.chrome

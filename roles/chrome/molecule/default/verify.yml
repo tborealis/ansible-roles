@@ -1,0 +1,37 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  tasks:
+    - name: Stat the google-chrome link
+      ansible.builtin.stat:
+        path: /usr/local/bin/google-chrome
+      register: chrome_verify_link
+
+    - name: Assert chrome is linked into the puppeteer install path
+      ansible.builtin.assert:
+        that:
+          - chrome_verify_link.stat.islnk
+          - chrome_verify_link.stat.lnk_source is match('/opt/chrome/')
+
+    - name: Check the chrome version
+      ansible.builtin.command: /usr/local/bin/google-chrome --version --no-sandbox
+      register: chrome_verify_version
+      changed_when: false
+
+    - name: Assert chrome reports a version string
+      ansible.builtin.assert:
+        that:
+          - chrome_verify_version.stdout is search('Google Chrome[A-Za-z ]* \d+\.\d+\.\d+\.\d+')
+
+    - name: Render a page headless
+      ansible.builtin.command: >-
+        /usr/local/bin/google-chrome --headless --no-sandbox
+        --disable-dev-shm-usage --disable-gpu --dump-dom about:blank
+      register: chrome_verify_headless
+      changed_when: false
+
+    - name: Assert headless chrome rendered the page
+      ansible.builtin.assert:
+        that:
+          - "'<html>' in chrome_verify_headless.stdout"
