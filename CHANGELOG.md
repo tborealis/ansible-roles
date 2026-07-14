@@ -19,6 +19,10 @@ flagged with **BREAKING** and require a MAJOR version bump.
 - **exim4:** include the mailname in `dc_other_hostnames` so aliased local mail
   (e.g. postmaster→root, qualified with `/etc/mailname`) stays routeable when the
   mailname differs from the sender hostname. (#126)
+- **pgsql:** `postgres_version` is now documented as required and validated
+  against the majors the role ships config templates for (12, 13, 15), failing
+  early with a clear message instead of a template-not-found error. The
+  `postgres_version` requirement is also documented for `pgsql_client`. (#128)
 
 ## [5.1.0] - 2026-07-14
 
