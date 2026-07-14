@@ -21,8 +21,13 @@ flagged with **BREAKING** and require a MAJOR version bump.
   characters). Without a salt the caching_sha2_password hash cannot be compared, so
   the root-password and user tasks reported changed on every run; providing one makes
   them idempotent.
+- **meta:** Molecule scenarios for the web stack roles: `nginx`, `apache2`, `ssl`,
+  `certbot`, and `php_repo_sury`.
 
 ### Fixed
+
+- **apache2:** the `apache2_env_vars` default was a list, which broke the role's own
+  envvars template (it iterates `.items()`); the default is now `{}`.
 
 - **mysql:** probe the root auth plugin with a fixed dummy password (the 1524 plugin
   error precedes password verification) so Ansible's `no_log` censoring can never
