@@ -14,11 +14,17 @@
     suites: main
     components: main
     signed_by: /etc/apt/keyrings/digitalocean-agent-keyring.gpg
+  register: do_agent_repo
 
 - name: Remove legacy repository list file
   ansible.builtin.file:
     path: /etc/apt/sources.list.d/digitalocean-agent.list
     state: absent
+
+- name: Update apt cache after adding repository # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: do_agent_repo is changed
 
 - name: Install agent
   ansible.builtin.apt:
