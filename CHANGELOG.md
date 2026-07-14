@@ -21,6 +21,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Fixed
 
+- **nginx, apache2, supervisor, rabbitmq, exim4:** the roles now explicitly enable
+  and start their services instead of relying on Debian's start-on-install policy
+  and config-change handlers, so a re-run recovers a stopped or disabled unit. (#132)
 - **mysql:** removed the undefined `{{ item }}` reference from the looped
   root-user-removal task name, fixing the "'item' is undefined" template warning
   emitted on every run.

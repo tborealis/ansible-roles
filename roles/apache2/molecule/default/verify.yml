@@ -8,10 +8,11 @@
     - name: Gather service facts
       ansible.builtin.service_facts:
 
-    - name: Assert apache2 service is running
+    - name: Assert apache2 service is enabled and running
       ansible.builtin.assert:
         that:
           - ansible_facts.services['apache2.service'].state == 'running'
+          - ansible_facts.services['apache2.service'].status in ['enabled', 'generated']
 
     - name: Validate Apache configuration # noqa: command-instead-of-module (functional check of the deployed config)
       ansible.builtin.command: apache2ctl configtest

@@ -128,3 +128,9 @@
     mode: "0644"
   with_items: "{{ nginx_vhosts }}"
   notify: Reload nginx
+
+- name: Enable and start nginx
+  ansible.builtin.systemd:
+    name: nginx
+    enabled: true
+    state: started

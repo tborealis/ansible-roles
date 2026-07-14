@@ -42,3 +42,9 @@
     mode: "0640"
   with_items: "{{ supervisor_configs }}"
   notify: Update supervisor
+
+- name: Enable and start supervisor
+  ansible.builtin.systemd:
+    name: supervisor
+    enabled: true
+    state: started

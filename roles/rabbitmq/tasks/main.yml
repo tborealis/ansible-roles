@@ -70,6 +70,12 @@
     update_cache: true
     cache_valid_time: 3600
 
+- name: Enable and start RabbitMQ
+  ansible.builtin.systemd:
+    name: rabbitmq-server
+    enabled: true
+    state: started
+
 - name: Install RabbitMQ management plugin
   community.rabbitmq.rabbitmq_plugin:
     names: rabbitmq_management
