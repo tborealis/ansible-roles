@@ -1,0 +1,30 @@
+---
+# Prerequisites outside the role's contract:
+# - bookworm images ship without a DHCP client, but the role templates
+#   /etc/dhcp/dhclient.conf assuming a standard DHCP-managed Debian server.
+# - a pre-existing user with a stray authorized key simulates adopting an
+#   existing host, so verify can prove the role's exclusive key handling
+#   removes keys it does not manage.
+- name: Prepare
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Install the DHCP client whose config the role manages
+      ansible.builtin.apt:
+        pkg: isc-dhcp-client
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+      when: ansible_facts['distribution_release'] == 'bookworm'
+
+    - name: Create a pre-existing legacy user for the role to adopt
+      ansible.builtin.user:
+        name: molecule-deploy
+        shell: /bin/sh
+
+    - name: Plant a stray authorized key the role must remove
+      ansible.posix.authorized_key:
+        user: molecule-deploy
+        key: "{{ base_molecule_stray_public_key }}"

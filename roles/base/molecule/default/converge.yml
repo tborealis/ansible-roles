@@ -1,0 +1,49 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    # Docker bind-mounts /etc/hosts, so the atomic rename in "Clean /etc/hosts"
+    # fails with EBUSY; the role falls back to an in-place write.
+    base_hosts_unsafe_writes: true
+    system_locales:
+      - en_GB.UTF-8
+    system_default_locale: en_GB.UTF-8
+    system_timezone: Europe/London
+    # cron also satisfies the role's "Restart cron" handler: the test image
+    # ships without cron, and the packages task runs before the handler fires.
+    system_packages:
+      - cron
+    dns_primary_nameserver: 9.9.9.9
+    dns_secondary_nameserver: 149.112.112.112
+    local_hostnames:
+      - molecule-base.example.invalid
+    known_hosts:
+      - "{{ base_molecule_known_host_entry }}"
+    ssh_extra_user_groups:
+      - sftp-users
+    ssh_allow_tcp_forwarding: true
+    base_profile_config:
+      - src: molecule-profile.sh.j2
+        dest: molecule-profile.sh
+    default_users:
+      - name: molecule-admin
+        password: "{{ base_molecule_admin_password_hash }}"
+        groups:
+          - ssh-users
+          - sudo
+        authorized_keys:
+          - "{{ base_molecule_admin_key_file }}"
+    users:
+      - name: molecule-deploy
+        password: "{{ base_molecule_deploy_password_hash }}"
+        groups:
+          - ssh-users
+          - sftp-users
+        shell: /bin/bash
+        authorized_keys:
+          - "{{ base_molecule_deploy_key_file }}"
+  roles:
+    - role: tborealis.roles.base

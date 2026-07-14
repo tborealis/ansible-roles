@@ -1,0 +1,32 @@
+---
+# Overrides the base platforms (lists replace): the role drives
+# systemd-hostnamed and systemd-timedated over D-Bus (hostname and timezone
+# management), and those sandboxed units cannot set up their mount
+# namespacing in unprivileged containers, so these containers run
+# privileged. Both releases still run, so no .config/molecule/platforms.yml
+# entry is needed.
+platforms:
+  - name: bookworm
+    image: ${MOLECULE_IMAGE_REPO:-ghcr.io/tborealis/ansible-roles}/molecule-debian:bookworm
+    pre_build_image: true
+    command: /lib/systemd/systemd
+    cgroupns_mode: host
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp
+  - name: trixie
+    image: ${MOLECULE_IMAGE_REPO:-ghcr.io/tborealis/ansible-roles}/molecule-debian:trixie
+    pre_build_image: true
+    command: /lib/systemd/systemd
+    cgroupns_mode: host
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp
