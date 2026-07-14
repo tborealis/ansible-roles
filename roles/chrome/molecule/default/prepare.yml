@@ -9,3 +9,17 @@
     node_version: 22
   roles:
     - role: tborealis.roles.node
+  tasks:
+    # Pin the current stable so converge and idempotence install the same
+    # version even if Google promotes a new stable mid-run.
+    - name: Resolve the current chrome stable version
+      ansible.builtin.uri:
+        url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json
+        return_content: true
+      register: chrome_prepare_versions
+
+    - name: Pin the resolved version for converge
+      ansible.builtin.copy:
+        content: "{{ chrome_prepare_versions.json.channels.Stable.version }}\n"
+        dest: /var/tmp/molecule-chrome-version
+        mode: "0644"

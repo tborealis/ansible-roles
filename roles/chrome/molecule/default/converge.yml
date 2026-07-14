@@ -1,9 +1,18 @@
 ---
-# Defaults install the current Chrome stable, which is the real contract.
+# Installs the Chrome stable that prepare.yml resolved and pinned, so the
+# idempotence re-run targets the same version even if Google promotes a new
+# stable between the two converges. Real playbooks use the default channel.
 # chrome_install_chromedriver stays at its default (false) to keep the
 # scenario to one ~150 MB browser download.
 - name: Converge
   hosts: all
   become: true
+  pre_tasks:
+    - name: Read the pinned chrome version
+      ansible.builtin.slurp:
+        src: /var/tmp/molecule-chrome-version
+      register: chrome_pinned_version
   roles:
     - role: tborealis.roles.chrome
+      vars:
+        chrome_version: "{{ chrome_pinned_version.content | b64decode | trim }}"

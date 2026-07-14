@@ -5,7 +5,7 @@
 
 - name: Install chrome system dependencies
   ansible.builtin.apt:
-    pkg: "{{ chrome_system_dependencies }}"
+    pkg: "{{ chrome_system_dependencies + chrome_release_dependencies[ansible_facts['distribution_release']] }}"
     state: present
     update_cache: true
     cache_valid_time: 3600
@@ -16,16 +16,29 @@
   changed_when: false
   failed_when: false
 
+- name: Resolve the chrome channel version
+  ansible.builtin.uri:
+    url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json
+    return_content: true
+  register: chrome_channel_versions
+  when: chrome_version in chrome_release_channels
+
+- name: Set the chrome target version
+  ansible.builtin.set_fact:
+    chrome_target_version: >-
+      {{ chrome_channel_versions.json.channels[chrome_version | capitalize].version
+         if chrome_version in chrome_release_channels else chrome_version }}
+
 - name: Install chrome
-  ansible.builtin.command: "npx --yes @puppeteer/browsers install chrome@{{ chrome_version }} --path /opt"
+  ansible.builtin.command: "npx --yes @puppeteer/browsers install chrome@{{ chrome_target_version }} --path /opt"
   register: chrome_install_result
-  changed_when: >
-    chrome_current_version.rc != 0 or
-    (chrome_install_result.stdout | regex_search('chrome@([\\d.]+)', '\\1') | first) not in chrome_current_version.stdout
+  changed_when: true
+  when: chrome_current_version.rc != 0 or chrome_target_version not in chrome_current_version.stdout
 
 - name: Process chrome path
   ansible.builtin.set_fact:
     chrome_path: "{{ chrome_install_result.stdout | regex_search('chrome@[\\d.]+ (.+)', '\\1') | first }}"
+  when: chrome_install_result is not skipped
 
 - name: Link chrome
   ansible.builtin.file:
@@ -33,6 +46,7 @@
     dest: /usr/local/bin/google-chrome
     state: link
     force: true
+  when: chrome_install_result is not skipped
 
 - name: Chromedriver tasks
   ansible.builtin.import_tasks: chromedriver.yml
