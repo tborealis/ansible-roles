@@ -23,11 +23,19 @@ flagged with **BREAKING** and require a MAJOR version bump.
   them idempotent.
 - **meta:** Molecule scenarios for the web stack roles: `nginx`, `apache2`, `ssl`,
   `certbot`, and `php_repo_sury`.
+- **meta:** Molecule scenarios for the PHP stack roles: `php_cli`, `php_fpm`,
+  `composer`, `phpbu`, `new_relic`, and `symfony_params`.
 
 ### Fixed
 
 - **apache2:** the `apache2_env_vars` default was a list, which broke the role's own
   envvars template (it iterates `.items()`); the default is now `{}`.
+- **composer:** `composer_global_packages` entries failed because the composer module
+  rejects arguments embedded in the command string; the task now uses the `arguments`
+  and `global_command` parameters.
+- **phpbu:** the phar and schema are fetched from GitHub; `phar.phpbu.de` fails its
+  TLS handshake and `schema.phpbu.de` no longer resolves, so the role could not
+  converge. The pinned version and checksum are unchanged.
 
 - **mysql:** probe the root auth plugin with a fixed dummy password (the 1524 plugin
   error precedes password verification) so Ansible's `no_log` censoring can never
