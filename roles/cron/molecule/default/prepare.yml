@@ -1,0 +1,17 @@
+---
+# The role manages crontab entries but does not install cron or create the
+# users that own them (the base role does both on real hosts).
+- name: Prepare
+  hosts: all
+  become: true
+  tasks:
+    - name: Install cron
+      ansible.builtin.apt:
+        pkg: cron
+        state: present
+        update_cache: true
+
+    - name: Create deploy user
+      ansible.builtin.user:
+        name: deploy
+        shell: /bin/bash

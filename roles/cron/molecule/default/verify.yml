@@ -1,0 +1,31 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  tasks:
+    - name: Read root crontab # noqa: command-instead-of-module (reading back what the cron module installed)
+      ansible.builtin.command: crontab -l -u root
+      register: cron_verify_root
+      changed_when: false
+
+    - name: Assert root entry is installed with its Ansible marker
+      ansible.builtin.assert:
+        that:
+          - "'#Ansible: Nightly backup' in cron_verify_root.stdout"
+          - "'30 2 * * * /usr/local/bin/backup.sh --quiet' in cron_verify_root.stdout"
+
+    - name: Read deploy crontab # noqa: command-instead-of-module (reading back what the cron module installed)
+      ansible.builtin.command: crontab -l -u deploy
+      register: cron_verify_deploy
+      changed_when: false
+
+    - name: Assert deploy entry is installed with its Ansible marker
+      ansible.builtin.assert:
+        that:
+          - "'#Ansible: Prune deploy tmp files' in cron_verify_deploy.stdout"
+          - "'*/15 * * * 1-5 find /home/deploy/tmp -type f -mtime +7 -delete' in cron_verify_deploy.stdout"
+
+    - name: Assert root entry did not leak into the deploy crontab
+      ansible.builtin.assert:
+        that:
+          - "'Nightly backup' not in cron_verify_deploy.stdout"

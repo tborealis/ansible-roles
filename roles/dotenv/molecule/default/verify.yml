@@ -1,0 +1,64 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Stat the .env file
+      ansible.builtin.stat:
+        path: "{{ dotenv_test_env_file }}"
+      register: dotenv_verify_env
+
+    - name: Assert .env ownership and default group/mode
+      ansible.builtin.assert:
+        that:
+          - dotenv_verify_env.stat.exists
+          - dotenv_verify_env.stat.pw_name == dotenv_test_owner
+          - dotenv_verify_env.stat.gr_name == dotenv_test_owner
+          - dotenv_verify_env.stat.mode == '0644'
+
+    - name: Read the .env file
+      ansible.builtin.slurp:
+        src: "{{ dotenv_test_env_file }}"
+      register: dotenv_verify_env_content
+
+    - name: Assert keys are upper-cased and values quoted for the shell
+      ansible.builtin.assert:
+        that:
+          - "'APP_ENV=production' in dotenv_verify_env_content.content | b64decode"
+          - "\"APP_NAME='Molecule App'\" in dotenv_verify_env_content.content | b64decode"
+          - "'DATABASE_URL=' ~ dotenv_test_database_url in dotenv_verify_env_content.content | b64decode"
+
+    - name: Source the .env file in a shell and read a value back
+      ansible.builtin.shell: . {{ dotenv_test_env_file }} && printf '%s' "$APP_NAME"
+      changed_when: false
+      register: dotenv_verify_sourced
+
+    - name: Assert the quoted value round-trips through the shell
+      ansible.builtin.assert:
+        that:
+          - dotenv_verify_sourced.stdout == 'Molecule App'
+
+    - name: Stat the .env.local file
+      ansible.builtin.stat:
+        path: "{{ dotenv_test_local_file }}"
+      register: dotenv_verify_local
+
+    - name: Assert .env.local honours explicit group and mode
+      ansible.builtin.assert:
+        that:
+          - dotenv_verify_local.stat.exists
+          - dotenv_verify_local.stat.pw_name == dotenv_test_owner
+          - dotenv_verify_local.stat.gr_name == 'root'
+          - dotenv_verify_local.stat.mode == '0600'
+
+    - name: Read the .env.local file
+      ansible.builtin.slurp:
+        src: "{{ dotenv_test_local_file }}"
+      register: dotenv_verify_local_content
+
+    - name: Assert the secret value was rendered
+      ansible.builtin.assert:
+        that:
+          - "'SESSION_SECRET=' ~ dotenv_test_session_secret in dotenv_verify_local_content.content | b64decode"

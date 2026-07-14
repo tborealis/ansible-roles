@@ -1,0 +1,11 @@
+---
+# gnupg is only needed by verify.yml (gpg --show-keys); the role itself
+# performs no gpg or apt operations.
+- name: Prepare
+  hosts: all
+  become: true
+  tasks:
+    - name: Install gnupg for keyring verification
+      ansible.builtin.apt:
+        pkg: gnupg
+        state: present

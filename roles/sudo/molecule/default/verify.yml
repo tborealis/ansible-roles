@@ -1,0 +1,74 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  tasks:
+    - name: Validate the full sudoers configuration
+      ansible.builtin.command: visudo -c
+      register: sudo_verify_visudo
+      changed_when: false
+
+    - name: Stat /etc/sudoers
+      ansible.builtin.stat:
+        path: /etc/sudoers
+      register: sudo_verify_sudoers_stat
+
+    - name: Assert /etc/sudoers ownership and mode
+      ansible.builtin.assert:
+        that:
+          - sudo_verify_sudoers_stat.stat.exists
+          - sudo_verify_sudoers_stat.stat.pw_name == 'root'
+          - sudo_verify_sudoers_stat.stat.gr_name == 'root'
+          - sudo_verify_sudoers_stat.stat.mode == '0440'
+
+    - name: Read /etc/sudoers
+      ansible.builtin.slurp:
+        src: /etc/sudoers
+      register: sudo_verify_sudoers
+
+    # The sudoers template separates fields with tabs; match on \s+ so this
+    # file needs no literal tab characters.
+    - name: Assert the templated sudoers policy is in place
+      ansible.builtin.assert:
+        that:
+          - "sudo_verify_sudoers.content | b64decode is search('Defaults\\s+use_pty')"
+          - "sudo_verify_sudoers.content | b64decode is search('%sudo\\s+ALL=\\(ALL:ALL\\) NOPASSWD: ALL')"
+          - "'@includedir /etc/sudoers.d' in sudo_verify_sudoers.content | b64decode"
+
+    - name: Stat /etc/sudoers.d/deploy
+      ansible.builtin.stat:
+        path: /etc/sudoers.d/deploy
+      register: sudo_verify_deploy_stat
+
+    - name: Assert /etc/sudoers.d/deploy ownership and mode
+      ansible.builtin.assert:
+        that:
+          - sudo_verify_deploy_stat.stat.exists
+          - sudo_verify_deploy_stat.stat.pw_name == 'root'
+          - sudo_verify_deploy_stat.stat.gr_name == 'root'
+          - sudo_verify_deploy_stat.stat.mode == '0440'
+
+    - name: Read /etc/sudoers.d/deploy
+      ansible.builtin.slurp:
+        src: /etc/sudoers.d/deploy
+      register: sudo_verify_deploy
+
+    - name: Assert the fixture was rendered as a template
+      ansible.builtin.assert:
+        that:
+          - "'Ansible managed' in sudo_verify_deploy.content | b64decode"
+          - >-
+            'deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart nginx.service,
+            /usr/bin/systemctl status nginx.service'
+            in sudo_verify_deploy.content | b64decode
+
+    - name: List the sudo privileges of the deploy user
+      ansible.builtin.command: sudo -l -U deploy
+      register: sudo_verify_deploy_privs
+      changed_when: false
+
+    - name: Assert the granted rule is effective for the deploy user
+      ansible.builtin.assert:
+        that:
+          - "'(root) NOPASSWD: /usr/bin/systemctl restart nginx.service' in sudo_verify_deploy_privs.stdout"
+          - "'/usr/bin/systemctl status nginx.service' in sudo_verify_deploy_privs.stdout"

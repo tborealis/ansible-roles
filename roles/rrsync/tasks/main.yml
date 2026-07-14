@@ -8,7 +8,7 @@
 
 - name: Link rrsync
   ansible.builtin.file:
-    src: /usr/share/doc/rsync/scripts/rrsync
+    src: /usr/bin/rrsync
     dest: /usr/local/bin/rrsync
     state: link
     owner: root

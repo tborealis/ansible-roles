@@ -1,0 +1,8 @@
+---
+# The default apt_keys_keyrings manifest is the real subject under test: the
+# role must install every keyring it manages, so no test overrides are set.
+- name: Converge
+  hosts: all
+  become: true
+  roles:
+    - role: tborealis.roles.apt_keys

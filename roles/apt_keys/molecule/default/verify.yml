@@ -1,0 +1,61 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  tasks:
+    - name: Load the keyring manifest from the role defaults
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../../defaults/main.yml"
+        name: apt_keys_verify_defaults
+
+    - name: Assert the manifest is not empty
+      ansible.builtin.assert:
+        that:
+          - apt_keys_verify_defaults.apt_keys_keyrings | length > 0
+
+    - name: Stat the keyrings directory
+      ansible.builtin.stat:
+        path: /etc/apt/keyrings
+      register: apt_keys_verify_dir
+
+    - name: Assert the keyrings directory permissions
+      ansible.builtin.assert:
+        that:
+          - apt_keys_verify_dir.stat.isdir
+          - apt_keys_verify_dir.stat.pw_name == 'root'
+          - apt_keys_verify_dir.stat.gr_name == 'root'
+          - apt_keys_verify_dir.stat.mode == '0755'
+
+    - name: Stat keyring for {{ item.name }}
+      ansible.builtin.stat:
+        path: "{{ item.dest }}"
+      loop: "{{ apt_keys_verify_defaults.apt_keys_keyrings }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: apt_keys_verify_keyrings
+
+    - name: Assert every manifest keyring is installed with root:root 0644
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.isreg
+          - item.stat.pw_name == 'root'
+          - item.stat.gr_name == 'root'
+          - item.stat.mode == '0644'
+      loop: "{{ apt_keys_verify_keyrings.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+
+    - name: Parse installed keyring {{ item }}
+      ansible.builtin.command: gpg --show-keys --with-colons {{ item }}
+      changed_when: false
+      loop: "{{ apt_keys_verify_defaults.apt_keys_keyrings | map(attribute='dest') | unique | list }}"
+      register: apt_keys_verify_gpg
+
+    - name: Assert every keyring contains a public key
+      ansible.builtin.assert:
+        that:
+          - item.stdout_lines | select('match', '^pub:') | length > 0
+      loop: "{{ apt_keys_verify_gpg.results }}"
+      loop_control:
+        label: "{{ item.item }}"

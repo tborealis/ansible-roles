@@ -1,0 +1,17 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars:
+    cron_enable: true
+    cron_tab:
+      - name: Nightly backup
+        user: root
+        time: ["30", "2", "*", "*", "*"]
+        job: /usr/local/bin/backup.sh --quiet
+      - name: Prune deploy tmp files
+        user: deploy
+        time: ["*/15", "*", "*", "*", "1-5"]
+        job: find /home/deploy/tmp -type f -mtime +7 -delete
+  roles:
+    - role: tborealis.roles.cron

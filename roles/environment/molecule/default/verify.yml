@@ -1,0 +1,63 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Stat the profile.d environment file
+      ansible.builtin.stat:
+        path: "{{ environment_test_profile_file }}"
+      register: environment_verify_profile
+
+    - name: Assert the environment file exists and is owned by root
+      ansible.builtin.assert:
+        that:
+          - environment_verify_profile.stat.exists
+          - environment_verify_profile.stat.pw_name == 'root'
+
+    - name: Read the profile.d environment file
+      ansible.builtin.slurp:
+        src: "{{ environment_test_profile_file }}"
+      register: environment_verify_profile_content
+
+    - name: Assert variables are exported with quoted values
+      ansible.builtin.assert:
+        that:
+          - "'export APP_ENV=staging' in environment_verify_profile_content.content | b64decode"
+          - "\"export APP_MESSAGE='molecule says hi'\" in environment_verify_profile_content.content | b64decode"
+
+    - name: Source the environment file in a shell and read a value back
+      ansible.builtin.shell: . {{ environment_test_profile_file }} && printf '%s' "$APP_MESSAGE"
+      changed_when: false
+      register: environment_verify_sourced
+
+    - name: Assert the exported value round-trips through the shell
+      ansible.builtin.assert:
+        that:
+          - environment_verify_sourced.stdout == 'molecule says hi'
+
+    - name: Stat the dotenv file
+      ansible.builtin.stat:
+        path: "{{ environment_test_dotenv_file }}"
+      register: environment_verify_dotenv
+
+    - name: Assert dotenv ownership and mode
+      ansible.builtin.assert:
+        that:
+          - environment_verify_dotenv.stat.exists
+          - environment_verify_dotenv.stat.pw_name == environment_test_owner
+          - environment_verify_dotenv.stat.gr_name == environment_test_owner
+          - environment_verify_dotenv.stat.mode == '0640'
+
+    - name: Read the dotenv file
+      ansible.builtin.slurp:
+        src: "{{ environment_test_dotenv_file }}"
+      register: environment_verify_dotenv_content
+
+    - name: Assert dotenv values are rendered without export statements
+      ansible.builtin.assert:
+        that:
+          - "'APP_ENV=staging' in environment_verify_dotenv_content.content | b64decode"
+          - "'DATABASE_URL=' ~ environment_test_database_url in environment_verify_dotenv_content.content | b64decode"
+          - "'export' not in environment_verify_dotenv_content.content | b64decode"
