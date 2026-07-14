@@ -1,0 +1,22 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    php_version: "{{ php_fpm_test_version }}"
+    php_fpm_date_timezone: Pacific/Auckland
+    php_fpm_memory_limit: 96M
+    php_fpm_max_execution_time: 45
+    php_fpm_post_max_size: 16M
+    php_fpm_upload_max_filesize: 12M
+    php_fpm_opcache_memory_consumption: 64
+    php_fpm_opcache_max_accelerated_files: 20000
+    php_fpm_packages:
+      - "php{{ php_fpm_test_version }}-curl"
+    php_fpm_pools:
+      - src: molecule.conf.j2
+        dest: molecule.conf
+  roles:
+    - role: tborealis.roles.php_fpm

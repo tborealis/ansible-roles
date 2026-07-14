@@ -1,0 +1,89 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert the FPM service is running and enabled
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['php' ~ php_fpm_test_version ~ '-fpm.service'].state == 'running'
+          - ansible_facts.services['php' ~ php_fpm_test_version ~ '-fpm.service'].status == 'enabled'
+
+    # The success notice goes to the configured error log, not stderr, so the
+    # command's exit code (the task fails on non-zero rc) is the whole check.
+    - name: Validate the FPM configuration with php-fpm{{ php_fpm_test_version }}
+      ansible.builtin.command: php-fpm{{ php_fpm_test_version }} -t
+      register: php_fpm_verify_configtest
+      changed_when: false
+
+    - name: Count running workers of the molecule pool
+      ansible.builtin.command: "pgrep -fc 'php-fpm: pool molecule'"
+      register: php_fpm_verify_workers
+      changed_when: false
+
+    - name: Assert the static pool spawned the configured number of workers
+      ansible.builtin.assert:
+        that:
+          - php_fpm_verify_workers.stdout | int == php_fpm_test_pool_max_children
+
+    - name: Stat the pool listen socket
+      ansible.builtin.stat:
+        path: "{{ php_fpm_test_pool_socket }}"
+      register: php_fpm_verify_socket
+
+    - name: Assert the pool is listening on its unix socket
+      ansible.builtin.assert:
+        that:
+          - php_fpm_verify_socket.stat.exists
+          - php_fpm_verify_socket.stat.issock
+          - php_fpm_verify_socket.stat.pw_name == 'www-data'
+
+    - name: Stat the installed pool config of PHP {{ php_fpm_test_version }}
+      ansible.builtin.stat:
+        path: "/etc/php/{{ php_fpm_test_version }}/fpm/pool.d/molecule.conf"
+      register: php_fpm_verify_pool_stat
+
+    - name: Assert pool config ownership and mode
+      ansible.builtin.assert:
+        that:
+          - php_fpm_verify_pool_stat.stat.pw_name == 'root'
+          - php_fpm_verify_pool_stat.stat.gr_name == 'root'
+          - php_fpm_verify_pool_stat.stat.mode == '0600'
+
+    - name: Read the installed pool config of PHP {{ php_fpm_test_version }}
+      ansible.builtin.slurp:
+        src: "/etc/php/{{ php_fpm_test_version }}/fpm/pool.d/molecule.conf"
+      register: php_fpm_verify_pool
+
+    - name: Assert the pool fixture values were templated
+      ansible.builtin.assert:
+        that:
+          - "'listen = ' ~ php_fpm_test_pool_socket in php_fpm_verify_pool.content | b64decode"
+          - "'pm.max_children = ' ~ php_fpm_test_pool_max_children in php_fpm_verify_pool.content | b64decode"
+
+    - name: Check the default www pool was removed for PHP {{ php_fpm_test_version }}
+      ansible.builtin.stat:
+        path: "/etc/php/{{ php_fpm_test_version }}/fpm/pool.d/www.conf"
+      register: php_fpm_verify_www_pool
+      failed_when: php_fpm_verify_www_pool.stat.exists
+
+    - name: Read the FPM php.ini of PHP {{ php_fpm_test_version }}
+      ansible.builtin.slurp:
+        src: "/etc/php/{{ php_fpm_test_version }}/fpm/php.ini"
+      register: php_fpm_verify_ini
+
+    - name: Assert the converge ini settings were templated
+      ansible.builtin.assert:
+        that:
+          - "'memory_limit = 96M' in php_fpm_verify_ini.content | b64decode"
+          - "'max_execution_time = 45' in php_fpm_verify_ini.content | b64decode"
+          - "'post_max_size = 16M' in php_fpm_verify_ini.content | b64decode"
+          - "'upload_max_filesize = 12M' in php_fpm_verify_ini.content | b64decode"
+          - "'date.timezone = \"Pacific/Auckland\"' in php_fpm_verify_ini.content | b64decode"
+          - "'opcache.memory_consumption = 64' in php_fpm_verify_ini.content | b64decode"
+          - "'opcache.max_accelerated_files = 20000' in php_fpm_verify_ini.content | b64decode"
