@@ -1,0 +1,5 @@
+---
+# Values shared by converge.yml and verify.yml.
+# The role has no default for postgres_version; PGDG publishes 15 for both
+# bookworm and trixie.
+postgres_version: 15
