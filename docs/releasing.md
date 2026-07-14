@@ -36,7 +36,7 @@ Example:
 ## [Unreleased]
 
 ### Added
-- **php_cli:** add PHP 8.5 support
+- **php:** add PHP 8.5 support
 
 ### Removed
 - **base:** drop `base_legacy_packages`

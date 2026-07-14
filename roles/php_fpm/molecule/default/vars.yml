@@ -1,8 +1,0 @@
----
-# Values shared by prepare.yml, converge.yml, verify.yml and the pool
-# fixture template. 8.3 is shipped by neither bookworm (8.2) nor trixie
-# (8.4), so the packages the role installs can only come from the Sury
-# repo configured in prepare.
-php_fpm_test_version: "8.3"
-php_fpm_test_pool_socket: "/run/php/php{{ php_fpm_test_version }}-fpm-molecule.sock"
-php_fpm_test_pool_max_children: 3
