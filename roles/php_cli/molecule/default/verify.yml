@@ -1,0 +1,80 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Run php # noqa: command-instead-of-module (functional check that the binary works)
+      ansible.builtin.command: php -v
+      register: php_cli_verify_version
+      changed_when: false
+
+    - name: Assert the configured PHP version is the default CLI
+      ansible.builtin.assert:
+        that:
+          - php_cli_verify_version.stdout is search('^PHP ' ~ php_cli_test_version ~ '\.')
+
+    - name: Probe live ini settings # noqa: command-instead-of-module (proves the templated php.ini is what the interpreter loads)
+      ansible.builtin.command: >-
+        php -r 'echo ini_get("date.timezone"), "\n",
+        ini_get("error_reporting"), "\n", ini_get("error_log");'
+      register: php_cli_verify_ini
+      changed_when: false
+
+    - name: Assert the converge settings are live in the interpreter
+      ansible.builtin.assert:
+        that:
+          - php_cli_verify_ini.stdout_lines[0] == 'Pacific/Auckland'
+          - php_cli_verify_ini.stdout_lines[1] == '32767'
+          - php_cli_verify_ini.stdout_lines[2] == '/var/log/php-cli-molecule.log'
+
+    - name: List loaded modules # noqa: command-instead-of-module (proves the extra package's extension is loaded)
+      ansible.builtin.command: php -m
+      register: php_cli_verify_modules
+      changed_when: false
+
+    - name: Assert the curl extension from php_cli_packages is loaded
+      ansible.builtin.assert:
+        that:
+          - "'curl' in php_cli_verify_modules.stdout_lines"
+
+    - name: Check xdebug is not enabled for the CLI of PHP {{ php_cli_test_version }}
+      ansible.builtin.stat:
+        path: "/etc/php/{{ php_cli_test_version }}/cli/conf.d/20-xdebug.ini"
+      register: php_cli_verify_xdebug_link
+      failed_when: php_cli_verify_xdebug_link.stat.exists
+
+    - name: Stat the xdebug mod shipped by the package for PHP {{ php_cli_test_version }}
+      ansible.builtin.stat:
+        path: "/etc/php/{{ php_cli_test_version }}/mods-available/xdebug.ini"
+      register: php_cli_verify_xdebug_mod
+
+    - name: Assert the xdebug package is installed
+      ansible.builtin.assert:
+        that:
+          - php_cli_verify_xdebug_mod.stat.exists
+
+    - name: Stat the CLI php.ini of PHP {{ php_cli_test_version }}
+      ansible.builtin.stat:
+        path: "/etc/php/{{ php_cli_test_version }}/cli/php.ini"
+      register: php_cli_verify_ini_stat
+
+    - name: Assert php.ini ownership and mode
+      ansible.builtin.assert:
+        that:
+          - php_cli_verify_ini_stat.stat.pw_name == 'root'
+          - php_cli_verify_ini_stat.stat.gr_name == 'root'
+          - php_cli_verify_ini_stat.stat.mode == '0644'
+
+    - name: Read the CLI php.ini of PHP {{ php_cli_test_version }}
+      ansible.builtin.slurp:
+        src: "/etc/php/{{ php_cli_test_version }}/cli/php.ini"
+      register: php_cli_verify_ini_file
+
+    - name: Assert xdebug settings are templated for when xdebug gets enabled
+      ansible.builtin.assert:
+        that:
+          - "'xdebug.client_host = 192.0.2.10' in php_cli_verify_ini_file.content | b64decode"
+          - "'xdebug.idekey = molecule' in php_cli_verify_ini_file.content | b64decode"
+          - "'xdebug.max_nesting_level = 512' in php_cli_verify_ini_file.content | b64decode"
