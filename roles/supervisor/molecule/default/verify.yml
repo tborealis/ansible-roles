@@ -1,0 +1,52 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert supervisor service is running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['supervisor.service'].state == 'running'
+
+    - name: Query the test program status # noqa: command-instead-of-module (exercises supervisorctl against the live daemon)
+      ansible.builtin.command: supervisorctl status sleeper
+      register: supervisor_verify_status
+      changed_when: false
+
+    - name: Assert the test program is running under supervisor
+      ansible.builtin.assert:
+        that:
+          - "'RUNNING' in supervisor_verify_status.stdout"
+
+    - name: Read supervisord.conf
+      ansible.builtin.slurp:
+        src: /etc/supervisor/supervisord.conf
+      register: supervisor_verify_conf
+
+    - name: Assert the control socket is owned by the supervisor group
+      ansible.builtin.assert:
+        that:
+          - "'chown=root:supervisor' in supervisor_verify_conf.content | b64decode"
+
+    - name: Read the installed program config
+      ansible.builtin.slurp:
+        src: /etc/supervisor/conf.d/sleeper.conf
+      register: supervisor_verify_program
+
+    - name: Assert the program config was rendered from the fixture
+      ansible.builtin.assert:
+        that:
+          - "'command=/bin/sleep infinity' in supervisor_verify_program.content | b64decode"
+
+    - name: Look up the supervisor group
+      ansible.builtin.getent:
+        database: group
+        key: supervisor
+
+    - name: Assert root was added to the supervisor group
+      ansible.builtin.assert:
+        that:
+          - "'root' in ansible_facts.getent_group['supervisor'][2]"
