@@ -1,0 +1,22 @@
+---
+# Server and consumer modes run on different machines in production, but both
+# are self-contained config changes, so one container exercises both. Client
+# mode is not converged: it requires an SSH private key variable, and test
+# fixtures here are public keys only.
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    dbcd_modes:
+      - server
+      - consumer
+    dbcd_server_client_public_key: "{{ dbcd_molecule_client_public_key }}"
+    dbcd_server_consumer_public_keys: "{{ dbcd_molecule_consumer_public_keys }}"
+    dbcd_consumer_user: "{{ dbcd_molecule_consumer_user }}"
+    dbcd_server_host: "{{ dbcd_molecule_server_host }}"
+    dbcd_known_hosts:
+      - "{{ dbcd_molecule_known_host }}"
+  roles:
+    - role: tborealis.roles.dbcd
