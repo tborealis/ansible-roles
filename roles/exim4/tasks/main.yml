@@ -23,3 +23,9 @@
     group: root
     mode: "0644"
   notify: Restart exim4
+
+- name: Enable and start exim4
+  ansible.builtin.systemd:
+    name: exim4
+    enabled: true
+    state: started

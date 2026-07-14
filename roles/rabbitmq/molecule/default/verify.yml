@@ -8,10 +8,11 @@
     - name: Gather service facts
       ansible.builtin.service_facts:
 
-    - name: Assert RabbitMQ service is running
+    - name: Assert RabbitMQ service is enabled and running
       ansible.builtin.assert:
         that:
           - ansible_facts.services['rabbitmq-server.service'].state == 'running'
+          - ansible_facts.services['rabbitmq-server.service'].status in ['enabled', 'generated']
 
     - name: Check broker status
       ansible.builtin.command: rabbitmqctl status

@@ -8,10 +8,11 @@
     - name: Gather service facts
       ansible.builtin.service_facts:
 
-    - name: Assert nginx service is running
+    - name: Assert nginx service is enabled and running
       ansible.builtin.assert:
         that:
           - ansible_facts.services['nginx.service'].state == 'running'
+          - ansible_facts.services['nginx.service'].status in ['enabled', 'generated']
 
     - name: Validate nginx configuration
       ansible.builtin.command: nginx -t

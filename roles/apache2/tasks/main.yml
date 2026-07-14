@@ -68,3 +68,9 @@
     state: link
   with_items: "{{ apache2_vhosts }}"
   notify: Restart apache2
+
+- name: Enable and start Apache2
+  ansible.builtin.systemd:
+    name: apache2
+    enabled: true
+    state: started

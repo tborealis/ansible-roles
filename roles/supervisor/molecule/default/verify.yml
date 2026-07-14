@@ -6,10 +6,11 @@
     - name: Gather service facts
       ansible.builtin.service_facts:
 
-    - name: Assert supervisor service is running
+    - name: Assert supervisor service is enabled and running
       ansible.builtin.assert:
         that:
           - ansible_facts.services['supervisor.service'].state == 'running'
+          - ansible_facts.services['supervisor.service'].status in ['enabled', 'generated']
 
     - name: Query the test program status # noqa: command-instead-of-module (exercises supervisorctl against the live daemon)
       ansible.builtin.command: supervisorctl status sleeper
