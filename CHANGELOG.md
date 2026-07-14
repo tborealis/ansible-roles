@@ -11,6 +11,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+## [5.2.0] - 2026-07-14
+
 ### Added
 
 - **pgsql:** support PostgreSQL 17 and 18: config templates for both majors,
