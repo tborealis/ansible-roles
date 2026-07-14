@@ -1,3 +1,3 @@
 ---
 # Majors the role ships postgresql-<v>.conf.j2 / pg_hba-<v>.conf.j2 templates for.
-pgsql_supported_versions: [12, 13, 15]
+pgsql_supported_versions: [12, 13, 15, 17, 18]
