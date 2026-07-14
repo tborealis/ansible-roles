@@ -1,0 +1,43 @@
+---
+# The role no-ops with default variables, so feed it the fixture keys staged
+# by prepare.yml: a passphrase-protected private key plus an ultimately
+# trusted public key for a regular user. slurp returns file content base64
+# encoded, which is exactly the shape gpg_config expects for `key`.
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    gpg_config:
+      - user: "{{ gpg_test_user }}"
+        private_keys:
+          - id: "{{ gpg_converge_private_fpr.content | b64decode | trim }}"
+            key: "{{ gpg_converge_private_key.content }}"
+            passphrase: "{{ gpg_test_passphrase }}"
+        public_keys:
+          - id: "{{ gpg_converge_public_fpr.content | b64decode | trim }}"
+            key: "{{ gpg_converge_public_key.content }}"
+            owner_trust_level: 5
+  pre_tasks:
+    - name: Read the staged private key fingerprint
+      ansible.builtin.slurp:
+        src: "{{ gpg_fixture_dir }}/private.fpr"
+      register: gpg_converge_private_fpr
+
+    - name: Read the staged private key
+      ansible.builtin.slurp:
+        src: "{{ gpg_fixture_dir }}/private.asc"
+      register: gpg_converge_private_key
+
+    - name: Read the staged public key fingerprint
+      ansible.builtin.slurp:
+        src: "{{ gpg_fixture_dir }}/public.fpr"
+      register: gpg_converge_public_fpr
+
+    - name: Read the staged public key
+      ansible.builtin.slurp:
+        src: "{{ gpg_fixture_dir }}/public.asc"
+      register: gpg_converge_public_key
+  roles:
+    - role: tborealis.roles.gpg

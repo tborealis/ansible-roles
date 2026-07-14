@@ -1,0 +1,94 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Read the staged private key fingerprint
+      ansible.builtin.slurp:
+        src: "{{ gpg_fixture_dir }}/private.fpr"
+      register: gpg_verify_private_fpr_file
+
+    - name: Read the staged public key fingerprint
+      ansible.builtin.slurp:
+        src: "{{ gpg_fixture_dir }}/public.fpr"
+      register: gpg_verify_public_fpr_file
+
+    - name: Set fingerprint facts
+      ansible.builtin.set_fact:
+        gpg_verify_private_fpr: "{{ gpg_verify_private_fpr_file.content | b64decode | trim }}"
+        gpg_verify_public_fpr: "{{ gpg_verify_public_fpr_file.content | b64decode | trim }}"
+
+    - name: Stat the GPG home directory
+      ansible.builtin.stat:
+        path: /home/{{ gpg_test_user }}/.gnupg
+      register: gpg_verify_home
+
+    - name: Assert the GPG home is private to the user
+      ansible.builtin.assert:
+        that:
+          - gpg_verify_home.stat.isdir
+          - gpg_verify_home.stat.pw_name == gpg_test_user
+          - gpg_verify_home.stat.mode == '0700'
+
+    - name: Stat the temporary private key file the role imports from
+      ansible.builtin.stat:
+        path: /home/{{ gpg_test_user }}/.gnupg/{{ gpg_verify_private_fpr }}
+      register: gpg_verify_leftover
+      failed_when: gpg_verify_leftover.stat.exists
+
+    - name: List the imported secret key as the target user
+      ansible.builtin.command: gpg2 --list-secret-keys {{ gpg_verify_private_fpr }}
+      become_user: "{{ gpg_test_user }}"
+      become: true
+      register: gpg_verify_secret
+      changed_when: false
+
+    - name: Assert the private fixture key was imported
+      ansible.builtin.assert:
+        that:
+          - gpg_test_private_uid in gpg_verify_secret.stdout
+
+    - name: List the imported public key as the target user
+      ansible.builtin.command: gpg2 --list-keys {{ gpg_verify_public_fpr }}
+      become_user: "{{ gpg_test_user }}"
+      become: true
+      register: gpg_verify_public
+      changed_when: false
+
+    - name: Assert the public fixture key was imported
+      ansible.builtin.assert:
+        that:
+          - gpg_test_public_uid in gpg_verify_public.stdout
+
+    - name: Export owner trust as the target user
+      ansible.builtin.command: gpg2 --export-ownertrust
+      become_user: "{{ gpg_test_user }}"
+      become: true
+      register: gpg_verify_ownertrust
+      changed_when: false
+
+    - name: Assert the public fixture key is ultimately trusted
+      ansible.builtin.assert:
+        that:
+          - gpg_verify_public_fpr ~ ':6:' in gpg_verify_ownertrust.stdout
+
+    - name: Sign and verify a message with the imported private key
+      ansible.builtin.shell:
+        cmd: >-
+          set -o pipefail;
+          echo molecule
+          | gpg2 --batch --pinentry-mode loopback --passphrase {{ gpg_test_passphrase }}
+          --local-user {{ gpg_verify_private_fpr }} --clearsign
+          | gpg2 --verify
+        executable: /bin/bash
+      become_user: "{{ gpg_test_user }}"
+      become: true
+      register: gpg_verify_roundtrip
+      changed_when: false
+
+    - name: Assert the signature verified
+      ansible.builtin.assert:
+        that:
+          - "'Good signature' in gpg_verify_roundtrip.stderr"
