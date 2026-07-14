@@ -1,0 +1,15 @@
+<VirtualHost *:80>
+    ServerName molecule.test
+    DocumentRoot /var/www/molecule
+
+    <Directory /var/www/molecule>
+        Require all granted
+    </Directory>
+
+    <Location /secure>
+        AuthType Basic
+        AuthName "Molecule restricted"
+        AuthUserFile /etc/apache2/htpassword
+        Require valid-user
+    </Location>
+</VirtualHost>

@@ -1,0 +1,100 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert apache2 service is running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['apache2.service'].state == 'running'
+
+    - name: Validate Apache configuration # noqa: command-instead-of-module (functional check of the deployed config)
+      ansible.builtin.command: apache2ctl configtest
+      changed_when: false
+
+    - name: List loaded Apache modules # noqa: command-instead-of-module (functional check that modules are loaded)
+      ansible.builtin.command: apache2ctl -M
+      register: apache2_verify_modules
+      changed_when: false
+
+    - name: Assert module state matches the role variables
+      ansible.builtin.assert:
+        that:
+          - "'mpm_event_module' in apache2_verify_modules.stdout"
+          - "'mpm_prefork_module' not in apache2_verify_modules.stdout"
+          - "'rewrite_module' in apache2_verify_modules.stdout"
+          - "'ssl_module' in apache2_verify_modules.stdout"
+          - "'proxy_fcgi_module' in apache2_verify_modules.stdout"
+
+    - name: Request the vhost root
+      ansible.builtin.uri:
+        url: http://127.0.0.1/
+        return_content: true
+      register: apache2_verify_root
+
+    - name: Assert the vhost serves the fixture content
+      ansible.builtin.assert:
+        that:
+          - apache2_verify_root.status == 200
+          - "'molecule vhost ok' in apache2_verify_root.content"
+
+    - name: Request the protected location without credentials
+      ansible.builtin.uri:
+        url: http://127.0.0.1/secure/
+        status_code: 401
+
+    - name: Request the protected location with credentials
+      ansible.builtin.uri:
+        url: http://127.0.0.1/secure/
+        url_username: "{{ apache2_molecule_auth_user }}"
+        url_password: "{{ apache2_molecule_auth_password }}"
+        force_basic_auth: true
+        return_content: true
+      register: apache2_verify_auth
+
+    - name: Assert basic auth grants access
+      ansible.builtin.assert:
+        that:
+          - "'molecule secure ok' in apache2_verify_auth.content"
+
+    - name: Read the installed vhost
+      ansible.builtin.slurp:
+        src: /etc/apache2/sites-available/molecule.conf
+      register: apache2_verify_vhost
+
+    - name: Assert the converge vhost was installed
+      ansible.builtin.assert:
+        that:
+          - "'ServerName molecule.test' in apache2_verify_vhost.content | b64decode"
+
+    - name: Check vhost symlink
+      ansible.builtin.stat:
+        path: /etc/apache2/sites-enabled/molecule.conf
+      register: apache2_verify_vhost_link
+
+    - name: Assert vhost is enabled from sites-available
+      ansible.builtin.assert:
+        that:
+          - apache2_verify_vhost_link.stat.islnk
+          - apache2_verify_vhost_link.stat.lnk_source == '/etc/apache2/sites-available/molecule.conf'
+
+    - name: Read the environment config
+      ansible.builtin.slurp:
+        src: /etc/apache2/envvars
+      register: apache2_verify_envvars
+
+    - name: Assert the converge environment variable is exported
+      ansible.builtin.assert:
+        that:
+          - "\"export APACHE_MOLECULE_MARKER='molecule'\" in apache2_verify_envvars.content | b64decode"
+
+    - name: Check default site was disabled
+      ansible.builtin.stat:
+        path: /etc/apache2/sites-enabled/000-default.conf
+      register: apache2_verify_default_site
+      failed_when: apache2_verify_default_site.stat.exists
