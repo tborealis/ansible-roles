@@ -1,0 +1,89 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Check the AWS CLI version
+      ansible.builtin.command: aws --version
+      register: aws_cli_verify_version
+      changed_when: false
+
+    - name: Assert AWS CLI v2 is installed
+      ansible.builtin.assert:
+        that:
+          - aws_cli_verify_version.stdout.startswith('aws-cli/2.')
+
+    - name: Check the Session Manager plugin version
+      ansible.builtin.command: session-manager-plugin --version
+      register: aws_cli_verify_ssm_version
+      changed_when: false
+
+    - name: Assert the Session Manager plugin is installed
+      ansible.builtin.assert:
+        that:
+          - aws_cli_verify_ssm_version.stdout is match('^[0-9]+(\.[0-9]+)+$')
+
+    - name: Read the bash completion file
+      ansible.builtin.slurp:
+        src: /etc/bash_completion.d/aws-cli
+      register: aws_cli_verify_completion
+
+    - name: Assert completion hooks aws_completer
+      ansible.builtin.assert:
+        that:
+          - "\"complete -C '/usr/local/bin/aws_completer' aws\" in aws_cli_verify_completion.content | b64decode"
+
+    - name: Stat the per-user .aws directory
+      ansible.builtin.stat:
+        path: "/home/{{ aws_cli_molecule_user }}/.aws"
+      register: aws_cli_verify_dir
+
+    - name: Assert the .aws directory is private to the user
+      ansible.builtin.assert:
+        that:
+          - aws_cli_verify_dir.stat.isdir
+          - aws_cli_verify_dir.stat.pw_name == aws_cli_molecule_user
+          - aws_cli_verify_dir.stat.mode == '0700'
+
+    - name: Stat the per-user config files
+      ansible.builtin.stat:
+        path: "/home/{{ aws_cli_molecule_user }}/.aws/{{ item }}"
+      loop:
+        - config
+        - credentials
+      register: aws_cli_verify_files
+
+    - name: Assert the config files are private to the user
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.pw_name == aws_cli_molecule_user
+          - item.stat.mode == '0600'
+      loop: "{{ aws_cli_verify_files.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Read the per-user credentials file
+      ansible.builtin.slurp:
+        src: "/home/{{ aws_cli_molecule_user }}/.aws/credentials"
+      register: aws_cli_verify_credentials
+
+    - name: Assert the credentials hold the converge keys
+      ansible.builtin.assert:
+        that:
+          - "'aws_access_key_id = ' ~ aws_cli_molecule_access_key_id in aws_cli_verify_credentials.content | b64decode"
+          - "'aws_secret_access_key = ' ~ aws_cli_molecule_secret_access_key in aws_cli_verify_credentials.content | b64decode"
+
+    - name: Read the configured region back through the CLI as the test user
+      become_user: "{{ aws_cli_molecule_user }}"
+      become: true
+      ansible.builtin.command: aws configure get region
+      register: aws_cli_verify_region
+      changed_when: false
+
+    - name: Assert the CLI resolves the region set by converge
+      ansible.builtin.assert:
+        that:
+          - aws_cli_verify_region.stdout == aws_cli_molecule_region
