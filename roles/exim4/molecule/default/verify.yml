@@ -29,10 +29,11 @@
       register: exim4_verify_local_domains
       changed_when: false
 
-    - name: Assert the sender hostname is a local domain
+    - name: Assert the sender hostname and mailname are local domains
       ansible.builtin.assert:
         that:
           - exim4_sender_hostname in exim4_verify_local_domains.stdout
+          - mailname in exim4_verify_local_domains.stdout
 
     - name: Query the configured listening interfaces
       ansible.builtin.command: exim -bP local_interfaces
@@ -53,7 +54,7 @@
       ansible.builtin.assert:
         that:
           - "\"dc_eximconfig_configtype='internet'\" in exim4_verify_conf.content | b64decode"
-          - "\"dc_other_hostnames='\" ~ exim4_sender_hostname ~ \"'\" in exim4_verify_conf.content | b64decode"
+          - "\"dc_other_hostnames='\" ~ exim4_sender_hostname ~ \" ; \" ~ mailname ~ \"'\" in exim4_verify_conf.content | b64decode"
 
     - name: Read mailname
       ansible.builtin.slurp:
@@ -65,15 +66,15 @@
         that:
           - exim4_verify_mailname.content | b64decode == mailname ~ "\n"
 
-    # postmaster@localhost is not probeable here: its alias to root gets
-    # qualified with /etc/mailname, which the role does not add to the local
-    # domains, so the aliased address is unrouteable (role gap, tracked).
-    - name: Route mail to root as a local delivery smoke test
-      ansible.builtin.command: exim -bt root@localhost
+    # postmaster's alias to root gets qualified with /etc/mailname, so this
+    # routes only because the role includes the mailname in the local domains
+    # (the #126 regression).
+    - name: Route mail to postmaster as a local delivery smoke test
+      ansible.builtin.command: exim -bt postmaster@localhost
       register: exim4_verify_routing
       changed_when: false
 
-    - name: Assert root resolves to local delivery
+    - name: Assert postmaster resolves to local delivery
       ansible.builtin.assert:
         that:
           - "'transport = address_file' in exim4_verify_routing.stdout or 'router = local_user' in exim4_verify_routing.stdout"

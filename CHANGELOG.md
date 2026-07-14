@@ -16,6 +16,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
 - **certbot:** apache mode now works standalone: the role ships the `Restart apache2`
   handler it notifies, defaults `apache2_ssl_vhosts` to `[]`, and documents the
   variable and its playbook-relative `templates/apache2/vhosts/` contract. (#124)
+- **exim4:** include the mailname in `dc_other_hostnames` so aliased local mail
+  (e.g. postmaster→root, qualified with `/etc/mailname`) stays routeable when the
+  mailname differs from the sender hostname. (#126)
 
 ## [5.1.0] - 2026-07-14
 
