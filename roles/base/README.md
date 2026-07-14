@@ -21,3 +21,4 @@ Base system configuration including locales, timezone, users, DNS, and essential
 | `ssh_allow_tcp_forwarding` | `false` | Allow SSH TCP forwarding |
 | `base_default_system_packages` | See defaults | Essential system packages |
 | `base_profile_config` | `[]` | Profile configuration entries |
+| `base_hosts_unsafe_writes` | `false` | Write /etc/hosts in place (for containers, where the bind mount breaks atomic renames) |
