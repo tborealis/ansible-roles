@@ -13,6 +13,12 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Added
 
+- **pgsql:** support PostgreSQL 17 and 18: config templates for both majors,
+  accepted by the `postgres_version` validation and exercised by the molecule
+  scenario (bookworm converges 15, trixie 18). The 15 template's hardcoded
+  `cluster_name` and `lc_*` values are re-templated on `postgres_version` /
+  `postgres_locale`, matching the 13 template (identical rendering on default
+  locale). (#141)
 - **mailpit:** new role installing [Mailpit](https://github.com/axllent/mailpit), the
   maintained MailHog successor (same default ports: SMTP 1025, web UI/API 8025), with
   a pinned version, per-architecture sha256 checksums (amd64/arm64), a correctly-moded
