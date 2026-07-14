@@ -1,0 +1,20 @@
+---
+# The role writes .env files into an existing app directory for an existing
+# user; creating those is outside its contract.
+- name: Prepare
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Create app user
+      ansible.builtin.user:
+        name: "{{ dotenv_test_owner }}"
+
+    - name: Create app directory
+      ansible.builtin.file:
+        path: "{{ dotenv_test_dir }}"
+        state: directory
+        owner: "{{ dotenv_test_owner }}"
+        group: "{{ dotenv_test_owner }}"
+        mode: "0755"
