@@ -27,8 +27,19 @@ flagged with **BREAKING** and require a MAJOR version bump.
   `composer`, `phpbu`, `new_relic`, and `symfony_params`.
 - **meta:** Molecule scenarios for the data service roles: `pgsql`, `pgsql_client`,
   `redis`, `rabbitmq` (bookworm only), `supervisor`, and `mailhog`.
+- **meta:** Molecule scenarios for the tooling roles: `node`, `nvm`, `yarn`, `chrome`,
+  `stripe_cli`, and `gpg`.
 
 ### Fixed
+
+- **nvm:** version installs and the default alias reported changed on every run; they
+  now detect the existing state. The installer's `creates:` guard checked the wrong
+  user's home directory (and would have blocked nvm upgrades); the version check
+  alone now guards it.
+- **stripe_cli:** the version check probed `/usr/local/bin/stripe`, but the package
+  installs `/usr/bin/stripe`, so the deb was re-downloaded on every run.
+- **chrome:** `unzip` joined `chrome_system_dependencies` — `@puppeteer/browsers`
+  cannot extract the chrome archive without it.
 
 - **apache2:** the `apache2_env_vars` default was a list, which broke the role's own
   envvars template (it iterates `.items()`); the default is now `{}`.
