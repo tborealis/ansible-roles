@@ -5,5 +5,7 @@
   vars:
     # Matches the version the apt_keys manifest pins for live key verification.
     node_version: 22
+    # Exercises the corepack path so idempotence covers it (#131).
+    node_corepack_enable: true
   roles:
     - role: tborealis.roles.node

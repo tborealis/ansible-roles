@@ -23,6 +23,10 @@ flagged with **BREAKING** and require a MAJOR version bump.
   against the majors the role ships config templates for (12, 13, 15), failing
   early with a clear message instead of a template-not-found error. The
   `postgres_version` requirement is also documented for `pgsql_client`. (#128)
+- **nvm, node:** the corepack-enable and nvm global-package tasks reported changed on
+  every run; they now probe the existing shims/packages first, so converges with those
+  options enabled are idempotent. The nvm installer is bumped to v0.40.5 and the
+  README no longer references a nonexistent archive checksum. (#131)
 
 ## [5.1.0] - 2026-07-14
 

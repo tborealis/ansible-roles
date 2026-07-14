@@ -10,6 +10,8 @@
         default_version: "{{ nvm_molecule_node_major }}"
         versions:
           - version: "{{ nvm_molecule_node_major }}"
-            global_packages: []
+            corepack_enable: true
+            global_packages:
+              - "{{ nvm_molecule_global_package }}"
   roles:
     - role: tborealis.roles.nvm

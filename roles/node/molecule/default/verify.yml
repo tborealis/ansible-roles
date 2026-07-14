@@ -23,6 +23,22 @@
         that:
           - "node_verify_npm.stdout is match('^[0-9]+\\.[0-9]+\\.[0-9]+$')"
 
+    # Corepack shims are created next to the node binary; invoking them would
+    # download yarn/pnpm at run time, so assert their presence instead.
+    - name: Stat the corepack shims
+      ansible.builtin.stat:
+        path: "/usr/bin/{{ item }}"
+      register: node_verify_corepack_shims
+      with_items: [yarn, pnpm]
+
+    - name: Assert the corepack shims are installed
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+      with_items: "{{ node_verify_corepack_shims.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
     - name: Check the nodejs package origin
       ansible.builtin.command: apt-cache policy nodejs
       register: node_verify_policy
