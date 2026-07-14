@@ -1,0 +1,76 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert the PostgreSQL cluster service is running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['postgresql@' ~ postgres_version ~ '-main.service'].state == 'running'
+
+    - name: Query the server version as the postgres superuser
+      become: true
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        query: SHOW server_version
+      register: pgsql_verify_version
+
+    - name: Assert the requested major version is running
+      ansible.builtin.assert:
+        that:
+          - pgsql_verify_version.query_result[0].server_version.split('.')[0] == postgres_version | string
+
+    - name: Log in as the created user over TCP and query the created database
+      community.postgresql.postgresql_query:
+        login_host: 127.0.0.1
+        login_user: molecule_user
+        login_password: "{{ postgres_molecule_user_password }}"
+        login_db: molecule_db
+        query: SELECT current_database() AS db
+      register: pgsql_verify_login
+
+    - name: Assert the TCP login reached the created database
+      ansible.builtin.assert:
+        that:
+          - pgsql_verify_login.query_result[0].db == 'molecule_db'
+
+    - name: Read postgresql.conf
+      ansible.builtin.slurp:
+        src: /etc/postgresql/{{ postgres_version }}/main/postgresql.conf
+      register: pgsql_verify_conf
+
+    - name: Assert tuning values from converge are templated
+      ansible.builtin.assert:
+        that:
+          - "'max_connections = 50' in pgsql_verify_conf.content | b64decode"
+          - "'shared_buffers = 128MB' in pgsql_verify_conf.content | b64decode"
+          - "'effective_cache_size = 512MB' in pgsql_verify_conf.content | b64decode"
+          - "'max_wal_size = 2GB' in pgsql_verify_conf.content | b64decode"
+          - "'fsync = on' in pgsql_verify_conf.content | b64decode"
+
+    - name: Stat pg_hba.conf
+      ansible.builtin.stat:
+        path: /etc/postgresql/{{ postgres_version }}/main/pg_hba.conf
+      register: pgsql_verify_hba
+
+    - name: Assert pg_hba.conf ownership and mode
+      ansible.builtin.assert:
+        that:
+          - pgsql_verify_hba.stat.pw_name == 'postgres'
+          - pgsql_verify_hba.stat.gr_name == 'postgres'
+          - pgsql_verify_hba.stat.mode == '0640'
+
+    - name: Read pg_hba.conf
+      ansible.builtin.slurp:
+        src: /etc/postgresql/{{ postgres_version }}/main/pg_hba.conf
+      register: pgsql_verify_hba_content
+
+    - name: Assert TCP connections require scram-sha-256
+      ansible.builtin.assert:
+        that:
+          - "'host    all             all             127.0.0.1/32            scram-sha-256' in pgsql_verify_hba_content.content | b64decode"

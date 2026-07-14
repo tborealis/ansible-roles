@@ -25,6 +25,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
   `certbot`, and `php_repo_sury`.
 - **meta:** Molecule scenarios for the PHP stack roles: `php_cli`, `php_fpm`,
   `composer`, `phpbu`, `new_relic`, and `symfony_params`.
+- **meta:** Molecule scenarios for the data service roles: `pgsql`, `pgsql_client`,
+  `redis`, `rabbitmq` (bookworm only), `supervisor`, and `mailhog`.
 
 ### Fixed
 

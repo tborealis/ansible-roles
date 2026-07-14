@@ -1,0 +1,65 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars:
+    mailhog_verify_subject: molecule-round-trip-test
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert mailhog service is running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['mailhog.service'].state == 'running'
+
+    - name: Wait for the SMTP port to accept connections
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 1025
+        timeout: 30
+
+    - name: Request the web UI
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8025/
+        return_content: true
+      register: mailhog_verify_ui
+
+    - name: Assert the web UI serves MailHog
+      ansible.builtin.assert:
+        that:
+          - mailhog_verify_ui.status == 200
+          - "'MailHog' in mailhog_verify_ui.content"
+
+    - name: Send a test mail through the SMTP port
+      community.general.mail:
+        host: 127.0.0.1
+        port: 1025
+        secure: never
+        from: molecule@example.com
+        to: inbox@example.com
+        subject: "{{ mailhog_verify_subject }}"
+        body: Functional SMTP round-trip sent by molecule verify.
+
+    - name: Query the messages API
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8025/api/v2/messages
+        return_content: true
+      register: mailhog_verify_messages
+
+    - name: Assert the test mail was captured
+      ansible.builtin.assert:
+        that:
+          - mailhog_verify_messages.json.total | int >= 1
+          - mailhog_verify_subject in mailhog_verify_messages.json['items'][0].Content.Headers.Subject[0]
+
+    - name: Read the systemd unit
+      ansible.builtin.slurp:
+        src: /lib/systemd/system/mailhog.service
+      register: mailhog_verify_unit
+
+    - name: Assert the unit runs the installed binary as the mailhog user
+      ansible.builtin.assert:
+        that:
+          - "'ExecStart=/opt/mailhog/mailhog' in mailhog_verify_unit.content | b64decode"
+          - "'User=mailhog' in mailhog_verify_unit.content | b64decode"

@@ -1,0 +1,15 @@
+---
+# The role runs its database tasks with become_user postgres; unprivileged
+# become needs setfacl to hand module temp files to that user, and the role's
+# locale_gen task needs /etc/locale.gen. Real hosts get both packages (acl,
+# locales) from the base role.
+- name: Prepare
+  hosts: all
+  become: true
+  tasks:
+    - name: Install base-role prerequisites
+      ansible.builtin.apt:
+        pkg:
+          - acl
+          - locales
+        state: present

@@ -1,0 +1,7 @@
+; Molecule test fixture: a trivial long-running program.
+[program:sleeper]
+command=/bin/sleep infinity
+autostart=true
+autorestart=true
+redirect_stderr=true
+stdout_logfile=/var/log/supervisor/sleeper.log

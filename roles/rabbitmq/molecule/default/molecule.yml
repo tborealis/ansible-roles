@@ -1,0 +1,18 @@
+---
+# Inherits from .config/molecule/config.yml, except `platforms:` (lists
+# replace on merge), which is redefined here with the bookworm entry only:
+# trixie's apt rejects the upstream RabbitMQ signing key (SHA1 binding).
+# The restriction is mirrored in .config/molecule/platforms.yml for CI.
+platforms:
+  - name: bookworm
+    image: ${MOLECULE_IMAGE_REPO:-ghcr.io/tborealis/ansible-roles}/molecule-debian:bookworm
+    pre_build_image: true
+    command: /lib/systemd/systemd
+    cgroupns_mode: host
+    privileged: false
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp

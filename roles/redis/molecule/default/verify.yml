@@ -1,0 +1,67 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert Redis service is running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['redis-server.service'].state == 'running'
+
+    - name: Ping Redis without authentication
+      ansible.builtin.command: redis-cli ping
+      register: redis_verify_unauth_ping
+      changed_when: false
+      failed_when: false
+
+    - name: Assert unauthenticated clients are rejected
+      ansible.builtin.assert:
+        that:
+          - "'PONG' not in redis_verify_unauth_ping.stdout"
+          - >-
+            'NOAUTH' in redis_verify_unauth_ping.stdout
+            or 'NOAUTH' in redis_verify_unauth_ping.stderr
+
+    - name: Ping Redis with the configured password
+      ansible.builtin.command: >-
+        redis-cli -a {{ redis_password }} --no-auth-warning ping
+      register: redis_verify_auth_ping
+      changed_when: false
+
+    - name: Assert authenticated ping returns PONG
+      ansible.builtin.assert:
+        that:
+          - redis_verify_auth_ping.stdout == 'PONG'
+
+    - name: Read managed Redis config
+      ansible.builtin.slurp:
+        src: /etc/redis/redis-ansible.conf
+      register: redis_verify_conf
+
+    - name: Assert converge values are present in the managed config
+      ansible.builtin.assert:
+        that:
+          - "'maxmemory 64mb' in redis_verify_conf.content | b64decode"
+          - "'maxmemory-policy allkeys-lru' in redis_verify_conf.content | b64decode"
+          - "'requirepass ' ~ redis_password in redis_verify_conf.content | b64decode"
+
+    - name: Read packaged Redis config
+      ansible.builtin.slurp:
+        src: /etc/redis/redis.conf
+      register: redis_verify_main_conf
+
+    - name: Assert the managed config is included by the packaged config
+      ansible.builtin.assert:
+        that:
+          - "'include /etc/redis/redis-ansible.conf' in redis_verify_main_conf.content | b64decode"
+
+    - name: Check no apt version pin is left when redis_version is unset
+      ansible.builtin.stat:
+        path: /etc/apt/preferences.d/redis.pref
+      register: redis_verify_pin
+      failed_when: redis_verify_pin.stat.exists

@@ -1,0 +1,65 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert RabbitMQ service is running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['rabbitmq-server.service'].state == 'running'
+
+    - name: Check broker status
+      ansible.builtin.command: rabbitmqctl status
+      register: rabbitmq_verify_status
+      changed_when: false
+
+    - name: List users
+      ansible.builtin.command: rabbitmqctl list_users
+      register: rabbitmq_verify_users
+      changed_when: false
+
+    - name: Assert admin user exists and guest user is removed
+      ansible.builtin.assert:
+        that:
+          - "'admin' in rabbitmq_verify_users.stdout"
+          - "'guest' not in rabbitmq_verify_users.stdout"
+
+    - name: List permissions on the default vhost
+      ansible.builtin.command: rabbitmqctl list_permissions -p /
+      register: rabbitmq_verify_permissions
+      changed_when: false
+
+    - name: Assert admin has full permissions on the default vhost
+      ansible.builtin.assert:
+        that:
+          - "'admin' in rabbitmq_verify_permissions.stdout"
+
+    - name: Log in to the management API as the admin user
+      ansible.builtin.uri:
+        url: http://127.0.0.1:15672/api/whoami
+        user: admin
+        password: "{{ rabbitmq_admin_password }}"
+        force_basic_auth: true
+        return_content: true
+      register: rabbitmq_verify_whoami
+
+    - name: Assert the admin user authenticates with the administrator tag
+      ansible.builtin.assert:
+        that:
+          - rabbitmq_verify_whoami.json.name == 'admin'
+          - "'administrator' in rabbitmq_verify_whoami.json.tags"
+
+    - name: Read Erlang apt pin
+      ansible.builtin.slurp:
+        src: /etc/apt/preferences.d/rabbitmq-erlang.pref
+      register: rabbitmq_verify_erlang_pref
+
+    - name: Assert upstream Erlang packages are pinned
+      ansible.builtin.assert:
+        that:
+          - "'Pin: origin deb1.rabbitmq.com' in rabbitmq_verify_erlang_pref.content | b64decode"

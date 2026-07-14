@@ -1,0 +1,7 @@
+---
+# Values shared by converge.yml and verify.yml. Throwaway test credentials
+# with a realistic shape, never real ones.
+# The role has no default for postgres_version and only ships config templates
+# for 12, 13 and 15; PGDG publishes 15 for both bookworm and trixie.
+postgres_version: 15
+postgres_molecule_user_password: molecule-Pgsql-Passw0rd1
