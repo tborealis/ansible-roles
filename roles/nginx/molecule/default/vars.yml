@@ -1,0 +1,5 @@
+---
+# Throwaway test credentials shared by converge.yml and verify.yml.
+nginx_molecule_auth_user: molecule
+nginx_molecule_auth_password: molecule-Basic-Passw0rd1
+nginx_molecule_htpasswd_path: /etc/nginx/.htpasswd-molecule

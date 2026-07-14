@@ -1,0 +1,19 @@
+#
+# {{ ansible_managed }}
+#
+
+server {
+    listen 80 default_server;
+    server_name molecule.test;
+
+    root /var/www/molecule;
+    index index.html;
+
+    location / {
+    }
+
+    location /secure/ {
+        auth_basic "Molecule restricted";
+        auth_basic_user_file {{ nginx_molecule_htpasswd_path }};
+    }
+}
