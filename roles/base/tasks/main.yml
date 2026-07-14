@@ -84,6 +84,9 @@
     src: locale.j2
     dest: /etc/default/locale
     mode: "0644"
+    # The locales package makes this a symlink to /etc/locale.conf; write
+    # through it instead of replacing it on the second run.
+    follow: true
 
 - name: Set default timezone
   community.general.timezone:
