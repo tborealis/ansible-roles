@@ -7,12 +7,14 @@
 
 - name: Install the Session Manager plugin
   when: aws_cli_ssm_installed.rc != 0 or aws_cli_ssm_installed.stdout != aws_cli_ssm_version
+  vars:
+    aws_cli_ssm_architecture: "{{ aws_cli_ssm_architecture_map[ansible_facts['architecture']] }}"
   block:
     - name: Download the Session Manager plugin
       ansible.builtin.get_url:
-        url: "https://s3.amazonaws.com/session-manager-downloads/plugin/{{ aws_cli_ssm_version }}/{{ aws_cli_ssm_architecture_map[ansible_facts['architecture']] }}/session-manager-plugin.deb"
+        url: "https://s3.amazonaws.com/session-manager-downloads/plugin/{{ aws_cli_ssm_version }}/{{ aws_cli_ssm_architecture }}/session-manager-plugin.deb"
         dest: "{{ aws_cli_download_path }}/session-manager-plugin.deb"
-        checksum: "{{ aws_cli_ssm_checksums[aws_cli_ssm_architecture_map[ansible_facts['architecture']]] }}"
+        checksum: "{{ aws_cli_ssm_checksums[aws_cli_ssm_architecture] }}"
         mode: "0644"
 
     - name: Install the Session Manager plugin package
