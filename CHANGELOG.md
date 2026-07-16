@@ -62,6 +62,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
   become_user postgres) instead of relying on the base role.
 - **nvm:** install curl (fetches the installer) and acl (for unprivileged
   become) instead of relying on the base role.
+- **aws_cli, aws_config:** install acl for the unprivileged per-user config
+  tasks instead of relying on the base role (aws_config intentionally still
+  does not install the AWS CLI).
 - **aws_cli:** **BREAKING** — replace the wrapped `ecgalaxy.aws_cli` role with a
   first-party install. The external role verified downloads against a GPG key that
   expired in 2023 (gpg still exits 0, so the check was theatre); the role now ships

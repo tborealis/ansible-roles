@@ -9,6 +9,7 @@
     pkg:
       - unzip
       - gnupg
+      - acl # unprivileged become for per-user config
     state: present
     update_cache: true
     cache_valid_time: 3600

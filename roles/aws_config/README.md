@@ -1,3 +1,7 @@
+Writes per-user AWS CLI configuration (`~/.aws/config` and `~/.aws/credentials`).
+The role deliberately does **not** install the AWS CLI and has no dependency on
+the `aws_cli` role — apply `aws_cli` yourself where the binary is needed.
+
 # Config example
 
 ```yaml

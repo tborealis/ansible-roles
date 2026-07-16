@@ -1,4 +1,12 @@
 ---
+# acl enables unprivileged become_user for the per-user config tasks
+- name: Install prerequisites
+  ansible.builtin.apt:
+    pkg: acl
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
 - name: Per-user AWS install and config
   ansible.builtin.include_tasks: config.yml
   with_items: "{{ aws_config }}"

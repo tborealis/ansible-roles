@@ -1,20 +1,12 @@
 ---
-# The per-user config tasks rely on become_user switching to an unprivileged
-# account, which needs acl, and on the account existing; on real hosts the
-# base role installs acl and other roles create the accounts. Neither is part
-# of the role's contract.
+# The per-user config tasks rely on the account existing; on real hosts other
+# roles create the accounts, which is not part of the role's contract.
 - name: Prepare
   hosts: all
   become: true
   vars_files:
     - vars.yml
   tasks:
-    - name: Install acl for unprivileged become
-      ansible.builtin.apt:
-        pkg: acl
-        state: present
-        update_cache: true
-
     - name: Create test user
       ansible.builtin.user:
         name: "{{ aws_cli_molecule_user }}"
