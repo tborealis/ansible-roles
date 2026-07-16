@@ -3,8 +3,6 @@ apache2_user: www-data
 
 apache2_vhosts: []
 apache2_basic_auth: []
-apache2_load_modules: []
-apache2_conf: []
 apache2_packages:
   - apache2
   - apache2-utils

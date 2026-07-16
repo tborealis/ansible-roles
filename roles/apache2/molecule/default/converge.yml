@@ -11,8 +11,6 @@
     apache2_basic_auth:
       - name: "{{ apache2_molecule_auth_user }}"
         password: "{{ apache2_molecule_auth_password }}"
-    # Must be a mapping: the role's envvars template iterates
-    # apache2_env_vars.items(), which fails on the [] default.
     apache2_env_vars:
       APACHE_MOLECULE_MARKER: molecule
   roles:

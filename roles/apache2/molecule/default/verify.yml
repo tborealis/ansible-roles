@@ -94,6 +94,12 @@
         that:
           - "\"export APACHE_MOLECULE_MARKER='molecule'\" in apache2_verify_envvars.content | b64decode"
 
+    - name: Assert the run user renders from apache2_user
+      ansible.builtin.assert:
+        that:
+          - "'export APACHE_RUN_USER=www-data' in apache2_verify_envvars.content | b64decode"
+          - "'export APACHE_RUN_GROUP=www-data' in apache2_verify_envvars.content | b64decode"
+
     - name: Check default site was disabled
       ansible.builtin.stat:
         path: /etc/apache2/sites-enabled/000-default.conf
