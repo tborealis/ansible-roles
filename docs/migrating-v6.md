@@ -157,6 +157,19 @@ AWS CLI itself.
 - The CLI and Session Manager plugin versions are now pinned; arm64 is
   supported.
 
+## rrsync: role removed
+
+Since Debian bookworm, rsync ships `/usr/bin/rrsync` as a first-class binary,
+which left the role installing rsync plus a redundant
+`/usr/local/bin/rrsync` symlink. Roles that need rsync (e.g. `dbcd` server
+mode) install it themselves, and `dbcd`'s forced commands resolve `rrsync`
+via PATH.
+
+Removing the role does not delete the symlink from existing hosts, so
+`authorized_keys` entries hardcoding `/usr/local/bin/rrsync` keep working
+until it is removed manually. Rewrite them to plain `rrsync` (or
+`/usr/bin/rrsync`) anyway — the symlink is no longer managed.
+
 ## apache2: dead variables removed
 
 `apache2_load_modules` and `apache2_conf` are removed. They were declared and

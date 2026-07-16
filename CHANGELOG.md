@@ -78,6 +78,11 @@ flagged with **BREAKING** and require a MAJOR version bump.
 - **base:** **BREAKING** — dead `ssh_extra_conf_files` variable removed (used
   by no task) along with the unreachable `fix-prompt.yml` task file. See
   `docs/migrating-v6.md`. (#138)
+- **rrsync:** **BREAKING** — the role is removed. rsync ships
+  `/usr/bin/rrsync` since bookworm, so the role was reduced to installing
+  rsync plus a redundant `/usr/local/bin/rrsync` symlink; `dbcd` installs
+  rsync itself and resolves `rrsync` via PATH. See `docs/migrating-v6.md`.
+  (#135)
 
 ### Fixed
 
