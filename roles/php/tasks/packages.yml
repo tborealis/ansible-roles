@@ -1,0 +1,56 @@
+---
+- name: Install PHP CLI
+  ansible.builtin.apt:
+    pkg: "php{{ php_version }}-cli"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install PHP FPM
+  ansible.builtin.apt:
+    pkg: "php{{ php_version }}-fpm"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: php_fpm
+  notify: Restart php-fpm
+
+- name: Install PHP extensions
+  ansible.builtin.apt:
+    pkg: "{{ php_extensions | map('regex_replace', '^', 'php' ~ php_version ~ '-') | list }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: php_extensions | length > 0
+  notify: Restart php-fpm
+
+- name: Install Xdebug
+  ansible.builtin.apt:
+    pkg: "php{{ php_version }}-xdebug"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: php_cli_xdebug or php_fpm_xdebug
+  notify: Restart php-fpm
+
+- name: Disable xdebug by default
+  ansible.builtin.file:
+    path: "/etc/php/{{ php_version }}/{{ item }}/conf.d/20-xdebug.ini"
+    state: absent
+  loop: "{{ ['cli'] + (['fpm'] if php_fpm else []) }}"
+
+- name: Install xdebug control scripts
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "/usr/local/bin/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - src: "{{ php_xdebug_control_script_enable }}"
+      dest: xdebug-enable
+    - src: "{{ php_xdebug_control_script_disable }}"
+      dest: xdebug-disable
+  loop_control:
+    label: "{{ item.dest }}"
+  when: php_cli_xdebug or php_fpm_xdebug

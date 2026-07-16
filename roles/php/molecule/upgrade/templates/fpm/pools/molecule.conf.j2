@@ -1,0 +1,11 @@
+; Fixture pool for the molecule upgrade scenario.
+[molecule]
+user = www-data
+group = www-data
+listen = {{ php_test_pool_socket }}
+listen.owner = www-data
+listen.group = www-data
+listen.mode = 0660
+pm = static
+pm.max_children = {{ php_test_pool_max_children }}
+pm.max_requests = 500

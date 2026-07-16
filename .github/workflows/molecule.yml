@@ -86,7 +86,7 @@ jobs:
         env:
           PY_COLORS: "1"
           ANSIBLE_FORCE_COLOR: "1"
-        run: molecule test --platform-name "${{ matrix.distro }}"
+        run: molecule test --all --platform-name "${{ matrix.distro }}"
 
   notify:
     needs: [detect, test]

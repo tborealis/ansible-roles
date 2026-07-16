@@ -1,0 +1,63 @@
+---
+- name: Assert New Relic settings are provided
+  ansible.builtin.assert:
+    that:
+      - php_newrelic_key is defined
+      - php_newrelic_appname is defined
+    fail_msg: php_new_relic requires php_newrelic_key and php_newrelic_appname.
+
+- name: Add New Relic repo
+  ansible.builtin.deb822_repository:
+    name: newrelic
+    types: [deb]
+    uris: https://apt.newrelic.com/debian/
+    suites: newrelic
+    components: non-free
+    signed_by: /etc/apt/keyrings/newrelic-repo.gpg
+  register: php_newrelic_repo
+
+- name: Find legacy New Relic list file
+  ansible.builtin.find:
+    paths: /etc/apt/sources.list.d
+    patterns: "*.list"
+    contains: 'apt\.newrelic\.com'
+    read_whole_file: true
+  register: php_newrelic_legacy_list
+
+- name: Remove legacy New Relic list file
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ php_newrelic_legacy_list.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Update apt cache after adding repository # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: php_newrelic_repo is changed
+
+- name: Install New Relic
+  ansible.builtin.apt:
+    pkg: newrelic-php5
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  notify: Restart php-fpm
+
+- name: Apply New Relic settings
+  ansible.builtin.template:
+    src: newrelic.ini.j2
+    dest: "/etc/php/{{ php_version }}/mods-available/newrelic.ini"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart php-fpm
+
+- name: Enable the New Relic module for each SAPI
+  ansible.builtin.file:
+    src: "/etc/php/{{ php_version }}/mods-available/newrelic.ini"
+    dest: "/etc/php/{{ php_version }}/{{ item }}/conf.d/20-newrelic.ini"
+    state: link
+  loop: "{{ ['cli'] + (['fpm'] if php_fpm else []) }}"
+  notify: Restart php-fpm

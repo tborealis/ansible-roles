@@ -1,0 +1,100 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert the target FPM service is running and enabled
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['php' ~ php_test_version ~ '-fpm.service'].state == 'running'
+          - ansible_facts.services['php' ~ php_test_version ~ '-fpm.service'].status == 'enabled'
+
+    - name: Check the default CLI version
+      ansible.builtin.command: php -v
+      register: php_upgrade_verify_version
+      changed_when: false
+
+    - name: Assert the target PHP version is the default CLI
+      ansible.builtin.assert:
+        that:
+          - php_upgrade_verify_version.stdout is search('^PHP ' ~ php_test_version, multiline=True)
+
+    - name: Validate the FPM configuration with php-fpm{{ php_test_version }}
+      ansible.builtin.command: php-fpm{{ php_test_version }} -t
+      changed_when: false
+
+    - name: Stat the pool listen socket
+      ansible.builtin.stat:
+        path: "{{ php_test_pool_socket }}"
+      register: php_upgrade_verify_socket
+
+    - name: Assert the pool is listening on its unix socket
+      ansible.builtin.assert:
+        that:
+          - php_upgrade_verify_socket.stat.exists
+          - php_upgrade_verify_socket.stat.issock
+
+    - name: Dump the FPM SAPI configuration
+      ansible.builtin.command: php-fpm{{ php_test_version }} -i
+      register: php_upgrade_verify_fpm_info
+      changed_when: false
+
+    - name: Assert the drop-in overrides the stock php.ini
+      ansible.builtin.assert:
+        that:
+          - "'memory_limit => 96M => 96M' in php_upgrade_verify_fpm_info.stdout"
+          - "'date.timezone => Pacific/Auckland => Pacific/Auckland' in php_upgrade_verify_fpm_info.stdout"
+
+    # --- version-bump path (bookworm) ----------------------------------------
+    - name: Verify the old PHP version was removed
+      when: ansible_facts['distribution_release'] == 'bookworm'
+      block:
+        - name: Gather package facts
+          ansible.builtin.package_facts:
+            manager: apt
+
+        - name: Assert no packages of the old PHP version remain
+          ansible.builtin.assert:
+            that:
+              - ansible_facts.packages.keys() | select('match', '^php' ~ php_test_old_version) | list | length == 0
+
+        - name: Assert the old FPM service is gone
+          ansible.builtin.assert:
+            that:
+              - "'php' ~ php_test_old_version ~ '-fpm.service' not in ansible_facts.services"
+
+        - name: Stat the old configuration directory
+          ansible.builtin.stat:
+            path: "/etc/php/{{ php_test_old_version }}"
+          register: php_upgrade_verify_old_etc
+          failed_when: php_upgrade_verify_old_etc.stat.exists
+
+    # --- same-version migration path (trixie) --------------------------------
+    - name: Verify the stock config was restored
+      when: ansible_facts['distribution_release'] == 'trixie'
+      block:
+        - name: Read the FPM php.ini
+          ansible.builtin.slurp:
+            src: "/etc/php/{{ php_test_version }}/fpm/php.ini"
+          register: php_upgrade_verify_fpm_ini
+
+        - name: Assert the FPM php.ini is stock again
+          ansible.builtin.assert:
+            that:
+              - "'Ansible managed' not in php_upgrade_verify_fpm_ini.content | b64decode"
+              - "'6666M' not in php_upgrade_verify_fpm_ini.content | b64decode"
+
+        - name: Read the CLI php.ini
+          ansible.builtin.slurp:
+            src: "/etc/php/{{ php_test_version }}/cli/php.ini"
+          register: php_upgrade_verify_cli_ini
+
+        - name: Assert the CLI php.ini is stock again
+          ansible.builtin.assert:
+            that:
+              - "'Ansible managed' not in php_upgrade_verify_cli_ini.content | b64decode"

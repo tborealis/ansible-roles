@@ -1,0 +1,13 @@
+---
+# Values shared by converge.yml, verify.yml and the pool fixture template.
+# Neither release ships the tested version natively (bookworm: 8.2,
+# trixie: 8.4), so the packages the role installs can only come from the
+# Sury repo it configures; the split also covers an older and the newest
+# supported version.
+php_test_version: "{{ '8.3' if ansible_facts['distribution_release'] == 'bookworm' else '8.5' }}"
+php_test_pool_socket: "/run/php/php{{ php_test_version }}-fpm-molecule.sock"
+php_test_pool_max_children: 3
+php_test_pool_session_dir: /var/lib/php/sessions/molecule
+php_test_opcache_file_cache_dir: /var/cache/php/opcache-molecule
+# Dummy 40-character licence key; the agent never connects during the test.
+php_test_newrelic_key: "0123456789abcdef0123456789abcdefdeadbeef"

@@ -1,0 +1,43 @@
+---
+- name: Remove default pool
+  ansible.builtin.file:
+    path: "/etc/php/{{ php_version }}/fpm/pool.d/www.conf"
+    state: absent
+  notify: Restart php-fpm
+
+- name: Create pool session directories
+  ansible.builtin.file:
+    path: "{{ item.session_save_path }}"
+    state: directory
+    owner: "{{ item.user }}"
+    group: "{{ item.user }}"
+    mode: "0700"
+  loop: "{{ php_fpm_pools | selectattr('session_save_path', 'defined') | list }}"
+  loop_control:
+    label: "{{ item.dest }}"
+
+- name: Install pools
+  ansible.builtin.template:
+    src: "templates/fpm/pools/{{ item.src }}"
+    dest: "/etc/php/{{ php_version }}/fpm/pool.d/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop: "{{ php_fpm_pools }}"
+  loop_control:
+    label: "{{ item.dest }}"
+  notify: Restart php-fpm
+
+- name: Start PHP FPM
+  ansible.builtin.service:
+    name: "php{{ php_version }}-fpm"
+    state: started
+    enabled: true
+  when: php_fpm_pools | length > 0
+
+- name: Shut down PHP FPM if no pools
+  ansible.builtin.service:
+    name: "php{{ php_version }}-fpm"
+    state: stopped
+    enabled: false
+  when: php_fpm_pools | length == 0

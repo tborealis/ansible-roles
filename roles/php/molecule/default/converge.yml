@@ -1,0 +1,42 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    php_version: "{{ php_test_version }}"
+    php_date_timezone: Pacific/Auckland
+    php_error_reporting: E_ALL
+    php_cli_error_log: /var/log/php-cli-molecule.log
+    php_cli_extra_ini:
+      precision: 16
+    php_fpm_memory_limit: 96M
+    php_fpm_max_execution_time: 45
+    php_fpm_post_max_size: 16M
+    php_fpm_upload_max_filesize: 12M
+    php_fpm_opcache_memory_consumption: 64
+    php_fpm_opcache_max_accelerated_files: 20000
+    php_fpm_opcache_interned_strings_buffer: 24
+    php_fpm_opcache_jit_buffer_size: 64M
+    php_fpm_opcache_file_cache_dir: "{{ php_test_opcache_file_cache_dir }}"
+    php_fpm_extra_ini:
+      max_input_vars: 3000
+    php_extensions:
+      - curl
+    php_cli_xdebug: true
+    php_xdebug_client_host: 192.0.2.10
+    php_cli_xdebug_idekey: molecule
+    php_fpm_pools:
+      - src: molecule.conf.j2
+        dest: molecule.conf
+        session_save_path: "{{ php_test_pool_session_dir }}"
+        user: www-data
+    php_new_relic: true
+    php_newrelic_key: "{{ php_test_newrelic_key }}"
+    php_newrelic_appname: Molecule Test App
+    php_composer_global_packages:
+      - name: phpstan/phpstan
+        version: "2.1.*"
+  roles:
+    - role: tborealis.roles.php

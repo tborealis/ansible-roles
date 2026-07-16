@@ -1,0 +1,80 @@
+---
+# php_version is required and has no default; it is validated against
+# php_supported_versions (vars/main.yml) by the first task.
+
+# Feature switches. Turning a switch off means the feature is not managed,
+# not that it is uninstalled.
+php_fpm: true
+php_composer: true
+php_new_relic: false
+php_remove_other_versions: true
+
+# Extension names, e.g. [curl, mbstring]; installed as php{{ php_version }}-<name>
+php_extensions: []
+
+# Shared ini settings (rendered into both SAPIs' conf.d/99-ansible.ini)
+php_date_timezone: Europe/London
+php_error_reporting: E_ALL & ~E_DEPRECATED
+php_display_errors: false
+php_display_startup_errors: false
+php_mysqlnd_collect_statistics: false
+
+# CLI-only
+php_cli_error_log: syslog
+php_cli_extra_ini: {}
+
+# FPM-only tuning
+php_fpm_expose_php: false
+php_fpm_memory_limit: 64M
+php_fpm_max_execution_time: 30
+php_fpm_post_max_size: 8M
+php_fpm_upload_max_filesize: 8M
+php_fpm_realpath_cache_size: 16M
+php_fpm_realpath_cache_ttl: 120
+php_fpm_zend_exception_ignore_args: true
+php_fpm_zend_assertions: -1
+php_fpm_opcache_memory_consumption: 128
+php_fpm_opcache_max_accelerated_files: 100000
+php_fpm_opcache_validate_timestamps: 0
+php_fpm_opcache_revalidate_freq: 0
+php_fpm_extra_ini: {}
+
+# Sessions
+php_fpm_session_save_path: /var/lib/php/sessions
+php_fpm_session_use_strict_mode: true
+php_fpm_session_cookie_httponly: true
+
+# Performance
+php_fpm_opcache_preload: ""
+php_fpm_opcache_preload_user: www-data
+php_fpm_opcache_interned_strings_buffer: 16
+php_fpm_opcache_jit_buffer_size: 0
+php_fpm_opcache_file_cache_dir: ""
+php_fpm_opcache_file_cache_user: www-data
+
+# Pools are playbook-relative templates (templates/fpm/pools/<src>). Items may
+# carry session_save_path and user; the role creates that directory and the
+# pool template can reference it as {{ item.session_save_path }}. An empty
+# list stops and disables the FPM service.
+php_fpm_pools: []
+
+# Xdebug
+php_cli_xdebug: false
+php_fpm_xdebug: false
+php_xdebug_client_host: ""
+php_xdebug_mode: debug,develop
+php_xdebug_max_nesting_level: 500
+php_cli_xdebug_idekey: cli
+php_fpm_xdebug_idekey: fpm
+php_fpm_xdebug_start_with_request: "yes"
+php_xdebug_control_script_enable: xdebug-enable.j2
+php_xdebug_control_script_disable: xdebug-disable.j2
+
+# Composer
+php_composer_keep_updated: true
+php_composer_global_packages: []
+
+# New Relic; php_newrelic_key and php_newrelic_appname are required (and have
+# no defaults) when php_new_relic is true
+php_newrelic_browser_auto_instrument: false
+php_newrelic_distributed_tracing_enabled: true

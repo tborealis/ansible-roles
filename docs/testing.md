@@ -24,6 +24,7 @@ Then run a role's tests:
 ```sh
 make test ROLE=mysql                  # both releases
 make test ROLE=mysql DISTRO=bookworm  # one release
+make test ROLE=php SCENARIO=upgrade   # one scenario (default: all the role ships)
 ```
 
 The `test` target symlinks the repo into
@@ -76,8 +77,13 @@ Every role must ship `molecule/default/` containing:
   - config roles: `stat` for owner/mode, `slurp` + `assert` for content, and
     native validators where they exist (`visudo -c`, `php-fpm -t`)
 - `prepare.yml` — only for prerequisites outside the role's contract (e.g.
-  installing PHP before testing `php_fpm`). Never prepare things the role
+  installing PHP before testing `phpbu`). Never prepare things the role
   should do itself.
+
+Roles may ship extra scenarios beside `default` (e.g.
+`roles/php/molecule/upgrade/` simulates hosts built before the role existed).
+`make test` and CI run every scenario via `molecule test --all`; debug a
+single one from `roles/<role>` with `molecule <cmd> -s <scenario>`.
 
 Idempotence must pass: prefer fixing a non-idempotent role over tagging tasks
 `molecule-idempotence-notest`. Scenario files are linted like everything else

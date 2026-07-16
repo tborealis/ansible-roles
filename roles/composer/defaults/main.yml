@@ -1,4 +1,0 @@
----
-composer_global_packages: []
-composer_php_version: "{{ php_cli_version }}"
-composer_keep_updated: true

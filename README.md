@@ -33,7 +33,6 @@ Reference the roles using the collection namespace:
 | [base](roles/base/README.md) | Base system configuration |
 | [certbot](roles/certbot/README.md) | Let's Encrypt SSL certificates |
 | [chrome](roles/chrome/README.md) | Google Chrome and ChromeDriver |
-| [composer](roles/composer/README.md) | PHP Composer |
 | [cron](roles/cron/README.md) | Cron job management |
 | [dbcd](roles/dbcd/README.md) | Database Copy Down |
 | [do_agent](roles/do_agent/README.md) | DigitalOcean monitoring agent |
@@ -45,15 +44,12 @@ Reference the roles using the collection namespace:
 | [mailhog](roles/mailhog/README.md) | MailHog email testing (deprecated, use mailpit) |
 | [mailpit](roles/mailpit/README.md) | Mailpit email testing |
 | [mysql](roles/mysql/README.md) | MySQL server |
-| [new_relic](roles/new_relic/README.md) | New Relic PHP agent |
 | [nginx](roles/nginx/README.md) | Nginx web server |
 | [node](roles/node/README.md) | Node.js from NodeSource |
 | [nvm](roles/nvm/README.md) | Node Version Manager |
 | [pgsql](roles/pgsql/README.md) | PostgreSQL server |
 | [pgsql_client](roles/pgsql_client/README.md) | PostgreSQL client |
-| [php_cli](roles/php_cli/README.md) | PHP CLI configuration |
-| [php_fpm](roles/php_fpm/README.md) | PHP-FPM configuration |
-| [php_repo_sury](roles/php_repo_sury/README.md) | Sury PHP repository |
+| [php](roles/php/README.md) | PHP stack (Sury repo, CLI, FPM, Composer, New Relic) |
 | [phpbu](roles/phpbu/README.md) | PHPBU database backups |
 | [rabbitmq](roles/rabbitmq/README.md) | RabbitMQ message broker |
 | [redis](roles/redis/README.md) | Redis server |

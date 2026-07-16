@@ -1,0 +1,54 @@
+; {{ ansible_managed }}
+; Runtime overrides for PHP-FPM. The stock php.ini is left untouched;
+; this file is loaded last (99-) so its values win.
+
+date.timezone = {{ php_date_timezone }}
+error_reporting = {{ php_error_reporting }}
+display_errors = {{ 'On' if php_display_errors else 'Off' }}
+display_startup_errors = {{ 'On' if php_display_startup_errors else 'Off' }}
+mysqlnd.collect_statistics = {{ 'On' if php_mysqlnd_collect_statistics else 'Off' }}
+
+expose_php = {{ 'On' if php_fpm_expose_php else 'Off' }}
+memory_limit = {{ php_fpm_memory_limit }}
+max_execution_time = {{ php_fpm_max_execution_time }}
+post_max_size = {{ php_fpm_post_max_size }}
+upload_max_filesize = {{ php_fpm_upload_max_filesize }}
+realpath_cache_size = {{ php_fpm_realpath_cache_size }}
+realpath_cache_ttl = {{ php_fpm_realpath_cache_ttl }}
+zend.exception_ignore_args = {{ 'On' if php_fpm_zend_exception_ignore_args else 'Off' }}
+zend.assertions = {{ php_fpm_zend_assertions }}
+
+session.save_path = "{{ php_fpm_session_save_path }}"
+session.use_strict_mode = {{ 1 if php_fpm_session_use_strict_mode else 0 }}
+session.cookie_httponly = {{ 'On' if php_fpm_session_cookie_httponly else 'Off' }}
+
+opcache.memory_consumption = {{ php_fpm_opcache_memory_consumption }}
+opcache.max_accelerated_files = {{ php_fpm_opcache_max_accelerated_files }}
+opcache.validate_timestamps = {{ php_fpm_opcache_validate_timestamps }}
+opcache.revalidate_freq = {{ php_fpm_opcache_revalidate_freq }}
+opcache.interned_strings_buffer = {{ php_fpm_opcache_interned_strings_buffer }}
+{% if php_fpm_opcache_preload | length > 0 %}
+opcache.preload = {{ php_fpm_opcache_preload }}
+opcache.preload_user = {{ php_fpm_opcache_preload_user }}
+{% endif %}
+{% if php_fpm_opcache_jit_buffer_size | string != '0' %}
+opcache.jit = tracing
+opcache.jit_buffer_size = {{ php_fpm_opcache_jit_buffer_size }}
+{% endif %}
+{% if php_fpm_opcache_file_cache_dir | length > 0 %}
+opcache.file_cache = "{{ php_fpm_opcache_file_cache_dir }}"
+{% endif %}
+{% if php_fpm_xdebug %}
+
+xdebug.mode = {{ php_xdebug_mode }}
+xdebug.client_host = {{ php_xdebug_client_host }}
+xdebug.start_with_request = {{ php_fpm_xdebug_start_with_request }}
+xdebug.idekey = {{ php_fpm_xdebug_idekey }}
+xdebug.max_nesting_level = {{ php_xdebug_max_nesting_level }}
+{% endif %}
+{% if php_fpm_extra_ini | length > 0 %}
+
+{% for key, value in php_fpm_extra_ini.items() %}
+{{ key }} = {{ value }}
+{% endfor %}
+{% endif %}

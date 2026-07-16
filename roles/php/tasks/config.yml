@@ -1,0 +1,27 @@
+---
+- name: Apply PHP CLI settings
+  ansible.builtin.template:
+    src: cli.ini.j2
+    dest: "/etc/php/{{ php_version }}/cli/conf.d/99-ansible.ini"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Ensure opcache file cache directory exists
+  ansible.builtin.file:
+    path: "{{ php_fpm_opcache_file_cache_dir }}"
+    owner: "{{ php_fpm_opcache_file_cache_user }}"
+    group: "{{ php_fpm_opcache_file_cache_user }}"
+    mode: "0700"
+    state: directory
+  when: php_fpm and php_fpm_opcache_file_cache_dir | length > 0
+
+- name: Apply PHP FPM settings
+  ansible.builtin.template:
+    src: fpm.ini.j2
+    dest: "/etc/php/{{ php_version }}/fpm/conf.d/99-ansible.ini"
+    owner: root
+    group: root
+    mode: "0644"
+  when: php_fpm
+  notify: Restart php-fpm

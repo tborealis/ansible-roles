@@ -1,0 +1,37 @@
+---
+- name: Assert php_version is a supported version
+  ansible.builtin.assert:
+    that:
+      - php_version is defined
+      - php_version | string in php_supported_versions | map('string') | list
+    fail_msg: >-
+      php_version must be set to a PHP version the role supports
+      ({{ php_supported_versions | join(', ') }}).
+
+- name: Configure the Sury PHP repository
+  ansible.builtin.import_tasks: repo.yml
+
+- name: Install PHP packages
+  ansible.builtin.import_tasks: packages.yml
+
+- name: Remove other PHP versions
+  ansible.builtin.import_tasks: remove-other-versions.yml
+  when: php_remove_other_versions
+
+- name: Restore stock config on hosts migrated from the old PHP roles
+  ansible.builtin.import_tasks: restore-stock-ini.yml
+
+- name: Apply PHP configuration drop-ins
+  ansible.builtin.import_tasks: config.yml
+
+- name: Configure PHP-FPM
+  ansible.builtin.import_tasks: fpm.yml
+  when: php_fpm
+
+- name: Install Composer
+  ansible.builtin.import_tasks: composer.yml
+  when: php_composer
+
+- name: Install the New Relic PHP agent
+  ansible.builtin.import_tasks: newrelic.yml
+  when: php_new_relic

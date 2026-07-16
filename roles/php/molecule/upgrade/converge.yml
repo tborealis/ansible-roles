@@ -1,0 +1,17 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    php_version: "{{ php_test_version }}"
+    php_date_timezone: Pacific/Auckland
+    php_fpm_memory_limit: 96M
+    php_composer: false
+    php_new_relic: false
+    php_fpm_pools:
+      - src: molecule.conf.j2
+        dest: molecule.conf
+  roles:
+    - role: tborealis.roles.php

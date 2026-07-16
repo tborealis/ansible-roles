@@ -1,0 +1,39 @@
+---
+- name: Gather package facts
+  ansible.builtin.package_facts:
+    manager: apt
+
+- name: Determine other installed PHP versions
+  ansible.builtin.set_fact:
+    php_other_versions: >-
+      {{ ansible_facts.packages.keys()
+         | select('match', '^php[0-9]+\.[0-9]+(-|$)')
+         | map('regex_replace', '^php([0-9]+\.[0-9]+).*$', '\1')
+         | unique | difference([php_version | string]) | sort }}
+
+- name: Gather service facts
+  ansible.builtin.service_facts:
+  when: php_other_versions | length > 0
+
+- name: Stop and disable PHP FPM for other version {{ item }}
+  ansible.builtin.service:
+    name: "php{{ item }}-fpm"
+    state: stopped
+    enabled: false
+  loop: "{{ php_other_versions }}"
+  when: "'php' ~ item ~ '-fpm.service' in ansible_facts.services | default({})"
+
+- name: Purge PHP packages for other version {{ item }}
+  ansible.builtin.apt:
+    pkg:
+      - "php{{ item }}"
+      - "php{{ item }}-*"
+    state: absent
+    purge: true
+  loop: "{{ php_other_versions }}"
+
+- name: Remove configuration of other version {{ item }}
+  ansible.builtin.file:
+    path: "/etc/php/{{ item }}"
+    state: absent
+  loop: "{{ php_other_versions }}"

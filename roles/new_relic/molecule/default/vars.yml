@@ -1,7 +1,0 @@
----
-# Test values shared by prepare.yml, converge.yml and verify.yml. The license
-# key is a dummy with a realistic shape (40 hex characters); the agent cannot
-# authenticate with it, so verification never asserts daemon connectivity.
-php_version: "8.3"
-newrelic_key: "0123456789abcdef0123456789abcdefdeadbeef"
-newrelic_appname: Molecule Test App

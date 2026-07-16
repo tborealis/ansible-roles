@@ -11,6 +11,43 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Added
+
+- **php:** new consolidated role replacing `php_repo_sury`, `php_cli`,
+  `php_fpm`, `composer` and `new_relic`: one required `php_version` (8.1–8.5,
+  validated), feature switches (`php_fpm`/`php_composer` default on,
+  `php_new_relic` default off; CLI always installed) and extensions by name
+  (`php_extensions: [curl]`) that follow version bumps automatically. Config
+  is applied as `conf.d/99-ansible.ini` drop-ins over the untouched stock
+  `php.ini`, so upstream config changes flow through package upgrades.
+  Changing `php_version` stops, purges and de-configures superseded versions
+  (`php_remove_other_versions`), and hosts converged by the old roles get the
+  stock `php.ini` restored once; both paths are exercised by a dedicated
+  molecule `upgrade` scenario. Also new: sessions moved off the `/tmp`
+  fallback to `/var/lib/php/sessions` with strict-mode/httponly hardening and
+  optional per-pool session directories, and opcache tuning that was
+  previously unavailable (preloading, tracing JIT, interned strings buffer,
+  secured file cache). Migration guide: `docs/migrating-php-roles.md`.
+
+### Changed
+
+- **phpbu:** molecule prepare uses the new `php` role instead of
+  `php_repo_sury` plus manual package installs.
+- **meta:** `make test` and CI run every molecule scenario a role ships
+  (`molecule test --all`); `make test` accepts `SCENARIO=<name>`.
+
+### Removed
+
+- **php_repo_sury, php_cli, php_fpm, composer, new_relic:** **BREAKING**
+  removed, replaced by the consolidated `php` role. Variables are renamed or
+  collapsed (`php_` prefix throughout, e.g. `newrelic_key` →
+  `php_newrelic_key`, `composer_global_packages` →
+  `php_composer_global_packages`, per-SAPI duplicates merged, `php_packages`
+  → `php_extensions` without the `phpX.Y-` prefix), PHP 7.4/8.0 support is
+  dropped, `php.ini`/`php-fpm.conf` are no longer templated, the New Relic
+  agent is no longer installed unconditionally, and `php_repo_sury`'s
+  `remove-php.yml` entrypoint is gone. See `docs/migrating-php-roles.md`.
+
 ## [5.2.0] - 2026-07-14
 
 ### Added
