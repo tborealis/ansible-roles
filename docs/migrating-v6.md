@@ -302,6 +302,28 @@ Files that previously ended up stricter than `0644` will be loosened unless
 the item sets `mode` — set `mode: "0600"` explicitly on files carrying
 secrets.
 
+## phpbu: version-pinned, GPG-verified install
+
+The phar (now 6.0.33) and its `.asc` signature are downloaded from the GitHub
+release and verified against the signing key shipped with the role before
+install. The install is pinned by a single variable:
+
+| Old | New |
+|-----|-----|
+| `phpbu_phar_url` | removed — derived from `phpbu_version` |
+| `phpbu_phar_checksum` | removed — replaced by GPG signature verification |
+| `phpbu_schema_url` | removed — derived from `phpbu_version` |
+| — | `phpbu_version` (default `6.0.33`) |
+
+If you overrode any of the removed variables to pin a different release, set
+`phpbu_version` instead. The role also gained an uninstall entrypoint:
+
+```yaml
+- ansible.builtin.import_role:
+    name: tborealis.roles.phpbu
+    tasks_from: remove
+```
+
 ## rrsync: role removed
 
 Since Debian bookworm, rsync ships `/usr/bin/rrsync` as a first-class binary,
