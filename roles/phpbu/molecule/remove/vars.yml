@@ -1,0 +1,6 @@
+---
+# Fixture values shared by converge.yml and verify.yml. The "private key" is
+# base64 of a plain throwaway sentence — deliberately not shaped like real key
+# material so secret scanning cannot mistake it (the role only b64decodes it
+# into a file; content is never parsed).
+phpbu_private_key: bW9sZWN1bGUgdGhyb3dhd2F5IGtleSBtYXRlcmlhbCAtIG5vdCBhIHJlYWwga2V5Cg==

@@ -1,0 +1,20 @@
+---
+# phpbu is a PHP phar (needs a CLI plus ext-dom to parse its XML config), but
+# installing PHP is outside the role's contract — real playbooks apply the
+# php role first. Mirror that order here, then install phpbu itself: the
+# scenario under test is the remove entrypoint, so a full install is the
+# fixture and converge.yml holds only the removal (which also gets molecule's
+# idempotence check this way).
+- name: Prepare
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  roles:
+    - role: tborealis.roles.php
+      vars:
+        php_version: "8.3"
+        php_fpm: false
+        php_composer: false
+        php_extensions: [xml, mbstring]
+    - role: tborealis.roles.phpbu

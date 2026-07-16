@@ -14,9 +14,7 @@ itself, since the PHP version and configuration are site-specific.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `phpbu_enable` | `true` | Set to `false` to skip the role entirely |
-| `phpbu_phar_url` | GitHub release 6.0.23 | URL of the phpbu phar |
-| `phpbu_phar_checksum` | `sha256:eea90...` | Checksum the downloaded phar must match |
-| `phpbu_schema_url` | GitHub tag 6.0.23 | URL of the phpbu XSD used to validate the config |
+| `phpbu_version` | `6.0.33` | phpbu release to install; the phar and its XSD come from the GitHub release, and the phar's GPG signature is verified before install |
 | `phpbu_cron_enable` | `true` | Install (or remove, when `false`) the backup cron entry |
 | `phpbu_cron_time` | `["30", "2", "*", "*", "*"]` | Five cron fields (minute, hour, day, month, weekday); daily at 02:30 |
 | `phpbu_log_dir` | `/var/log/phpbu` | Log directory |
@@ -33,10 +31,26 @@ against the phpbu XSD). See this role's molecule scenario
 
 ## Updating phpbu
 
-Releases and checksums are published on
+Releases are published on
 [GitHub](https://github.com/sebastianfeldmann/phpbu/releases); the
-phar.phpbu.de/schema.phpbu.de mirrors are dead. Bump `phpbu_phar_url`,
-`phpbu_phar_checksum`, and `phpbu_schema_url` together.
+phar.phpbu.de/schema.phpbu.de mirrors are dead. Bump `phpbu_version` — the
+phar's GPG signature is verified against the signing key shipped in
+`files/phpbu-signing-key.asc` (Sebastian Feldmann,
+`7EFB 9C05 1327 0B2C 0496 EC69 24CF 04DD 7016 F97D`), and a valid,
+non-expired signature (`GOODSIG`) is required. If upstream rotates the key,
+refresh it from <https://keys.openpgp.org> and re-verify a release manually
+before shipping it.
+
+## Removing phpbu
+
+The role ships an uninstall entrypoint that removes the cron entry, the phar,
+config, data/log directories, and the `phpbu` user:
+
+```yaml
+- ansible.builtin.import_role:
+    name: tborealis.roles.phpbu
+    tasks_from: remove
+```
 
 ## TODO
 
