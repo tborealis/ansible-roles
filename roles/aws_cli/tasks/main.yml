@@ -1,8 +1,31 @@
 ---
-- name: Install aws_cli
-  ansible.builtin.import_role:
-    name: ecgalaxy.aws_cli
-    allow_duplicates: false
+- name: Assert the architecture is supported
+  ansible.builtin.assert:
+    that: ansible_facts['architecture'] in ['x86_64', 'aarch64']
+    fail_msg: "AWS distributes the CLI and Session Manager plugin for x86_64 and aarch64 only."
+
+- name: Install prerequisites
+  ansible.builtin.apt:
+    pkg:
+      - unzip
+      - gnupg
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Check the installed AWS CLI version
+  ansible.builtin.command: /usr/local/bin/aws --version
+  register: aws_cli_installed
+  failed_when: false
+  changed_when: false
+
+- name: Install the AWS CLI
+  ansible.builtin.import_tasks: install-cli.yml
+  when: aws_cli_installed.rc != 0 or not aws_cli_installed.stdout.startswith('aws-cli/' ~ aws_cli_version ~ ' ')
+
+- name: Install the Session Manager plugin
+  ansible.builtin.import_tasks: install-ssm.yml
+  when: aws_cli_ssm_install
 
 - name: Create bash completion directory
   ansible.builtin.file:

@@ -48,6 +48,17 @@ flagged with **BREAKING** and require a MAJOR version bump.
   agent is no longer installed unconditionally, and `php_repo_sury`'s
   `remove-php.yml` entrypoint is gone. See `docs/migrating-php-roles.md`.
 
+### Fixed
+
+- **aws_cli:** **BREAKING** — replace the wrapped `ecgalaxy.aws_cli` role with a
+  first-party install. The external role verified downloads against a GPG key that
+  expired in 2023 (gpg still exits 0, so the check was theatre); the role now ships
+  AWS's current signing key, requires `GOODSIG` (an expired key fails loudly), pins
+  the CLI and Session Manager plugin versions with checksums, supports arm64, and
+  installs its own `unzip`/`gnupg` prerequisites. The `ecgalaxy.aws_cli` entry is
+  gone from `requirements.yml`, and the external `awscli_*` variables are replaced
+  by `aws_cli_*` equivalents (see the role README). (#129)
+
 ## [5.2.0] - 2026-07-14
 
 ### Added

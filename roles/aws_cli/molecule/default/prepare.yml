@@ -1,23 +1,17 @@
 ---
-# The wrapped ecgalaxy.aws_cli role unarchives the AWS CLI zip and verifies
-# its signature with gpg, but assumes unzip and gnupg are already installed
-# (its own CI prepares them via ecgalaxy.common_packages). The per-user config
-# tasks rely on become_user switching to an unprivileged account, which needs
-# acl, and on the account existing; on real hosts the base role installs acl
-# and other roles create the accounts. None of this is part of the role's
-# contract.
+# The per-user config tasks rely on become_user switching to an unprivileged
+# account, which needs acl, and on the account existing; on real hosts the
+# base role installs acl and other roles create the accounts. Neither is part
+# of the role's contract.
 - name: Prepare
   hosts: all
   become: true
   vars_files:
     - vars.yml
   tasks:
-    - name: Install prerequisites of the wrapped role and unprivileged become
+    - name: Install acl for unprivileged become
       ansible.builtin.apt:
-        pkg:
-          - unzip
-          - gnupg
-          - acl
+        pkg: acl
         state: present
         update_cache: true
 
