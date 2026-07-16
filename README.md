@@ -41,7 +41,6 @@ Reference the roles using the collection namespace:
 | [exim4](roles/exim4/README.md) | Exim4 mail transfer agent |
 | [git](roles/git/README.md) | Git installation and configuration |
 | [gpg](roles/gpg/README.md) | GPG key management |
-| [mailhog](roles/mailhog/README.md) | MailHog email testing (deprecated, use mailpit) |
 | [mailpit](roles/mailpit/README.md) | Mailpit email testing |
 | [mysql](roles/mysql/README.md) | MySQL server |
 | [nginx](roles/nginx/README.md) | Nginx web server |

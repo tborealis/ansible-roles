@@ -47,6 +47,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
   dropped, `php.ini`/`php-fpm.conf` are no longer templated, the New Relic
   agent is no longer installed unconditionally, and `php_repo_sury`'s
   `remove-php.yml` entrypoint is gone. See `docs/migrating-php-roles.md`.
+- **mailhog:** **BREAKING** — the role is removed; use `mailpit` instead. Converging
+  `mailpit` removes a legacy MailHog install (stock paths) before starting Mailpit,
+  since both bind SMTP 1025 and HTTP 8025. (#130)
 
 ### Fixed
 

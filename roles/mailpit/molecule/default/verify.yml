@@ -73,3 +73,30 @@
       ansible.builtin.assert:
         that:
           - mailpit_verify_unit_stat.stat.mode == '0644'
+
+    - name: Stat legacy mailhog remnants
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      with_items:
+        - /lib/systemd/system/mailhog.service
+        - /opt/mailhog
+      register: mailpit_verify_mailhog
+
+    - name: Assert the legacy mailhog install is gone
+      ansible.builtin.assert:
+        that:
+          - not item.stat.exists
+      with_items: "{{ mailpit_verify_mailhog.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Check the legacy mailhog user
+      ansible.builtin.command: id mailhog
+      register: mailpit_verify_mailhog_user
+      failed_when: false
+      changed_when: false
+
+    - name: Assert the legacy mailhog user is gone
+      ansible.builtin.assert:
+        that:
+          - mailpit_verify_mailhog_user.rc != 0
