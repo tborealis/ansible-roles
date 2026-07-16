@@ -4,7 +4,7 @@ Installs and configures a complete PHP stack from the
 [Sury repository](https://packages.sury.org/php/): CLI (always), PHP-FPM,
 Composer and the New Relic PHP agent, each behind a feature switch.
 Replaces the removed `php_repo_sury`, `php_cli`, `php_fpm`, `composer` and
-`new_relic` roles — see [docs/migrating-php-roles.md](../../docs/migrating-php-roles.md).
+`new_relic` roles — see [docs/migrating-v6.md](../../docs/migrating-v6.md).
 
 The stock `php.ini` is never modified: all managed settings live in
 `/etc/php/<version>/{cli,fpm}/conf.d/99-ansible.ini`, which is parsed last and

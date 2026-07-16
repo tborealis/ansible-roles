@@ -27,7 +27,7 @@ flagged with **BREAKING** and require a MAJOR version bump.
   fallback to `/var/lib/php/sessions` with strict-mode/httponly hardening and
   optional per-pool session directories, and opcache tuning that was
   previously unavailable (preloading, tracing JIT, interned strings buffer,
-  secured file cache). Migration guide: `docs/migrating-php-roles.md`.
+  secured file cache). Migration guide: `docs/migrating-v6.md`.
 - **phpbu:** an uninstall entrypoint (`import_role: … tasks_from: remove`)
   removing the cron entry, phar, config, data/log directories and the `phpbu`
   user, with its own molecule scenario proving removal converges and is
@@ -55,6 +55,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
   playbook-relative `templates/symfony-params/` contract. (#137)
 - **meta:** `make test` and CI run every molecule scenario a role ships
   (`molecule test --all`); `make test` accepts `SCENARIO=<name>`.
+- **meta:** all v6.0.0 breaking changes are collected in one migration guide,
+  `docs/migrating-v6.md`, which absorbs `docs/migrating-php-roles.md`.
 
 ### Removed
 
@@ -66,10 +68,16 @@ flagged with **BREAKING** and require a MAJOR version bump.
   → `php_extensions` without the `phpX.Y-` prefix), PHP 7.4/8.0 support is
   dropped, `php.ini`/`php-fpm.conf` are no longer templated, the New Relic
   agent is no longer installed unconditionally, and `php_repo_sury`'s
-  `remove-php.yml` entrypoint is gone. See `docs/migrating-php-roles.md`.
+  `remove-php.yml` entrypoint is gone. See `docs/migrating-v6.md`.
 - **mailhog:** **BREAKING** — the role is removed; use `mailpit` instead. Converging
   `mailpit` removes a legacy MailHog install (stock paths) before starting Mailpit,
-  since both bind SMTP 1025 and HTTP 8025. (#130)
+  since both bind SMTP 1025 and HTTP 8025. See `docs/migrating-v6.md`. (#130)
+- **apache2:** **BREAKING** — dead `apache2_load_modules` and `apache2_conf`
+  variables removed; they were used by no task, so nothing configured through
+  them ever took effect. See `docs/migrating-v6.md`. (#138)
+- **base:** **BREAKING** — dead `ssh_extra_conf_files` variable removed (used
+  by no task) along with the unreachable `fix-prompt.yml` task file. See
+  `docs/migrating-v6.md`. (#138)
 
 ### Fixed
 
@@ -103,7 +111,7 @@ flagged with **BREAKING** and require a MAJOR version bump.
   the CLI and Session Manager plugin versions with checksums, supports arm64, and
   installs its own `unzip`/`gnupg` prerequisites. The `ecgalaxy.aws_cli` entry is
   gone from `requirements.yml`, and the external `awscli_*` variables are replaced
-  by `aws_cli_*` equivalents (see the role README). (#129)
+  by `aws_cli_*` equivalents (see the role README and `docs/migrating-v6.md`). (#129)
 
 ## [5.2.0] - 2026-07-14
 

@@ -1,11 +1,16 @@
-# Migrating to the `php` role
+# Migrating to v6.0.0
+
+Every breaking change in v6.0.0, with what to do about it. Sections are
+ordered roughly by blast radius; skip any role you don't apply.
+
+## PHP: `php_repo_sury`, `php_cli`, `php_fpm`, `composer` and `new_relic` → `php`
 
 v6.0.0 replaces `php_repo_sury`, `php_cli`, `php_fpm`, `composer` and
-`new_relic` with the single [`php`](../roles/php/README.md) role. This guide
+`new_relic` with the single [`php`](../roles/php/README.md) role. This section
 maps the old roles and variables onto the new one and explains what happens
 the first time the new role converges an existing host.
 
-## Playbook changes
+### Playbook changes
 
 Replace the old role list with one entry:
 
@@ -33,7 +38,7 @@ php_new_relic: true  # REQUIRED where the old playbook applied new_relic —
                      # the new switch defaults to false
 ```
 
-## Variable mapping
+### Variable mapping
 
 | Old | New |
 |-----|-----|
@@ -69,7 +74,7 @@ per-pool `session_save_path`/`user`, `php_fpm_expose_php`,
 `php_fpm_opcache_interned_strings_buffer`, `php_fpm_opcache_jit_buffer_size`,
 `php_cli_extra_ini`/`php_fpm_extra_ini`.
 
-## Behavioural changes
+### Behavioural changes
 
 - **PHP 7.4 and 8.0 are no longer supported.** Upgrade to 8.1+ first (with the
   old roles) or in the same converge (the new role removes the old version).
@@ -94,7 +99,7 @@ per-pool `session_save_path`/`user`, `php_fpm_expose_php`,
 - The FPM service is now explicitly started and enabled when pools exist (the
   old role only restarted it on config changes).
 
-## First converge on an existing host
+### First converge on an existing host
 
 - **Changing the version at the same time** (e.g. `php_version: "8.3"` →
   `"8.5"`): the new version is installed and configured, then every other
@@ -123,3 +128,49 @@ Roles that only need a PHP CLI (e.g. hosts running `phpbu`) can use:
     php_fpm: false
     php_composer: false
 ```
+
+## mailhog → mailpit
+
+The `mailhog` role is removed; use [`mailpit`](../roles/mailpit/README.md)
+instead. Mailpit is the maintained MailHog successor and binds the same
+default ports (SMTP 1025, web UI/API 8025), so client configuration is
+unchanged.
+
+Converging `mailpit` on a host previously managed by the `mailhog` role
+removes the legacy install first (stock paths:
+`/lib/systemd/system/mailhog.service`, `/opt/mailhog`, the `mailhog` user),
+since both bind the same ports.
+
+## aws_cli: first-party install replaces the ecgalaxy wrapper
+
+The role no longer wraps `ecgalaxy.aws_cli` (whose GPG verification silently
+passed on a key that expired in 2023); it downloads, verifies and installs the
+AWS CLI itself.
+
+- Remove `ecgalaxy.aws_cli` from your `requirements.yml` if you carried it
+  there; it is gone from the collection's.
+- Any external `awscli_*` variables you set for the wrapped role are replaced
+  by the `aws_cli_*` variables documented in the
+  [role README](../roles/aws_cli/README.md) (`aws_cli_version`,
+  `aws_cli_download_path`, `aws_cli_ssm_install`, `aws_cli_ssm_version`,
+  `aws_cli_ssm_checksums`). `aws_cli_config` is unchanged.
+- The CLI and Session Manager plugin versions are now pinned; arm64 is
+  supported.
+
+## apache2: dead variables removed
+
+`apache2_load_modules` and `apache2_conf` are removed. They were declared and
+documented but used by no task, so nothing you configured through them ever
+took effect — delete them from inventories. Use `apache2_modules` to enable
+modules.
+
+`/etc/apache2/envvars` now renders `APACHE_RUN_USER`/`APACHE_RUN_GROUP` from
+`apache2_user` (previously hardcoded `www-data`; the default is unchanged),
+and changes to it restart Apache.
+
+## base: dead `ssh_extra_conf_files` removed
+
+`ssh_extra_conf_files` was referenced by no task; nothing you configured
+through it ever took effect. Delete it from inventories. The unreachable
+`fix-prompt.yml` task file is also gone (the skel-level prompt task in
+`main.yml` is the live implementation).
