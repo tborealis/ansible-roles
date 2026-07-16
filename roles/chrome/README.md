@@ -2,6 +2,12 @@
 
 Installs Google Chrome and optionally ChromeDriver using Puppeteer's browser installer.
 
+## Requirements
+
+Node.js must already be installed (e.g. via the `node` role) — the role fails
+fast if `npx` is not available. The role deliberately does not install Node.js
+itself, since the Node version is site-specific.
+
 ## Role Variables
 
 | Variable | Default | Description |

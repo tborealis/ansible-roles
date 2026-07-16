@@ -35,6 +35,7 @@ flagged with **BREAKING** and require a MAJOR version bump.
   `php_repo_sury` plus manual package installs.
 - **phpbu:** fail fast with a clear error if PHP is not installed, and
   install the cron package for the crontab entry.
+- **chrome:** fail fast with a clear error if Node.js (npx) is not installed.
 - **meta:** `make test` and CI run every molecule scenario a role ships
   (`molecule test --all`); `make test` accepts `SCENARIO=<name>`.
 
