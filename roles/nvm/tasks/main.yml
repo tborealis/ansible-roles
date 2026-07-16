@@ -1,4 +1,14 @@
 ---
+# curl fetches the nvm installer, acl enables unprivileged become_user
+- name: Install prerequisites
+  ansible.builtin.apt:
+    pkg:
+      - curl
+      - acl
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
 - name: Per-user NVM config
   ansible.builtin.include_tasks: per_user.yml
   with_items: "{{ nvm_config }}"
