@@ -33,6 +33,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 - **phpbu:** molecule prepare uses the new `php` role instead of
   `php_repo_sury` plus manual package installs.
+- **phpbu:** fail fast with a clear error if PHP is not installed, and
+  install the cron package for the crontab entry.
+- **chrome:** fail fast with a clear error if Node.js (npx) is not installed.
 - **meta:** `make test` and CI run every molecule scenario a role ships
   (`molecule test --all`); `make test` accepts `SCENARIO=<name>`.
 
@@ -53,6 +56,25 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Fixed
 
+- **cron:** install the cron package instead of assuming the host provides it.
+- **sudo:** install the sudo package (which provides the visudo validator)
+  instead of assuming the host provides it.
+- **ssl:** install openssl and ssl-cert (provides the ssl-cert group) instead
+  of assuming the host provides them.
+- **pgsql:** install locales (for locale generation) and acl (for
+  become_user postgres) instead of relying on the base role.
+- **nvm:** install curl (fetches the installer) and acl (for unprivileged
+  become) instead of relying on the base role.
+- **aws_cli, aws_config:** install acl for the unprivileged per-user config
+  tasks instead of relying on the base role (aws_config intentionally still
+  does not install the AWS CLI).
+- **php:** the composer tasks install curl instead of assuming the host
+  provides it.
+- **mailpit:** install tar and gzip for the release unarchive instead of
+  assuming the image provides them.
+- **dbcd:** server mode installs rsync (which ships rrsync since bookworm)
+  and creates the ssh-users group instead of relying on the rrsync and base
+  roles.
 - **aws_cli:** **BREAKING** — replace the wrapped `ecgalaxy.aws_cli` role with a
   first-party install. The external role verified downloads against a GPG key that
   expired in 2023 (gpg still exits 0, so the check was theatre); the role now ships

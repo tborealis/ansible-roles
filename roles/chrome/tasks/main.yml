@@ -1,4 +1,15 @@
 ---
+- name: Check for npx
+  ansible.builtin.command: npx --version
+  register: chrome_npx_check
+  changed_when: false
+  failed_when: false
+
+- name: Assert Node.js is available
+  ansible.builtin.assert:
+    that: chrome_npx_check.rc == 0
+    fail_msg: chrome requires Node.js (npx); apply the node role before this role
+
 - name: Remove system chrome
   ansible.builtin.include_tasks: remove-system-chrome.yml
   when: chrome_remove_system_chrome

@@ -4,6 +4,16 @@
     that: ansible_facts['architecture'] in mailpit_architecture_map
     fail_msg: "The role pins checksums for {{ mailpit_architecture_map.keys() | join(', ') }} only."
 
+# unarchive needs both for the .tar.gz release
+- name: Install prerequisites
+  ansible.builtin.apt:
+    pkg:
+      - tar
+      - gzip
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
 # Migration from the removed mailhog role: both bind SMTP 1025 and HTTP 8025,
 # so a leftover MailHog install (stock paths) must go before mailpit starts.
 - name: Check for a legacy mailhog unit

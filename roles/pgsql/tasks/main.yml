@@ -8,9 +8,13 @@
       postgres_version must be set to a PostgreSQL major the role ships config
       templates for ({{ pgsql_supported_versions | join(', ') }}).
 
-- name: Install deb822 dependency
+# locales for the locale_gen task, acl for unprivileged become_user postgres
+- name: Install prerequisites
   ansible.builtin.apt:
-    pkg: python3-debian
+    pkg:
+      - python3-debian
+      - locales
+      - acl
     state: present
     update_cache: true
     cache_valid_time: 3600

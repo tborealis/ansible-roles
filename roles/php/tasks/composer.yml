@@ -1,7 +1,9 @@
 ---
-- name: Install PHP zip extension
+- name: Install Composer prerequisites
   ansible.builtin.apt:
-    pkg: "php{{ php_version }}-zip"
+    pkg:
+      - "php{{ php_version }}-zip"
+      - curl
     state: present
     update_cache: true
     cache_valid_time: 3600

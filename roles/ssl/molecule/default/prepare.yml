@@ -1,20 +1,17 @@
 ---
-# The role copies pre-existing key/cert material and chowns it to the
-# ssl-cert group, which the ssl-cert package provides on real hosts.
 # Generate a throwaway self-signed certificate on the target; converge
-# slurps it into the role's content variables. The creates: guard keeps
-# the material stable if prepare ever re-runs.
+# slurps it into the role's content variables. openssl here is fixture
+# tooling — the role installs its own openssl/ssl-cert. The creates:
+# guard keeps the material stable if prepare ever re-runs.
 - name: Prepare
   hosts: all
   become: true
   vars_files:
     - vars.yml
   tasks:
-    - name: Install openssl and the ssl-cert package (provides the ssl-cert group)
+    - name: Install openssl for fixture generation
       ansible.builtin.apt:
-        pkg:
-          - openssl
-          - ssl-cert
+        pkg: openssl
         state: present
         update_cache: true
 

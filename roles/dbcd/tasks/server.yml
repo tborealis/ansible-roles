@@ -1,5 +1,21 @@
 ---
 # This is to be applied to the machine that serves the database dumps
+
+# rsync ships /usr/bin/rrsync since bookworm, which the forced commands in the
+# authorized keys below invoke
+- name: Install rsync
+  ansible.builtin.apt:
+    pkg: rsync
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+# Attributes must match the base role's group so the two stay idempotent
+- name: Create ssh-users group
+  ansible.builtin.group:
+    name: ssh-users
+    system: true
+
 - name: "Create user"
   ansible.builtin.user:
     name: "{{ dbcd_server_user }}"
