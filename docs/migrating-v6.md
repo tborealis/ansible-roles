@@ -157,6 +157,61 @@ AWS CLI itself.
 - The CLI and Session Manager plugin versions are now pinned; arm64 is
   supported.
 
+## pgsql + pgsql_client → pgsql
+
+The `pgsql_client` role is removed; the [`pgsql`](../roles/pgsql/README.md)
+role now handles both jobs via `pgsql_mode` (`server`, the default, or
+`client`). All `postgres_*` variables are renamed to `pgsql_*`.
+
+```yaml
+# before
+roles:
+  - role: tborealis.roles.pgsql_client
+vars:
+  postgres_version: 15
+
+# after
+roles:
+  - role: tborealis.roles.pgsql
+vars:
+  pgsql_mode: client
+  pgsql_version: 15
+```
+
+### Variable mapping
+
+| Old | New |
+|-----|-----|
+| `postgres_version` | `pgsql_version` |
+| `postgres_default_packages` (pgsql: server+client packages; pgsql_client: client packages — same name, conflicting meanings) | split into `pgsql_server_packages` and `pgsql_client_packages` |
+| `postgres_databases` | `pgsql_databases` |
+| `postgres_users` | `pgsql_users` |
+| `postgres_schemas` | `pgsql_schemas` |
+| `postgres_privs` | `pgsql_privs` |
+| `postgres_extensions` | `pgsql_extensions` |
+| `postgres_become_user` | `pgsql_become_user` |
+| `postgres_additional_packages` | `pgsql_additional_packages` |
+| `postgres_shared_buffers` | `pgsql_shared_buffers` |
+| `postgres_effective_cache_size` | `pgsql_effective_cache_size` |
+| `postgres_max_connections` | `pgsql_max_connections` |
+| `postgres_risky_fast` | `pgsql_risky_fast` |
+| `postgres_full_page_writes` | `pgsql_full_page_writes` |
+| `postgres_synchronous_commit` | `pgsql_synchronous_commit` |
+| `postgres_fsync` | `pgsql_fsync` |
+| `postgres_max_wal_size` | `pgsql_max_wal_size` |
+| `postgres_locale` | `pgsql_locale` |
+
+### Behavioural changes
+
+- `pgsql_locale` no longer defaults to base's `system_default_locale`; it is
+  a fixed `en_GB.UTF-8` (the same effective default). Set it explicitly if
+  your hosts use another locale.
+- The never-notified `Restart postgres` handler is gone (the role restarts
+  inline on config changes, as before). Any cross-role `notify: Restart
+  postgres` in your playbooks — which never worked reliably — must go.
+- The unreachable `remove-postgres.yml` / `remove-postgres-client.yml` task
+  files are deleted.
+
 ## dotenv + environment → env_file
 
 Both roles are removed, replaced by the single

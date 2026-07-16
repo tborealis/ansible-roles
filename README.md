@@ -45,8 +45,7 @@ Reference the roles using the collection namespace:
 | [nginx](roles/nginx/README.md) | Nginx web server |
 | [node](roles/node/README.md) | Node.js from NodeSource |
 | [nvm](roles/nvm/README.md) | Node Version Manager |
-| [pgsql](roles/pgsql/README.md) | PostgreSQL server |
-| [pgsql_client](roles/pgsql_client/README.md) | PostgreSQL client |
+| [pgsql](roles/pgsql/README.md) | PostgreSQL server and client |
 | [php](roles/php/README.md) | PHP stack (Sury repo, CLI, FPM, Composer, New Relic) |
 | [phpbu](roles/phpbu/README.md) | PHPBU database backups |
 | [rabbitmq](roles/rabbitmq/README.md) | RabbitMQ message broker |

@@ -1,27 +1,36 @@
 ---
-postgres_databases: []
-postgres_users: []
-postgres_schemas: []
-postgres_privs: []
-postgres_extensions: []
-postgres_become_user: postgres
-postgres_default_packages:
-  - "postgresql-{{ postgres_version }}"
-  - "postgresql-client-{{ postgres_version }}"
+# "server" (the default) installs and configures a full PostgreSQL server;
+# "client" installs only the PGDG repository and the client tools.
+pgsql_mode: server
+
+# pgsql_version is required and has no default. Server mode must be a major
+# the role ships config templates for (see vars/main.yml); client mode
+# accepts any major the PGDG repository publishes.
+
+pgsql_databases: []
+pgsql_users: []
+pgsql_schemas: []
+pgsql_privs: []
+pgsql_extensions: []
+pgsql_become_user: postgres
+pgsql_client_packages:
+  - "postgresql-client-{{ pgsql_version }}"
   - python3-psycopg2
-postgres_additional_packages: []
+pgsql_server_packages:
+  - "postgresql-{{ pgsql_version }}"
+pgsql_additional_packages: []
 # Memory assumed at 2GB
-postgres_shared_buffers: 512MB # 1/4 ram
-postgres_effective_cache_size: 1GB # 1/2 ram
-postgres_max_connections: 100
+pgsql_shared_buffers: 512MB # 1/4 ram
+pgsql_effective_cache_size: 1GB # 1/2 ram
+pgsql_max_connections: 100
 
 # The following option can cause unrecoverable data corruption on a system crash but results in a large speed increase.
 # Only set to false if data is disposable.
-postgres_risky_fast: false
-postgres_full_page_writes: "{{ 'off' if postgres_risky_fast else 'on' }}"
-postgres_synchronous_commit: "{{ 'off' if postgres_risky_fast else 'on' }}"
-postgres_fsync: "{{ 'off' if postgres_risky_fast else 'on' }}"
+pgsql_risky_fast: false
+pgsql_full_page_writes: "{{ 'off' if pgsql_risky_fast else 'on' }}"
+pgsql_synchronous_commit: "{{ 'off' if pgsql_risky_fast else 'on' }}"
+pgsql_fsync: "{{ 'off' if pgsql_risky_fast else 'on' }}"
 
-postgres_max_wal_size: 1GB
+pgsql_max_wal_size: 1GB
 
-postgres_locale: "{{ system_default_locale | default('en_GB.UTF-8') }}"
+pgsql_locale: en_GB.UTF-8

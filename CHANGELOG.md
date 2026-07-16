@@ -63,6 +63,16 @@ flagged with **BREAKING** and require a MAJOR version bump.
   (`molecule test --all`); `make test` accepts `SCENARIO=<name>`.
 - **meta:** all v6.0.0 breaking changes are collected in one migration guide,
   `docs/migrating-v6.md`, which absorbs `docs/migrating-php-roles.md`.
+- **pgsql:** **BREAKING** — consolidated with `pgsql_client` behind a
+  `pgsql_mode` switch (`server`, the default, or `client`), and all
+  `postgres_*` variables renamed to `pgsql_*`. The colliding
+  `postgres_default_packages` (server+client packages in `pgsql`, client
+  packages in `pgsql_client`) is split into `pgsql_server_packages` and
+  `pgsql_client_packages`; `pgsql_locale` is decoupled from base's
+  `system_default_locale` (same `en_GB.UTF-8` effective default); the dead
+  `Restart postgres` handler and the unreachable
+  `remove-postgres.yml`/`remove-postgres-client.yml` task files are removed.
+  See `docs/migrating-v6.md`. (#128)
 
 ### Removed
 
@@ -86,6 +96,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
   `docs/migrating-v6.md`. (#138)
 - **dotenv, environment:** **BREAKING** — both roles are removed, replaced by
   the new `env_file` role. See `docs/migrating-v6.md`. (#136)
+- **pgsql_client:** **BREAKING** — the role is removed, merged into `pgsql`
+  as `pgsql_mode: client`. See `docs/migrating-v6.md`. (#128)
 - **rrsync:** **BREAKING** — the role is removed. rsync ships
   `/usr/bin/rrsync` since bookworm, so the role was reduced to installing
   rsync plus a redundant `/usr/local/bin/rrsync` symlink; `dbcd` installs
