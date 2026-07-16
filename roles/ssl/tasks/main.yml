@@ -1,4 +1,13 @@
 ---
+- name: Install openssl and ssl-cert
+  ansible.builtin.apt:
+    pkg:
+      - openssl
+      - ssl-cert
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
 - name: Install SSL private keys
   ansible.builtin.copy:
     content: "{{ item.data | b64decode }}"
