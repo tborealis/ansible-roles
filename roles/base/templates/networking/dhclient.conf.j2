@@ -7,4 +7,4 @@ dhcp6.name-servers, dhcp6.domain-search, dhcp6.fqdn, dhcp6.sntp-servers,
 netbios-name-servers, netbios-scope, interface-mtu,
 rfc3442-classless-static-routes, ntp-servers;
 
-prepend domain-name-servers {{ dns_primary_nameserver }} {{ dns_secondary_nameserver }};
+prepend domain-name-servers {{ base_dns_primary_nameserver }} {{ base_dns_secondary_nameserver }};

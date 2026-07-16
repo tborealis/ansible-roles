@@ -88,6 +88,14 @@ flagged with **BREAKING** and require a MAJOR version bump.
   the better), and `pgsql_wal_compression` is `lz4` (stock off; compresses
   WAL full-page images, safe on existing clusters as it only affects newly
   written WAL). The README gains a per-variable tuning guide. (#128)
+- **base:** **BREAKING** — the remaining unprefixed variables are renamed
+  with a `base_` prefix (`system_locales`, `system_default_locale`,
+  `system_timezone`, `system_packages`, `dns_primary_nameserver`,
+  `dns_secondary_nameserver`, `default_users`, `users`, `local_hostnames`,
+  `known_hosts`, `ssh_extra_user_groups`, `ssh_allow_tcp_forwarding` →
+  `base_<same>`). Rename table in `docs/migrating-v6.md`. (#139)
+- **exim4:** **BREAKING** — `mailname` is renamed to `exim4_mailname`. See
+  `docs/migrating-v6.md`. (#139)
 
 ### Removed
 

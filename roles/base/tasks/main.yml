@@ -68,7 +68,7 @@
 
 - name: Install system packages
   ansible.builtin.apt:
-    pkg: "{{ base_default_system_packages + system_packages }}"
+    pkg: "{{ base_default_system_packages + base_system_packages }}"
     state: present
     update_cache: true
     cache_valid_time: 3600
@@ -77,7 +77,7 @@
   community.general.locale_gen:
     name: "{{ item }}"
     state: present
-  with_items: "{{ system_locales }}"
+  with_items: "{{ base_system_locales }}"
 
 - name: Set default locale
   ansible.builtin.template:
@@ -90,7 +90,7 @@
 
 - name: Set default timezone
   community.general.timezone:
-    name: "{{ system_timezone }}"
+    name: "{{ base_system_timezone }}"
   notify: Restart cron
 
 - name: Use full hostname in prompt
@@ -105,7 +105,7 @@
     system: true
   with_items:
     - ssh-users
-    - "{{ ssh_extra_user_groups }}"
+    - "{{ base_ssh_extra_user_groups }}"
 
 - name: Create users
   ansible.builtin.user:
@@ -115,8 +115,8 @@
     groups: "{{ item.groups }}"
     shell: "{{ item.shell | default('/bin/bash') }}"
   with_items:
-    - "{{ default_users }}"
-    - "{{ users }}"
+    - "{{ base_default_users }}"
+    - "{{ base_users }}"
   loop_control:
     label: "{{ item.name }}"
 
@@ -125,7 +125,7 @@
     user: "{{ item.name }}"
     key: "{% for key in item.authorized_keys %}{{ lookup('file', key) }}\n{% endfor %}"
     exclusive: true
-  with_items: "{{ default_users + users }}"
+  with_items: "{{ base_default_users + base_users }}"
   loop_control:
     label: "{{ item.name }}"
 
@@ -165,7 +165,7 @@
     owner: root
     group: root
     mode: "0644"
-  with_items: "{{ known_hosts }}"
+  with_items: "{{ base_known_hosts }}"
 
 - name: Add to profile.d
   ansible.builtin.template:

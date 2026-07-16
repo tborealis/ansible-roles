@@ -3,8 +3,8 @@
 #
 
 AuthorizedKeysFile	.ssh/authorized_keys
-AllowTcpForwarding {{ 'yes' if ssh_allow_tcp_forwarding else 'no' }}
+AllowTcpForwarding {{ 'yes' if base_ssh_allow_tcp_forwarding else 'no' }}
 X11Forwarding no
 UseDNS no
-AllowGroups ssh-users {{ ssh_extra_user_groups | join(' ') }}
+AllowGroups ssh-users {{ base_ssh_extra_user_groups | join(' ') }}
 DebianBanner no

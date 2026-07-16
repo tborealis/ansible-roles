@@ -326,6 +326,31 @@ modules.
 `apache2_user` (previously hardcoded `www-data`; the default is unchanged),
 and changes to it restart Apache.
 
+## base and exim4: variables gain role prefixes
+
+All of base's unprefixed variables are renamed with a `base_` prefix, and
+exim4's `mailname` becomes `exim4_mailname`. Rendered configs are unchanged
+when the new names carry the old values — this is a pure inventory rename.
+
+| Old | New |
+|-----|-----|
+| `system_locales` | `base_system_locales` |
+| `system_default_locale` | `base_system_default_locale` |
+| `system_timezone` | `base_system_timezone` |
+| `system_packages` | `base_system_packages` |
+| `dns_primary_nameserver` | `base_dns_primary_nameserver` |
+| `dns_secondary_nameserver` | `base_dns_secondary_nameserver` |
+| `default_users` | `base_default_users` |
+| `users` | `base_users` |
+| `local_hostnames` | `base_local_hostnames` |
+| `known_hosts` | `base_known_hosts` |
+| `ssh_extra_user_groups` | `base_ssh_extra_user_groups` |
+| `ssh_allow_tcp_forwarding` | `base_ssh_allow_tcp_forwarding` |
+| `mailname` (exim4) | `exim4_mailname` |
+
+Note that `pgsql_locale` no longer follows `system_default_locale` (see the
+pgsql section), so renaming the base variable does not cascade.
+
 ## base: dead `ssh_extra_conf_files` removed
 
 `ssh_extra_conf_files` was referenced by no task; nothing you configured

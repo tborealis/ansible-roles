@@ -3,4 +3,4 @@
 # inventory_hostname, so explicit values prove the template actually renders
 # what it is given.
 exim4_sender_hostname: mail.molecule.test
-mailname: molecule.test
+exim4_mailname: molecule.test
