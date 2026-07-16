@@ -51,6 +51,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
   `phpbu_phar_checksum` and `phpbu_schema_url`. See `docs/migrating-v6.md`.
   (#127)
 - **chrome:** fail fast with a clear error if Node.js (npx) is not installed.
+- **symfony_params:** the README documents the role variables and the
+  playbook-relative `templates/symfony-params/` contract. (#137)
 - **meta:** `make test` and CI run every molecule scenario a role ships
   (`molecule test --all`); `make test` accepts `SCENARIO=<name>`.
 
