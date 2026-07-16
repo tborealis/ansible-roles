@@ -69,6 +69,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
   provides it.
 - **mailpit:** install tar and gzip for the release unarchive instead of
   assuming the image provides them.
+- **dbcd:** server mode installs rsync (which ships rrsync since bookworm)
+  and creates the ssh-users group instead of relying on the rrsync and base
+  roles.
 - **aws_cli:** **BREAKING** — replace the wrapped `ecgalaxy.aws_cli` role with a
   first-party install. The external role verified downloads against a GPG key that
   expired in 2023 (gpg still exits 0, so the check was theatre); the role now ships

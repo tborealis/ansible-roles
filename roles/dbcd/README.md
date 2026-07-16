@@ -2,7 +2,8 @@
 
 ## Server
 Serves the database dump to the consumers. Read only access rsync access via the `dbcd_server_user` (default dbcd) for 
-consumers and write only rsync access for the client.
+consumers and write only rsync access for the client. Server mode installs `rsync` (which provides `rrsync`) and
+ensures the `ssh-users` group exists.
 
 ### Required vars
 - dbcd_mode = `["server"]`
