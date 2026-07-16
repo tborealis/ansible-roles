@@ -1,17 +1,10 @@
 ---
-# The role configures sudo but does not install it (and its validate step
-# needs visudo), nor does it create the users it grants rules to — the base
-# role does both on real hosts.
+# The role does not create the users it grants rules to — the base role does
+# on real hosts.
 - name: Prepare
   hosts: all
   become: true
   tasks:
-    - name: Install sudo
-      ansible.builtin.apt:
-        pkg: sudo
-        state: present
-        update_cache: true
-
     - name: Create deploy user
       ansible.builtin.user:
         name: deploy
