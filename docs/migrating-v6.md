@@ -157,6 +157,75 @@ AWS CLI itself.
 - The CLI and Session Manager plugin versions are now pinned; arm64 is
   supported.
 
+## dotenv + environment → env_file
+
+Both roles are removed, replaced by the single
+[`env_file`](../roles/env_file/README.md) role: one `env_file_list` variable
+whose items render plain `NAME=value` files by default, or `export NAME=value`
+profile scripts with the file-level `export: true` flag.
+
+From `dotenv`:
+
+```yaml
+# before (dotenv)
+dotenv_files:
+  - dest: /opt/app/.env
+    owner: app
+    vars:
+      app_env: production
+
+# after (env_file)
+env_file_list:
+  - file: /opt/app/.env
+    owner: app
+    vars:
+      APP_ENV: production
+```
+
+`dest:` becomes `file:`, and names now render verbatim — dotenv's automatic
+upper-casing is gone, so upper-case them yourself. `owner` is required;
+`group`/`mode` defaults (owner / `0644`) and the `# Ansible managed` header
+are unchanged.
+
+From `environment`:
+
+```yaml
+# before (environment)
+environment_files:
+  - file: /etc/profile.d/app.sh
+    owner: root
+    vars:
+      - name: APP_ENV
+        value: production
+dotenv_files:
+  - file: /opt/app/.env
+    owner: app
+    vars:
+      - name: APP_ENV
+        value: production
+
+# after (env_file)
+env_file_list:
+  - file: /etc/profile.d/app.sh
+    owner: root
+    export: true
+    vars:
+      APP_ENV: production
+  - file: /opt/app/.env
+    owner: app
+    vars:
+      APP_ENV: production
+```
+
+Former `environment_files` items add `export: true`; the `vars` list of
+`{name, value}` pairs becomes a plain mapping. Behavioural changes: rendered
+files gain the `# Ansible managed` header (a one-time diff on the next
+converge), `group` now defaults to the owner instead of the apt/umask
+fallback, and `mode` now defaults to `0644` instead of being umask-dependent.
+Files that previously ended up stricter than `0644` will be loosened unless
+the item sets `mode` — set `mode: "0600"` explicitly on files carrying
+secrets.
+
 ## rrsync: role removed
 
 Since Debian bookworm, rsync ships `/usr/bin/rrsync` as a first-class binary,
