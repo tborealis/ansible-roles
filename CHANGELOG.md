@@ -35,6 +35,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
   `php_repo_sury` plus manual package installs.
 - **phpbu:** fail fast with a clear error if PHP is not installed, and
   install the cron package for the crontab entry.
+- **phpbu:** the README documents the role variables and the playbook-relative
+  `templates/phpbu/phpbu.xml` contract, and points at GitHub for releases
+  (phar.phpbu.de is dead). (#127, #137)
 - **chrome:** fail fast with a clear error if Node.js (npx) is not installed.
 - **meta:** `make test` and CI run every molecule scenario a role ships
   (`molecule test --all`); `make test` accepts `SCENARIO=<name>`.
@@ -56,6 +59,11 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Fixed
 
+- **phpbu:** `phpbu_cron_time` now defaults to daily at 02:30, so the role
+  converges on stock defaults instead of erroring; the phar and XSD are no
+  longer re-downloaded on every run (`force: true` dropped — content changes
+  are caught by the checksum). The unreachable `remove-phpbu.yml` task file is
+  deleted. (#127)
 - **cron:** install the cron package instead of assuming the host provides it.
 - **sudo:** install the sudo package (which provides the visudo validator)
   instead of assuming the host provides it.

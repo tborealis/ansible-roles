@@ -60,8 +60,7 @@
         that:
           - "'#Ansible: PHPBU Database Backup' in phpbu_verify_crontab.stdout"
           - >-
-            (phpbu_cron_time | join(' ') ~
-            ' /usr/local/bin/phpbu --configuration=/etc/phpbu.xml')
+            '30 2 * * * /usr/local/bin/phpbu --configuration=/etc/phpbu.xml'
             in phpbu_verify_crontab.stdout
 
     - name: Run a real backup as the phpbu user

@@ -9,6 +9,8 @@ phpbu_phar_checksum: "sha256:eea9071fb40063b5aaaf37e8ef5c492cef141c6ef1b37fd28de
 phpbu_schema_url: "https://raw.githubusercontent.com/sebastianfeldmann/phpbu/6.0.23/phpbu.xsd"
 
 phpbu_cron_enable: true
+# Five cron fields (minute, hour, day, month, weekday); daily at 02:30.
+phpbu_cron_time: ["30", "2", "*", "*", "*"]
 
 phpbu_log_dir: /var/log/phpbu
 phpbu_lib_dir: /var/lib/phpbu
