@@ -53,6 +53,7 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Fixed
 
+- **cron:** install the cron package instead of assuming the host provides it.
 - **aws_cli:** **BREAKING** — replace the wrapped `ecgalaxy.aws_cli` role with a
   first-party install. The external role verified downloads against a GPG key that
   expired in 2023 (gpg still exits 0, so the check was theatre); the role now ships
