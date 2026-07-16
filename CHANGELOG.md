@@ -33,6 +33,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 - **phpbu:** molecule prepare uses the new `php` role instead of
   `php_repo_sury` plus manual package installs.
+- **phpbu:** fail fast with a clear error if PHP is not installed, and
+  install the cron package for the crontab entry.
 - **meta:** `make test` and CI run every molecule scenario a role ships
   (`molecule test --all`); `make test` accepts `SCENARIO=<name>`.
 

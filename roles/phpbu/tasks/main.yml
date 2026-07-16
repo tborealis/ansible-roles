@@ -2,9 +2,22 @@
 - name: Install and configure phpbu
   when: phpbu_enable
   block:
+    - name: Check for PHP
+      ansible.builtin.command: php --version
+      register: phpbu_php_check
+      changed_when: false
+      failed_when: false
+
+    - name: Assert PHP is available
+      ansible.builtin.assert:
+        that: phpbu_php_check.rc == 0
+        fail_msg: phpbu requires PHP; apply the php role before this role
+
     - name: Install dependencies
       ansible.builtin.apt:
-        pkg: libxml2-utils
+        pkg:
+          - libxml2-utils
+          - cron
         state: present
         update_cache: true
         cache_valid_time: 3600

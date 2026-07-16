@@ -1,8 +1,7 @@
 ---
-# phpbu is a PHP phar (needs a CLI plus ext-dom to parse its XML config) and
-# installs a crontab entry (needs the cron package), but installing PHP and
-# cron is outside the role's contract — real playbooks apply the php role and
-# get cron from the OS install. Mirror that order here.
+# phpbu is a PHP phar (needs a CLI plus ext-dom to parse its XML config), but
+# installing PHP is outside the role's contract — real playbooks apply the
+# php role first. Mirror that order here.
 - name: Prepare
   hosts: all
   become: true
@@ -13,8 +12,3 @@
         php_fpm: false
         php_composer: false
         php_extensions: [xml, mbstring]
-  tasks:
-    - name: Install cron
-      ansible.builtin.apt:
-        pkg: cron
-        state: present
