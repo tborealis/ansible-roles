@@ -67,6 +67,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
   does not install the AWS CLI).
 - **php:** the composer tasks install curl instead of assuming the host
   provides it.
+- **mailpit:** install tar and gzip for the release unarchive instead of
+  assuming the image provides them.
 - **aws_cli:** **BREAKING** — replace the wrapped `ecgalaxy.aws_cli` role with a
   first-party install. The external role verified downloads against a GPG key that
   expired in 2023 (gpg still exits 0, so the check was theatre); the role now ships
