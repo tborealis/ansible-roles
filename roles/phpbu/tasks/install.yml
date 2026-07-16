@@ -1,0 +1,63 @@
+---
+- name: Download phpbu and its signature
+  ansible.builtin.get_url:
+    url: "https://github.com/sebastianfeldmann/phpbu/releases/download/{{ phpbu_version }}/phpbu.phar{{ item }}"
+    dest: "{{ phpbu_lib_dir }}/phpbu.phar{{ item }}.download"
+    mode: "0644"
+    owner: root
+    group: root
+    force: true
+  with_items: ["", ".asc"]
+
+- name: Copy the phpbu signing key
+  ansible.builtin.copy:
+    src: phpbu-signing-key.asc
+    dest: "{{ phpbu_lib_dir }}/phpbu-signing-key.asc"
+    mode: "0644"
+
+- name: Import the signing key into a scratch keyring
+  ansible.builtin.command: >-
+    gpg --no-default-keyring --keyring {{ phpbu_lib_dir }}/phpbu-keyring.kbx
+    --import {{ phpbu_lib_dir }}/phpbu-signing-key.asc
+  changed_when: true
+
+# GOODSIG is only emitted for a valid signature from a non-expired key; an
+# expired key gives EXPKEYSIG, so this cannot silently rot the way an
+# rc-based check does.
+- name: Verify the phar signature
+  ansible.builtin.command: >-
+    gpg --no-default-keyring --keyring {{ phpbu_lib_dir }}/phpbu-keyring.kbx
+    --status-fd 1 --verify {{ phpbu_lib_dir }}/phpbu.phar.asc.download
+    {{ phpbu_lib_dir }}/phpbu.phar.download
+  register: phpbu_signature
+  changed_when: false
+  failed_when: "'GOODSIG' not in phpbu_signature.stdout"
+
+- name: Install the verified phar
+  ansible.builtin.copy:
+    src: "{{ phpbu_lib_dir }}/phpbu.phar.download"
+    dest: "{{ phpbu_lib_dir }}/phpbu.phar"
+    remote_src: true
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: Download the phpbu schema
+  ansible.builtin.get_url:
+    url: "https://raw.githubusercontent.com/sebastianfeldmann/phpbu/{{ phpbu_version }}/phpbu.xsd"
+    dest: "{{ phpbu_lib_dir }}/phpbu.xsd"
+    mode: "0644"
+    owner: root
+    group: root
+    force: true
+
+- name: Clean up the download and verification files
+  ansible.builtin.file:
+    path: "{{ phpbu_lib_dir }}/{{ item }}"
+    state: absent
+  with_items:
+    - phpbu.phar.download
+    - phpbu.phar.asc.download
+    - phpbu-signing-key.asc
+    - phpbu-keyring.kbx
+    - phpbu-keyring.kbx~

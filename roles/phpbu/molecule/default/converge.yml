@@ -1,7 +1,8 @@
 ---
 # The role templates the consumer-supplied playbook file
-# templates/phpbu/phpbu.xml (this scenario ships a tar-backup fixture) and
-# requires phpbu_cron_time to be set — it has no default.
+# templates/phpbu/phpbu.xml (this scenario ships a tar-backup fixture).
+# phpbu_cron_time is deliberately left at the role default so converge
+# exercises the stock schedule.
 - name: Converge
   hosts: all
   become: true

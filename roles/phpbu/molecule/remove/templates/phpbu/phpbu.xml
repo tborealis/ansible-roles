@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpbu xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="{{ phpbu_lib_dir }}/phpbu.xsd">
+  <backups>
+    <backup name="molecule-fixture">
+      <source type="tar">
+        <option name="path" value="/etc/skel"/>
+      </source>
+      <target dirname="{{ phpbu_backup_dir }}" filename="molecule-%Y%m%d.tar"/>
+    </backup>
+  </backups>
+</phpbu>

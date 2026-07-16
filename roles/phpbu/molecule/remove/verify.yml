@@ -1,0 +1,44 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  tasks:
+    - name: Stat everything the role installs
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: phpbu_verify_paths
+      with_items:
+        - /usr/local/bin/phpbu
+        - /etc/phpbu.xml
+        - /var/lib/phpbu
+        - /var/log/phpbu
+
+    - name: Assert the phar, config and directories are gone
+      ansible.builtin.assert:
+        that:
+          - not item.stat.exists
+        quiet: true
+      with_items: "{{ phpbu_verify_paths.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Look up the phpbu user
+      ansible.builtin.getent:
+        database: passwd
+        key: phpbu
+        fail_key: false
+
+    - name: Assert the phpbu user is gone
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.getent_passwd.phpbu is none
+
+    - name: List cron spool files
+      ansible.builtin.find:
+        paths: /var/spool/cron/crontabs
+      register: phpbu_verify_crontabs
+
+    - name: Assert no phpbu crontab remains
+      ansible.builtin.assert:
+        that:
+          - phpbu_verify_crontabs.files | map(attribute='path') | select('search', 'phpbu') | length == 0

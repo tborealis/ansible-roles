@@ -1,0 +1,12 @@
+---
+# prepare.yml installed phpbu; converge applies the remove entrypoint, so the
+# converged state is "uninstalled" (asserted by verify.yml) and molecule's
+# idempotence step proves removal is idempotent.
+- name: Converge
+  hosts: all
+  become: true
+  tasks:
+    - name: Apply the remove entrypoint
+      ansible.builtin.import_role:
+        name: tborealis.roles.phpbu
+        tasks_from: remove
