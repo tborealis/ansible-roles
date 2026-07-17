@@ -168,7 +168,7 @@ vars:
 |-----|-----|
 | `aws_config` | unchanged (name and profile shape) |
 | `aws_cli_config` (flat, single profile) | folded into `aws_config`'s multi-profile shape — see below |
-| `aws_cli_version`, `aws_cli_download_path`, `aws_cli_ssm_install`, `aws_cli_ssm_version`, `aws_cli_ssm_checksums` | unchanged |
+| `aws_cli_version`, `aws_cli_download_path`, `aws_cli_ssm_install`, `aws_cli_ssm_version`, `aws_cli_ssm_checksums` | unchanged names; `aws_cli_ssm_install` now defaults to `false` |
 | — | `aws_cli_install` (new, default `true`) |
 
 Former `aws_cli_config` entries move `default_region` into a `default`
@@ -194,6 +194,11 @@ aws_config:
 
 ### Behavioural changes
 
+- **The Session Manager plugin is no longer installed by default.** Set
+  `aws_cli_ssm_install: true` where hosts use it — the old `aws_cli` role
+  installed it unconditionally. Flipping a host to `false` does not
+  uninstall an already-installed plugin (`apt purge session-manager-plugin`
+  does).
 - **Profile keys are generalised.** Every profile key besides
   `access_key_id`/`secret_access_key` renders verbatim into `~/.aws/config`
   (`region`, `output`, `role_arn`, `source_profile`, `sso_*`, …); quote

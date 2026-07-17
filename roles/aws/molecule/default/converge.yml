@@ -5,6 +5,7 @@
   vars_files:
     - vars.yml
   vars:
+    aws_cli_ssm_install: true
     aws_config:
       - user: "{{ aws_molecule_user }}"
         profiles:

@@ -14,7 +14,7 @@ instance profiles or where the CLI is not needed.
 | `aws_cli_install` | `true` | Install the AWS CLI (and, with `aws_cli_ssm_install`, the Session Manager plugin); when `false` only per-user config is written |
 | `aws_cli_version` | See defaults | AWS CLI v2 version to install; the versioned archive is downloaded and its GPG signature verified |
 | `aws_cli_download_path` | `/var/tmp` | Working directory for downloads; must be exec-mounted because the AWS installer runs from it |
-| `aws_cli_ssm_install` | `true` | Also install the AWS Session Manager plugin (only alongside the CLI) |
+| `aws_cli_ssm_install` | `false` | Also install the AWS Session Manager plugin (only alongside the CLI) |
 | `aws_cli_ssm_version` | See defaults | Session Manager plugin version |
 | `aws_cli_ssm_checksums` | See defaults | sha256 checksums of the plugin deb per architecture key (`ubuntu_64bit`, `ubuntu_arm64`) |
 

@@ -47,7 +47,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 - **aws:** new consolidated role replacing `aws_cli` and `aws_config`:
   `aws_cli_install` (default true) gates the CLI, Session Manager plugin and
   bash completion install, so config-only (instance-profile/SSO) hosts work
-  with `aws_cli_install: false`. Per-user config uses `aws_config`'s
+  with `aws_cli_install: false`. The Session Manager plugin now defaults to
+  off (`aws_cli_ssm_install: false`). Per-user config uses `aws_config`'s
   multi-profile shape, generalised: every profile key besides the credential
   pair renders verbatim into `~/.aws/config` (`region`, `output`, `role_arn`,
   `source_profile`, `sso_*`, …) and credentials entries are emitted only for
