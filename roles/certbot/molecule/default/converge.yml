@@ -24,7 +24,7 @@
     - vars.yml
   vars:
     certbot_mode: apache
-    apache2_ssl_vhosts:
+    certbot_apache2_ssl_vhosts:
       - src: molecule-ssl.conf.j2
         dest: molecule-ssl.conf
   pre_tasks:

@@ -19,7 +19,7 @@
     src: "templates/apache2/vhosts/{{ item.src }}"
     dest: "/etc/apache2/sites-available/{{ item.dest }}"
     mode: "0644"
-  with_items: "{{ apache2_ssl_vhosts }}"
+  with_items: "{{ certbot_apache2_ssl_vhosts }}"
   notify: Restart apache2
 
 - name: Enable SSL vhosts
@@ -27,5 +27,5 @@
     src: "/etc/apache2/sites-available/{{ item.dest }}"
     path: "/etc/apache2/sites-enabled/{{ item.dest }}"
     state: link
-  with_items: "{{ apache2_ssl_vhosts }}"
+  with_items: "{{ certbot_apache2_ssl_vhosts }}"
   notify: Restart apache2
