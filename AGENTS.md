@@ -17,8 +17,6 @@ Variables defined in roles must use the role name as a prefix:
 - `base_system_packages` (not `system_packages`)
 - `nginx_worker_processes` (not `worker_processes`)
 - `chrome_chromedriver_version` (not `chromedriver_version`)
-One deliberate exception remains: `aws_config`'s eponymous `aws_config`
-variable.
 
 ### Task Naming
 
