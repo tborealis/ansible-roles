@@ -2,10 +2,19 @@
 - name: Converge
   hosts: all
   become: true
+  vars_files:
+    - vars.yml
   vars:
-    # Matches the version the apt_keys manifest pins for live key verification.
-    node_version: 22
-    # Exercises the corepack path so idempotence covers it (#131).
-    node_corepack_enable: true
+    node_version: "{{ node_molecule_version }}"
+    node_yarn_enabled: true
+    node_yarn_version: "{{ node_molecule_yarn_version }}"
+    node_pnpm_enabled: true
+    node_pnpm_version: "{{ node_molecule_pnpm_version }}"
+    node_global_packages:
+      - "{{ node_molecule_global_package }}"
+    node_npmrc:
+      - template: npmrc.j2
+        dir: /root
+        user: root
   roles:
     - role: tborealis.roles.node

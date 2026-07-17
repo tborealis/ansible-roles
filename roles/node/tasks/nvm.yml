@@ -1,0 +1,20 @@
+---
+# git clones nvm, curl fetches Node tarballs inside `nvm install`, acl
+# enables unprivileged become_user.
+- name: Install nvm prerequisites
+  ansible.builtin.apt:
+    pkg:
+      - git
+      - curl
+      - ca-certificates
+      - acl
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Per-user nvm config
+  ansible.builtin.include_tasks: nvm-per-user.yml
+  with_items: "{{ node_nvm_config }}"
+  loop_control:
+    loop_var: node_nvm_user_config
+    label: "{{ node_nvm_user_config.user }}"

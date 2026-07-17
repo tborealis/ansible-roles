@@ -1,0 +1,4 @@
+---
+node_version_managers: [none, n, nvm]
+# N_PREFIX; the version cache lives at {{ node_n_prefix }}/n/versions/node.
+node_n_prefix: /usr/local

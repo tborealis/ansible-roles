@@ -8,8 +8,8 @@ roles/apt_keys/defaults/main.yml:
   keys that are still usable (not expired/revoked/invalid/disabled) and the
   date by which the longest-lived of them expires. Warn when that date is
   within --days, fail when no usable key remains. Bundled historical/expired
-  subkeys are ignored, which is why a keyring like yarn's (old expired subkeys
-  alongside current ones) is reported healthy.
+  subkeys are ignored, so a keyring carrying old expired subkeys alongside
+  current ones is reported healthy.
 
   Layer 2 (--live, needs apt/Debian): prove the key still verifies its repo by
   running `apt-get update` against it. Catches upstream revocation/rotation

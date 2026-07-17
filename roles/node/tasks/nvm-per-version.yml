@@ -1,0 +1,19 @@
+---
+- name: "Install Node version {{ node_nvm_user_config_version.version }}"
+  ansible.builtin.command: 'bash -ic "nvm install {{ node_nvm_user_config_version.version }}"'
+  register: node_nvm_install_result
+  changed_when: "'is already installed' not in node_nvm_install_result.stderr"
+  when: node_nvm_user_config_version.version != 'system'
+
+- name: "List global packages for Node version {{ node_nvm_user_config_version.version }}"
+  ansible.builtin.command: 'bash -ic "nvm exec --silent {{ node_nvm_user_config_version.version }} npm ls -g --depth=0 --parseable"'
+  register: node_nvm_global_packages
+  failed_when: false
+  changed_when: false
+  when: node_nvm_user_config_version.global_packages | default([]) | length > 0
+
+- name: "Install global packages for Node version {{ node_nvm_user_config_version.version }}"
+  ansible.builtin.command: 'bash -ic "nvm exec {{ node_nvm_user_config_version.version }} npm install -g --production {{ item }}"'
+  changed_when: true
+  with_items: "{{ node_nvm_user_config_version.global_packages | default([]) }}"
+  when: "'/node_modules/' ~ (item | regex_replace('@[^/@]+$', '')) not in node_nvm_global_packages.stdout | default('')"

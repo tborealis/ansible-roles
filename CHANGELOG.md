@@ -13,6 +13,12 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Added
 
+- **node:** optional tj/n version manager (`node_version_manager: n`): extra
+  Node versions cached machine-wide from official nodejs.org builds
+  (`node_n_versions`, with per-version global packages and pruning of
+  unlisted versions), used via `n --offline run`/`n --offline exec` while
+  the system Node stays the default. n itself is a single script pinned by
+  tag and sha256 — no hosted install scripts.
 - **php:** new consolidated role replacing `php_repo_sury`, `php_cli`,
   `php_fpm`, `composer` and `new_relic`: one required `php_version` (8.1–8.5,
   validated), feature switches (`php_fpm`/`php_composer` default on,
@@ -99,6 +105,26 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Removed
 
+- **apt_keys:** **BREAKING** — the yarn keyring is removed from the manifest
+  (the yarn apt repo is no longer used); the `node` role deletes
+  `/etc/apt/keyrings/yarn-repo.gpg` from hosts on converge.
+- **yarn:** **BREAKING** — the role is removed; the `node` role installs the
+  pinned Yarn classic via npm (`node_yarn_enabled`) and removes the frozen
+  dl.yarnpkg.com apt repo, its keyring and the apt package on converge. See
+  `docs/migrating-v6.md`.
+- **nvm:** **BREAKING** — the role is removed, absorbed by `node`
+  (`node_version_manager: nvm`, `nvm_config` → `node_nvm_config`,
+  `nvm_version` → `node_nvm_version`). nvm is no longer installed by piping
+  the hosted install script to bash: each user's `~/.nvm` is a git clone at
+  the pinned tag and the `.bashrc` init lines are a role-managed block. See
+  `docs/migrating-v6.md`.
+- **node:** **BREAKING** — corepack support (`node_corepack_enable`) is
+  removed: the Node.js TSC voted to stop distributing corepack (gone from
+  Node 25+) and it downloads package-manager binaries at run time. Package
+  managers are now explicit pinned npm installs (`node_yarn_*`,
+  `node_pnpm_*`, `node_npm_version`) and stale corepack shims are cleaned up
+  on converge. Switching `node_version` now removes NodeSource repos for
+  other majors. See `docs/migrating-v6.md`.
 - **php_repo_sury, php_cli, php_fpm, composer, new_relic:** **BREAKING**
   removed, replaced by the consolidated `php` role. Variables are renamed or
   collapsed (`php_` prefix throughout, e.g. `newrelic_key` →

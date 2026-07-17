@@ -2,16 +2,18 @@
 - name: Verify
   hosts: all
   become: true
+  vars_files:
+    - vars.yml
   tasks:
     - name: Print the Node version
       ansible.builtin.command: node --eval 'console.log(process.version)'
       register: node_verify_version
       changed_when: false
 
-    - name: Assert Node 22 is installed
+    - name: "Assert Node major matches {{ node_molecule_version }}"
       ansible.builtin.assert:
         that:
-          - node_verify_version.stdout.startswith('v22.')
+          - node_verify_version.stdout.startswith('v' ~ node_molecule_version ~ '.')
 
     - name: Run npm # noqa: command-instead-of-module (functional check that the binary works)
       ansible.builtin.command: npm --version
@@ -23,21 +25,57 @@
         that:
           - "node_verify_npm.stdout is match('^[0-9]+\\.[0-9]+\\.[0-9]+$')"
 
-    # Corepack shims are created next to the node binary; invoking them would
-    # download yarn/pnpm at run time, so assert their presence instead.
-    - name: Stat the corepack shims
-      ansible.builtin.stat:
-        path: "/usr/bin/{{ item }}"
-      register: node_verify_corepack_shims
-      with_items: [yarn, pnpm]
+    - name: Run yarn # noqa: command-instead-of-module (functional check that the binary works)
+      ansible.builtin.command: yarn --version
+      register: node_verify_yarn
+      changed_when: false
 
-    - name: Assert the corepack shims are installed
+    - name: "Assert Yarn is the pinned {{ node_molecule_yarn_version }}"
       ansible.builtin.assert:
         that:
-          - item.stat.exists
-      with_items: "{{ node_verify_corepack_shims.results }}"
-      loop_control:
-        label: "{{ item.item }}"
+          - node_verify_yarn.stdout == node_molecule_yarn_version
+
+    - name: Run pnpm # noqa: command-instead-of-module (functional check that the binary works)
+      ansible.builtin.command: pnpm --version
+      register: node_verify_pnpm
+      changed_when: false
+
+    - name: "Assert pnpm is the pinned {{ node_molecule_pnpm_version }}"
+      ansible.builtin.assert:
+        that:
+          - node_verify_pnpm.stdout == node_molecule_pnpm_version
+
+    - name: Stat the Yarn binary
+      ansible.builtin.stat:
+        path: /usr/bin/yarn
+        follow: false
+      register: node_verify_yarn_link
+
+    - name: Assert Yarn is a real npm install, not a corepack shim
+      ansible.builtin.assert:
+        that:
+          - node_verify_yarn_link.stat.exists
+          - "'corepack' not in node_verify_yarn_link.stat.lnk_target | default('')"
+
+    - name: "Run the global package {{ node_molecule_global_package }}"
+      ansible.builtin.command: "{{ node_molecule_global_package }} 1.2.3"
+      register: node_verify_global_package
+      changed_when: false
+
+    - name: Assert the global package works
+      ansible.builtin.assert:
+        that:
+          - node_verify_global_package.stdout == '1.2.3'
+
+    - name: Read the root .npmrc
+      ansible.builtin.slurp:
+        src: /root/.npmrc
+      register: node_verify_npmrc
+
+    - name: Assert the .npmrc was templated
+      ansible.builtin.assert:
+        that:
+          - "'fund=false' in node_verify_npmrc.content | b64decode"
 
     - name: Check the nodejs package origin
       ansible.builtin.command: apt-cache policy nodejs
@@ -54,8 +92,35 @@
         src: /etc/apt/sources.list.d/nodesource.sources
       register: node_verify_sources
 
-    - name: Assert the NodeSource repo targets Node 22 and the central keyring
+    - name: "Assert the NodeSource repo targets the major and the central keyring"
       ansible.builtin.assert:
         that:
-          - "'https://deb.nodesource.com/node_22.x' in node_verify_sources.content | b64decode"
+          - "'https://deb.nodesource.com/node_' ~ node_molecule_version ~ '.x' in node_verify_sources.content | b64decode"
           - "'Signed-By: /etc/apt/keyrings/nodesource.gpg' in node_verify_sources.content | b64decode"
+
+    - name: Stat the removed Yarn apt leftovers
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: node_verify_yarn_leftovers
+      with_items:
+        - /etc/apt/sources.list.d/yarn.sources
+        - /etc/apt/keyrings/yarn-repo.gpg
+
+    - name: Assert the Yarn apt repo and keyring are gone
+      ansible.builtin.assert:
+        that:
+          - not item.stat.exists
+      with_items: "{{ node_verify_yarn_leftovers.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Check the apt Yarn package is absent
+      ansible.builtin.command: dpkg -s yarn
+      register: node_verify_yarn_pkg
+      failed_when: false
+      changed_when: false
+
+    - name: Assert the apt Yarn package is absent
+      ansible.builtin.assert:
+        that:
+          - node_verify_yarn_pkg.rc != 0

@@ -1,4 +1,46 @@
 ---
-node_corepack_enable: false
+# node_version is required and has no default: the single system Node.js major
+# (e.g. 22) installed from the NodeSource repository. Switching majors removes
+# the old repository and upgrades the package in place.
+
+# Extra Node.js versions beyond the system one: "none", "n" (machine-wide
+# cache under /usr/local/n, used via `n run`/`n exec`; the system Node stays
+# the default `node` on PATH — the role never activates a cached version) or
+# "nvm" (per-user ~/.nvm installs). n and nvm are mutually exclusive.
+node_version_manager: none
+
+# tj/n release used by the n manager, and the sha256 of bin/n at that tag.
+node_n_version: "10.2.0"
+node_n_checksum: "e4f5baa2e912d3a39b50d9f617de03acf2b4eeb3590f0a4181123f8393da1a19"
+# Node versions to cache with `n download`. Item shape:
+#   - version: 20            # major (caches the latest of the major once) or exact X.Y.Z
+#     global_packages: [semver]   # optional, installed into that version's cache
+node_n_versions: []
+# Remove cached versions not listed in node_n_versions.
+node_n_prune: true
+
+# Optional exact version to pin the bundled npm itself ("" leaves it alone).
+node_npm_version: ""
+
+# Package managers, installed globally via npm against the system Node. Pin
+# exact versions: community.general.npm reinstalls on every run for ranges or
+# dist-tags. Yarn classic also launches Yarn berry projects that commit
+# .yarnrc.yml yarnPath / .yarn/releases. Disabling a manager does not
+# uninstall it.
+node_yarn_enabled: false
+node_yarn_version: "1.22.22"
+node_pnpm_enabled: false
+node_pnpm_version: "11.13.1"
+
 node_global_packages: []
 node_npmrc: []
+
+# Per-user nvm installs (git clone of nvm-sh/nvm at the pinned tag).
+# Item shape:
+#   - user: deploy
+#     default_version: 20      # any nvm version, or 'system' for the apt Node
+#     versions:
+#       - version: 20          # or 'system' to skip installing
+#         global_packages: [semver]
+node_nvm_version: "0.40.5"
+node_nvm_config: []

@@ -43,8 +43,7 @@ Reference the roles using the collection namespace:
 | [mailpit](roles/mailpit/README.md) | Mailpit email testing |
 | [mysql](roles/mysql/README.md) | MySQL server |
 | [nginx](roles/nginx/README.md) | Nginx web server |
-| [node](roles/node/README.md) | Node.js from NodeSource |
-| [nvm](roles/nvm/README.md) | Node Version Manager |
+| [node](roles/node/README.md) | Node.js from NodeSource, npm/Yarn/pnpm, extra versions via tj/n or per-user nvm |
 | [pgsql](roles/pgsql/README.md) | PostgreSQL server and client |
 | [php](roles/php/README.md) | PHP stack (Sury repo, CLI, FPM, Composer, New Relic) |
 | [phpbu](roles/phpbu/README.md) | PHPBU database backups |
@@ -56,7 +55,6 @@ Reference the roles using the collection namespace:
 | [supervisor](roles/supervisor/README.md) | Supervisor process manager |
 | [symfony_params](roles/symfony_params/README.md) | Symfony parameters |
 | [tasks](roles/tasks/README.md) | Shared task files |
-| [yarn](roles/yarn/README.md) | Yarn package manager |
 
 ## Development
 

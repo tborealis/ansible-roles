@@ -1,6 +1,6 @@
 ---
 # The role configures nvm for existing accounts; other roles create the
-# accounts on real hosts, which is not part of the nvm role's contract.
+# accounts on real hosts, which is not part of the node role's contract.
 - name: Prepare
   hosts: all
   become: true
@@ -9,6 +9,6 @@
   tasks:
     - name: Create test user
       ansible.builtin.user:
-        name: "{{ nvm_molecule_user }}"
+        name: "{{ node_molecule_user }}"
         shell: /bin/bash
         create_home: true

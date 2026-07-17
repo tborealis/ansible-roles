@@ -1,0 +1,34 @@
+---
+# `corepack enable` (removed in v6) symlinked package-manager shims next to
+# the node binary, pointing into corepack's dist/. npm refuses to overwrite
+# files it does not own, so the shims must go before npm installs the real
+# managers. Real npm-installed managers point at their own package directory
+# and are left alone. stat with follow: false lstats the link itself, so
+# dangling shims are still seen and removed.
+- name: Stat possible corepack shims
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+    get_checksum: false
+  register: node_corepack_shim_stats
+  loop:
+    - /usr/bin/yarn
+    - /usr/bin/yarnpkg
+    - /usr/bin/pnpm
+    - /usr/bin/pnpx
+    - /usr/local/bin/yarn
+    - /usr/local/bin/yarnpkg
+    - /usr/local/bin/pnpm
+    - /usr/local/bin/pnpx
+
+- name: Remove corepack shims
+  ansible.builtin.file:
+    path: "{{ item.stat.path }}"
+    state: absent
+  loop: "{{ node_corepack_shim_stats.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when:
+    - item.stat.exists
+    - item.stat.islnk
+    - "'corepack' in item.stat.lnk_target"
