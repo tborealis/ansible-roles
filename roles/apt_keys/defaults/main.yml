@@ -40,15 +40,6 @@ apt_keys_keyrings:
       suites: "{release}"
       components: main
 
-  - name: yarn
-    src: yarn-repo.gpg
-    dest: /etc/apt/keyrings/yarn-repo.gpg
-    url: https://dl.yarnpkg.com/debian/pubkey.gpg
-    repo:
-      uris: https://dl.yarnpkg.com/debian/
-      suites: stable
-      components: main
-
   - name: php-sury
     src: php-sury-repo.gpg
     dest: /etc/apt/keyrings/php-sury-repo.gpg

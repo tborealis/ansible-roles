@@ -105,6 +105,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Removed
 
+- **apt_keys:** **BREAKING** — the yarn keyring is removed from the manifest
+  (the yarn apt repo is no longer used); the `node` role deletes
+  `/etc/apt/keyrings/yarn-repo.gpg` from hosts on converge.
 - **yarn:** **BREAKING** — the role is removed; the `node` role installs the
   pinned Yarn classic via npm (`node_yarn_enabled`) and removes the frozen
   dl.yarnpkg.com apt repo, its keyring and the apt package on converge. See
