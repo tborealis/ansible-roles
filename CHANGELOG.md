@@ -59,6 +59,15 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Changed
 
+- **certbot:** **BREAKING** — `apache2_ssl_vhosts` is renamed to
+  `certbot_apache2_ssl_vhosts`, following the role-prefix naming convention,
+  and now defaults to `apache2_vhosts` (falling back to `[]`), so apache mode
+  reuses the apache2 role's vhost list unless overridden.
+  See `docs/migrating-v6.md`.
+- **chrome:** the internal chromedriver registers/facts gain the `chrome_`
+  prefix (no user-facing variables changed).
+- **meta:** `var-naming[no-role-prefix]` is no longer skipped by ansible-lint,
+  so role variables must carry the role-name prefix.
 - **phpbu:** molecule prepare uses the new `php` role instead of
   `php_repo_sury` plus manual package installs.
 - **phpbu:** fail fast with a clear error if PHP is not installed, and
@@ -117,6 +126,10 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Removed
 
+- **tasks:** **BREAKING** — the shared task-file pseudo-role (`roles/tasks/`)
+  is removed. `add-key.yml` was superseded by the `apt_keys` role, and
+  `secure-vars.yml` had been non-functional since the FQCN conversion (#87)
+  dropped the `path` argument from its `stat` task. See `docs/migrating-v6.md`.
 - **apt_keys:** **BREAKING** — the yarn keyring is removed from the manifest
   (the yarn apt repo is no longer used); the `node` role deletes
   `/etc/apt/keyrings/yarn-repo.gpg` from hosts on converge.
