@@ -302,6 +302,28 @@ Files that previously ended up stricter than `0644` will be loosened unless
 the item sets `mode` — set `mode: "0600"` explicitly on files carrying
 secrets.
 
+## phpbu: version-pinned, GPG-verified install
+
+The phar (now 6.0.33) and its `.asc` signature are downloaded from the GitHub
+release and verified against the signing key shipped with the role before
+install. The install is pinned by a single variable:
+
+| Old | New |
+|-----|-----|
+| `phpbu_phar_url` | removed — derived from `phpbu_version` |
+| `phpbu_phar_checksum` | removed — replaced by GPG signature verification |
+| `phpbu_schema_url` | removed — derived from `phpbu_version` |
+| — | `phpbu_version` (default `6.0.33`) |
+
+If you overrode any of the removed variables to pin a different release, set
+`phpbu_version` instead. The role also gained an uninstall entrypoint:
+
+```yaml
+- ansible.builtin.import_role:
+    name: tborealis.roles.phpbu
+    tasks_from: remove
+```
+
 ## rrsync: role removed
 
 Since Debian bookworm, rsync ships `/usr/bin/rrsync` as a first-class binary,
@@ -325,6 +347,31 @@ modules.
 `/etc/apache2/envvars` now renders `APACHE_RUN_USER`/`APACHE_RUN_GROUP` from
 `apache2_user` (previously hardcoded `www-data`; the default is unchanged),
 and changes to it restart Apache.
+
+## base and exim4: variables gain role prefixes
+
+All of base's unprefixed variables are renamed with a `base_` prefix, and
+exim4's `mailname` becomes `exim4_mailname`. Rendered configs are unchanged
+when the new names carry the old values — this is a pure inventory rename.
+
+| Old | New |
+|-----|-----|
+| `system_locales` | `base_system_locales` |
+| `system_default_locale` | `base_system_default_locale` |
+| `system_timezone` | `base_system_timezone` |
+| `system_packages` | `base_system_packages` |
+| `dns_primary_nameserver` | `base_dns_primary_nameserver` |
+| `dns_secondary_nameserver` | `base_dns_secondary_nameserver` |
+| `default_users` | `base_default_users` |
+| `users` | `base_users` |
+| `local_hostnames` | `base_local_hostnames` |
+| `known_hosts` | `base_known_hosts` |
+| `ssh_extra_user_groups` | `base_ssh_extra_user_groups` |
+| `ssh_allow_tcp_forwarding` | `base_ssh_allow_tcp_forwarding` |
+| `mailname` (exim4) | `exim4_mailname` |
+
+Note that `pgsql_locale` no longer follows `system_default_locale` (see the
+pgsql section), so renaming the base variable does not cascade.
 
 ## base: dead `ssh_extra_conf_files` removed
 

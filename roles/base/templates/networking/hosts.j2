@@ -3,7 +3,7 @@
 #
 
 127.0.0.1 localhost
-127.0.1.1 {{ inventory_hostname_short }} {{ inventory_hostname }}{% for host in local_hostnames %}{% if host != inventory_hostname %} {{ host }}{% endif %}{% endfor %}
+127.0.1.1 {{ inventory_hostname_short }} {{ inventory_hostname }}{% for host in base_local_hostnames %}{% if host != inventory_hostname %} {{ host }}{% endif %}{% endfor %}
 
 ::1 localhost ip6-localhost ip6-loopback
 ff02::1 ip6-allnodes

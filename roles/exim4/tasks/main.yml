@@ -17,7 +17,7 @@
 
 - name: Set mailname
   ansible.builtin.copy:
-    content: "{{ mailname }}\n"
+    content: "{{ exim4_mailname }}\n"
     dest: /etc/mailname
     owner: root
     group: root
