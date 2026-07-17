@@ -3,6 +3,21 @@
 # (e.g. 22) installed from the NodeSource repository. Switching majors removes
 # the old repository and upgrades the package in place.
 
+# Extra Node.js versions beyond the system one: "none" or "n" (machine-wide
+# cache under /usr/local/n, used via `n run`/`n exec`; the system Node stays
+# the default `node` on PATH — the role never activates a cached version).
+node_version_manager: none
+
+# tj/n release used by the n manager, and the sha256 of bin/n at that tag.
+node_n_version: "10.2.0"
+node_n_checksum: "e4f5baa2e912d3a39b50d9f617de03acf2b4eeb3590f0a4181123f8393da1a19"
+# Node versions to cache with `n download`. Item shape:
+#   - version: 20            # major (caches the latest of the major once) or exact X.Y.Z
+#     global_packages: [semver]   # optional, installed into that version's cache
+node_n_versions: []
+# Remove cached versions not listed in node_n_versions.
+node_n_prune: true
+
 # Optional exact version to pin the bundled npm itself ("" leaves it alone).
 node_npm_version: ""
 

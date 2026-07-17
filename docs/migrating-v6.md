@@ -350,6 +350,9 @@ Behavioural changes:
   the launcher for a committed `.yarnrc.yml` `yarnPath`).
 - **Old NodeSource repos are cleaned up.** Switching `node_version` now also
   removes NodeSource repo files for other majors before adding the new one.
+- **New: extra Node versions via tj/n.** `node_version_manager: n` caches
+  additional versions machine-wide (`node_n_versions`), used explicitly via
+  `n --offline run`/`n --offline exec`; the system Node stays the default.
 
 First converge on an existing host: corepack-shimmed or apt-installed Yarn is
 replaced by the npm install in a single converge (there is a brief gap

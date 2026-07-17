@@ -2,6 +2,7 @@
 
 Installs a single system Node.js from the NodeSource repository, plus npm-based
 package managers (Yarn classic, pnpm) and global packages, all version-pinned.
+Extra Node versions can be layered on top with the tj/n version manager.
 
 This role absorbed the removed `yarn` role — see
 [docs/migrating-v6.md](../../docs/migrating-v6.md).
@@ -11,6 +12,7 @@ This role absorbed the removed `yarn` role — see
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `node_version` | — | **Required.** Major Node.js version to install (e.g. `22`). Switching majors removes the old NodeSource repo and upgrades in place |
+| `node_version_manager` | `none` | `none` or `n` — how extra Node versions beyond the system one are provided |
 | `node_npm_version` | `""` | Optional exact version to pin the bundled npm itself; empty leaves the bundled npm alone |
 | `node_yarn_enabled` | `false` | Install Yarn classic globally via npm |
 | `node_yarn_version` | `"1.22.22"` | Exact Yarn classic version |
@@ -21,6 +23,39 @@ This role absorbed the removed `yarn` role — see
 
 Pin exact package-manager versions: `community.general.npm` reinstalls on every
 run when given a range or dist-tag. Disabling a manager does not uninstall it.
+
+## Extra Node versions with n (`node_version_manager: n`)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `node_n_version` | `"10.2.0"` | tj/n release to install |
+| `node_n_checksum` | (matching sha256) | sha256 of `bin/n` at that tag; update together with `node_n_version` |
+| `node_n_versions` | `[]` | Node versions to cache; items are `{version, global_packages}` |
+| `node_n_prune` | `true` | Remove cached versions not listed in `node_n_versions` |
+
+```yaml
+node_version_manager: n
+node_n_versions:
+  - version: 20            # major, or exact X.Y.Z
+    global_packages: [gulp]
+```
+
+n is installed as a single script (`/usr/local/bin/n`), fetched from the
+pinned tag and verified against `node_n_checksum` — no hosted install
+scripts. The cache is **never activated**: the system Node stays the bare
+`node` on PATH, and cached versions are used explicitly:
+
+```console
+$ n --offline run 20 script.js
+$ n --offline exec 20 npm ci
+```
+
+`--offline` resolves the version against the cache instead of a remote index
+lookup. Per-version `global_packages` are installed into that version's cache
+folder (they include package managers: `global_packages: [yarn@1.22.22]`).
+A major pin caches the latest release of that major once and does not chase
+later patch releases; pin an exact `X.Y.Z` to control upgrades. n downloads
+official nodejs.org tarballs with curl at converge time.
 
 ## Corepack is not used
 

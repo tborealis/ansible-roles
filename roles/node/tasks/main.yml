@@ -6,6 +6,30 @@
       - node_version | string is match('^[0-9]+$')
     fail_msg: node_version must be set to the Node.js major to install (e.g. 22).
 
+- name: Assert node_version_manager is valid
+  ansible.builtin.assert:
+    that:
+      - node_version_manager in node_version_managers
+    fail_msg: "node_version_manager must be one of: {{ node_version_managers | join(', ') }}."
+
+- name: Assert node_n_versions is only used with the n manager
+  ansible.builtin.assert:
+    that:
+      - node_version_manager == 'n' or node_n_versions | length == 0
+    fail_msg: node_n_versions requires node_version_manager "n".
+
+- name: "Assert numeric n version: {{ item.version | default(item) }}"
+  ansible.builtin.assert:
+    that:
+      - item.version is defined
+      - item.version | string is match('^[0-9]+(\.[0-9]+){0,2}$')
+    fail_msg: >-
+      node_n_versions entries must be numeric (20 or 20.11.0); aliases like
+      "lts" cannot be converged idempotently.
+  loop: "{{ node_n_versions }}"
+  loop_control:
+    label: "{{ item.version | default(item) }}"
+
 - name: Migrate away from the apt-installed Yarn
   ansible.builtin.import_tasks: yarn-apt-migration.yml
 
@@ -17,3 +41,7 @@
 
 - name: Install package managers and global packages
   ansible.builtin.import_tasks: package-managers.yml
+
+- name: Cache extra Node versions with n
+  ansible.builtin.import_tasks: n.yml
+  when: node_version_manager == 'n'

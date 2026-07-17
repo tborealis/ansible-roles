@@ -1,0 +1,95 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Resolve the default node binary
+      ansible.builtin.command: which node
+      register: node_verify_which
+      changed_when: false
+
+    - name: Assert the system Node is the default
+      ansible.builtin.assert:
+        that:
+          - node_verify_which.stdout == '/usr/bin/node'
+
+    - name: Print the system Node version
+      ansible.builtin.command: node --eval 'console.log(process.version)'
+      register: node_verify_version
+      changed_when: false
+
+    - name: "Assert the system Node major matches {{ node_molecule_version }}"
+      ansible.builtin.assert:
+        that:
+          - node_verify_version.stdout.startswith('v' ~ node_molecule_version ~ '.')
+
+    - name: Stat /usr/local/bin/node
+      ansible.builtin.stat:
+        path: /usr/local/bin/node
+      register: node_verify_activated
+
+    - name: Assert no cached version was activated
+      ansible.builtin.assert:
+        that:
+          - not node_verify_activated.stat.exists
+
+    - name: Stat the n script
+      ansible.builtin.stat:
+        path: /usr/local/bin/n
+      register: node_verify_n
+
+    - name: Assert n is installed root-owned and executable
+      ansible.builtin.assert:
+        that:
+          - node_verify_n.stat.exists
+          - node_verify_n.stat.pw_name == 'root'
+          - node_verify_n.stat.mode == '0755'
+
+    - name: List cached Node versions
+      ansible.builtin.command: /usr/local/bin/n ls
+      register: node_verify_n_ls
+      changed_when: false
+
+    - name: "Assert the cached major is {{ node_molecule_n_version }}"
+      ansible.builtin.assert:
+        that:
+          - >-
+            node_verify_n_ls.stdout_lines
+            | select('match', 'node/' ~ node_molecule_n_version ~ '\.')
+            | length == 1
+
+    - name: "Run the cached Node version {{ node_molecule_n_version }}"
+      ansible.builtin.command: "/usr/local/bin/n --offline run {{ node_molecule_n_version }} --version"
+      register: node_verify_n_run
+      changed_when: false
+
+    - name: "Assert the cached Node runs as v{{ node_molecule_n_version }}"
+      ansible.builtin.assert:
+        that:
+          - node_verify_n_run.stdout.startswith('v' ~ node_molecule_n_version ~ '.')
+
+    - name: "Run the per-version global package {{ node_molecule_global_package }}"
+      ansible.builtin.command: >-
+        /usr/local/bin/n --offline exec {{ node_molecule_n_version }}
+        {{ node_molecule_global_package }} 1.2.3
+      register: node_verify_n_global
+      changed_when: false
+
+    - name: Assert the per-version global package works
+      ansible.builtin.assert:
+        that:
+          - node_verify_n_global.stdout == '1.2.3'
+
+    - name: Find cached version directories
+      ansible.builtin.find:
+        paths: /usr/local/n/versions/node
+        file_type: directory
+        recurse: false
+      register: node_verify_n_cache
+
+    - name: Assert only the configured version is cached (prune)
+      ansible.builtin.assert:
+        that:
+          - node_verify_n_cache.files | length == 1

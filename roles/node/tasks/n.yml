@@ -1,0 +1,57 @@
+---
+# n fetches Node tarballs from nodejs.org with curl at run time.
+- name: Install n runtime dependencies
+  ansible.builtin.apt:
+    pkg:
+      - curl
+      - ca-certificates
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install n
+  ansible.builtin.get_url:
+    url: "https://raw.githubusercontent.com/tj/n/v{{ node_n_version }}/bin/n"
+    dest: /usr/local/bin/n
+    owner: root
+    group: root
+    mode: "0755"
+    checksum: "sha256:{{ node_n_checksum }}"
+
+- name: List cached Node versions
+  ansible.builtin.command: /usr/local/bin/n ls
+  environment:
+    N_PREFIX: "{{ node_n_prefix }}"
+  register: node_n_cached
+  changed_when: false
+
+- name: Cache configured Node versions
+  ansible.builtin.include_tasks: n-per-version.yml
+  with_items: "{{ node_n_versions }}"
+  loop_control:
+    loop_var: node_n_version_config
+    label: "{{ node_n_version_config.version }}"
+
+- name: Find cached Node versions to prune
+  ansible.builtin.find:
+    paths: "{{ node_n_prefix }}/n/versions/node"
+    file_type: directory
+    recurse: false
+  register: node_n_cache_dirs
+  when: node_n_prune
+
+# A cached X.Y.Z survives when a configured version equals it exactly or is
+# its major/minor prefix (config 20 keeps 20.19.4).
+- name: Prune cached Node versions not configured
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ node_n_cache_dirs.files | default([]) }}"
+  loop_control:
+    label: "{{ item.path }}"
+  vars:
+    node_n_keep_regex: >-
+      ^({{ node_n_versions | map(attribute='version') | map('string') | map('regex_escape') | join('|') }})(\..*)?$
+  when:
+    - node_n_prune
+    - not ((item.path | basename) is match(node_n_keep_regex))

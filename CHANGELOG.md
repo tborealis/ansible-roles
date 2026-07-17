@@ -13,6 +13,12 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Added
 
+- **node:** optional tj/n version manager (`node_version_manager: n`): extra
+  Node versions cached machine-wide from official nodejs.org builds
+  (`node_n_versions`, with per-version global packages and pruning of
+  unlisted versions), used via `n --offline run`/`n --offline exec` while
+  the system Node stays the default. n itself is a single script pinned by
+  tag and sha256 — no hosted install scripts.
 - **php:** new consolidated role replacing `php_repo_sury`, `php_cli`,
   `php_fpm`, `composer` and `new_relic`: one required `php_version` (8.1–8.5,
   validated), feature switches (`php_fpm`/`php_composer` default on,

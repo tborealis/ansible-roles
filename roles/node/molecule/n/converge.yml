@@ -1,0 +1,15 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    node_version: "{{ node_molecule_version }}"
+    node_version_manager: n
+    node_n_versions:
+      - version: "{{ node_molecule_n_version }}"
+        global_packages:
+          - "{{ node_molecule_global_package }}"
+  roles:
+    - role: tborealis.roles.node

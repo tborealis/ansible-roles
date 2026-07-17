@@ -1,0 +1,33 @@
+---
+- name: "Download Node version {{ node_n_version_config.version }}"
+  ansible.builtin.command: "/usr/local/bin/n download {{ node_n_version_config.version }}"
+  environment:
+    N_PREFIX: "{{ node_n_prefix }}"
+  changed_when: true
+  when: >-
+    node_n_cached.stdout_lines
+    | select('match', 'node/' ~ node_n_version_config.version ~ '($|\.)')
+    | length == 0
+
+# --offline resolves the version against the cache just populated instead of
+# a remote index lookup.
+- name: "List global packages for Node version {{ node_n_version_config.version }}"
+  ansible.builtin.command: >-
+    /usr/local/bin/n --offline exec {{ node_n_version_config.version }}
+    npm ls -g --depth=0 --parseable
+  environment:
+    N_PREFIX: "{{ node_n_prefix }}"
+  register: node_n_global_packages
+  failed_when: false
+  changed_when: false
+  when: node_n_version_config.global_packages | default([]) | length > 0
+
+- name: "Install global packages for Node version {{ node_n_version_config.version }}"
+  ansible.builtin.command: >-
+    /usr/local/bin/n --offline exec {{ node_n_version_config.version }}
+    npm install -g --production {{ item }}
+  environment:
+    N_PREFIX: "{{ node_n_prefix }}"
+  changed_when: true
+  with_items: "{{ node_n_version_config.global_packages | default([]) }}"
+  when: "'/node_modules/' ~ (item | regex_replace('@[^/@]+$', '')) not in node_n_global_packages.stdout | default('')"
