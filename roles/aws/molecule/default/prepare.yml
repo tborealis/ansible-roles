@@ -9,6 +9,6 @@
   tasks:
     - name: Create test user
       ansible.builtin.user:
-        name: "{{ aws_cli_molecule_user }}"
+        name: "{{ aws_molecule_user }}"
         shell: /bin/bash
         create_home: true

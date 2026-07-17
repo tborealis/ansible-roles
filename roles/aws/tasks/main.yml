@@ -1,0 +1,56 @@
+---
+- name: Install the AWS CLI and Session Manager plugin
+  when: aws_cli_install
+  block:
+    - name: Assert the architecture is supported
+      ansible.builtin.assert:
+        that: ansible_facts['architecture'] in ['x86_64', 'aarch64']
+        fail_msg: "AWS distributes the CLI and Session Manager plugin for x86_64 and aarch64 only."
+
+    - name: Check the installed AWS CLI version
+      ansible.builtin.command: /usr/local/bin/aws --version
+      register: aws_cli_installed
+      failed_when: false
+      changed_when: false
+
+    - name: Install the AWS CLI
+      ansible.builtin.import_tasks: install-cli.yml
+      when: >-
+        aws_cli_installed.rc | default(1) != 0
+        or not (aws_cli_installed.stdout | default('')).startswith('aws-cli/' ~ aws_cli_version ~ ' ')
+
+    - name: Install the Session Manager plugin
+      ansible.builtin.import_tasks: install-ssm.yml
+      when: aws_cli_ssm_install
+
+    - name: Create bash completion directory
+      ansible.builtin.file:
+        path: /etc/bash_completion.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Configure bash completion
+      ansible.builtin.template:
+        src: bash_completion.j2
+        dest: /etc/bash_completion.d/aws-cli
+        owner: root
+        group: root
+        mode: "0644"
+
+# acl enables unprivileged become_user for the per-user config tasks
+- name: Install acl for the per-user config
+  ansible.builtin.apt:
+    pkg: acl
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: aws_config | length > 0
+
+- name: Per-user config
+  ansible.builtin.include_tasks: config.yml
+  with_items: "{{ aws_config }}"
+  loop_control:
+    loop_var: aws_user_config
+    label: "{{ aws_user_config.user }}"

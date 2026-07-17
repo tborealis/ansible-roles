@@ -1,0 +1,25 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    aws_cli_install: false
+    aws_config:
+      - user: "{{ aws_molecule_user }}"
+        profiles:
+          - name: default
+            region: "{{ aws_molecule_region }}"
+            access_key_id: "{{ aws_molecule_access_key_id }}"
+            secret_access_key: "{{ aws_molecule_secret_access_key }}"
+          - name: assumed
+            region: "{{ aws_molecule_region }}"
+            role_arn: "{{ aws_molecule_role_arn }}"
+            source_profile: default
+      - user: "{{ aws_molecule_keyless_user }}"
+        profiles:
+          - name: default
+            region: "{{ aws_molecule_keyless_region }}"
+  roles:
+    - role: tborealis.roles.aws

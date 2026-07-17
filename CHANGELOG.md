@@ -44,6 +44,18 @@ flagged with **BREAKING** and require a MAJOR version bump.
   `group` defaulting to the owner and `mode` to `0644`; the file-level
   `export: true` flag renders `export NAME=value` profile scripts instead.
   See `docs/migrating-v6.md`. (#136)
+- **aws:** new consolidated role replacing `aws_cli` and `aws_config`:
+  `aws_cli_install` (default true) gates the CLI, Session Manager plugin and
+  bash completion install, so config-only (instance-profile/SSO) hosts work
+  with `aws_cli_install: false`. The Session Manager plugin now defaults to
+  off (`aws_cli_ssm_install: false`). Per-user config uses `aws_config`'s
+  multi-profile shape, generalised: every profile key besides the credential
+  pair renders verbatim into `~/.aws/config` (`region`, `output`, `role_arn`,
+  `source_profile`, `sso_*`, …) and credentials entries are emitted only for
+  profiles carrying `access_key_id`, with the paired key asserted.
+  Prerequisites are scoped to the paths that need them (unzip/gnupg to the
+  CLI install, acl to the per-user config). Migration guide:
+  `docs/migrating-v6.md`.
 
 ### Changed
 
@@ -147,6 +159,11 @@ flagged with **BREAKING** and require a MAJOR version bump.
   the new `env_file` role. See `docs/migrating-v6.md`. (#136)
 - **pgsql_client:** **BREAKING** — the role is removed, merged into `pgsql`
   as `pgsql_mode: client`. See `docs/migrating-v6.md`. (#128)
+- **aws_cli, aws_config:** **BREAKING** — both roles are removed, replaced by
+  the consolidated `aws` role. The flat `aws_cli_config` shape is gone — use
+  `aws_config`'s multi-profile shape (`default_region` → per-profile
+  `region`); the `aws_cli_*` install variables keep their names. See
+  `docs/migrating-v6.md`.
 - **rrsync:** **BREAKING** — the role is removed. rsync ships
   `/usr/bin/rrsync` since bookworm, so the role was reduced to installing
   rsync plus a redundant `/usr/local/bin/rrsync` symlink; `dbcd` installs

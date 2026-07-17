@@ -1,0 +1,93 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Stat the CLI binary and completion file
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - /usr/local/bin/aws
+        - /etc/bash_completion.d/aws-cli
+      register: aws_verify_cli_paths
+
+    - name: Assert the CLI was not installed
+      ansible.builtin.assert:
+        that:
+          - not item.stat.exists
+      loop: "{{ aws_verify_cli_paths.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+
+    - name: Assert the Session Manager plugin was not installed
+      ansible.builtin.assert:
+        that:
+          - "'session-manager-plugin' not in ansible_facts.packages"
+
+    - name: Stat the per-user .aws directories
+      ansible.builtin.stat:
+        path: "/home/{{ item }}/.aws"
+      loop:
+        - "{{ aws_molecule_user }}"
+        - "{{ aws_molecule_keyless_user }}"
+      register: aws_verify_dirs
+
+    - name: Assert the .aws directories are private to their users
+      ansible.builtin.assert:
+        that:
+          - item.stat.isdir
+          - item.stat.pw_name == item.item
+          - item.stat.mode == '0700'
+      loop: "{{ aws_verify_dirs.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Read the per-user config file
+      ansible.builtin.slurp:
+        src: "/home/{{ aws_molecule_user }}/.aws/config"
+      register: aws_verify_config
+
+    - name: Assert the assumed-role profile renders its settings
+      ansible.builtin.assert:
+        that:
+          - "'[default]' in aws_verify_config.content | b64decode"
+          - "'[profile assumed]' in aws_verify_config.content | b64decode"
+          - "'role_arn = ' ~ aws_molecule_role_arn in aws_verify_config.content | b64decode"
+          - "'source_profile = default' in aws_verify_config.content | b64decode"
+
+    - name: Read the per-user credentials file
+      ansible.builtin.slurp:
+        src: "/home/{{ aws_molecule_user }}/.aws/credentials"
+      register: aws_verify_credentials
+
+    - name: Assert only the keyed profile has a credentials entry
+      ansible.builtin.assert:
+        that:
+          - "'[default]' in aws_verify_credentials.content | b64decode"
+          - "'aws_access_key_id = ' ~ aws_molecule_access_key_id in aws_verify_credentials.content | b64decode"
+          - "'assumed' not in aws_verify_credentials.content | b64decode"
+
+    - name: Stat the keyless user's credentials file
+      ansible.builtin.stat:
+        path: "/home/{{ aws_molecule_keyless_user }}/.aws/credentials"
+      register: aws_verify_keyless_credentials
+
+    - name: Read the keyless user's config and credentials files
+      ansible.builtin.slurp:
+        src: "/home/{{ aws_molecule_keyless_user }}/.aws/{{ item }}"
+      loop:
+        - config
+        - credentials
+      register: aws_verify_keyless_files
+
+    - name: Assert the keyless user gets config but an empty credentials file
+      ansible.builtin.assert:
+        that:
+          - "'region = ' ~ aws_molecule_keyless_region in aws_verify_keyless_files.results[0].content | b64decode"
+          - aws_verify_keyless_credentials.stat.mode == '0600'
+          - aws_verify_keyless_files.results[1].content | b64decode | trim == ''

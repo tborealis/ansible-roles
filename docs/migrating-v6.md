@@ -141,19 +141,86 @@ removes the legacy install first (stock paths:
 `/lib/systemd/system/mailhog.service`, `/opt/mailhog`, the `mailhog` user),
 since both bind the same ports.
 
-## aws_cli: first-party install replaces the ecgalaxy wrapper
+## aws_cli + aws_config → aws
 
-The role no longer wraps `ecgalaxy.aws_cli` (whose GPG verification silently
-passed on a key that expired in 2023); it downloads, verifies and installs the
-AWS CLI itself.
+Both roles are removed, replaced by the single
+[`aws`](../roles/aws/README.md) role. The CLI (plus Session Manager plugin
+and bash completion) install is gated behind `aws_cli_install`, which
+defaults to true — hosts that only applied `aws_config` set it to false and
+keep getting per-user config without the CLI.
+
+```yaml
+# before
+roles:
+  - role: tborealis.roles.aws_cli      # CLI + config
+  - role: tborealis.roles.aws_config   # config only, elsewhere
+
+# after
+roles:
+  - role: tborealis.roles.aws
+vars:
+  aws_cli_install: false   # only where the old playbook applied aws_config alone
+```
+
+### Variable mapping
+
+| Old | New |
+|-----|-----|
+| `aws_config` | unchanged (name and profile shape) |
+| `aws_cli_config` (flat, single profile) | folded into `aws_config`'s multi-profile shape — see below |
+| `aws_cli_version`, `aws_cli_download_path`, `aws_cli_ssm_install`, `aws_cli_ssm_version`, `aws_cli_ssm_checksums` | unchanged names; `aws_cli_ssm_install` now defaults to `false` |
+| — | `aws_cli_install` (new, default `true`) |
+
+Former `aws_cli_config` entries move `default_region` into a `default`
+profile's `region`:
+
+```yaml
+# before (aws_cli_config)
+aws_cli_config:
+  - user: deploy
+    default_region: eu-west-1
+    access_key_id: ABCDE
+    secret_access_key: EDCBA
+
+# after (aws_config)
+aws_config:
+  - user: deploy
+    profiles:
+      - name: default
+        region: eu-west-1
+        access_key_id: ABCDE
+        secret_access_key: EDCBA
+```
+
+### Behavioural changes
+
+- **The Session Manager plugin is no longer installed by default.** Set
+  `aws_cli_ssm_install: true` where hosts use it — the old `aws_cli` role
+  installed it unconditionally. Flipping a host to `false` does not
+  uninstall an already-installed plugin (`apt purge session-manager-plugin`
+  does).
+- **Profile keys are generalised.** Every profile key besides
+  `access_key_id`/`secret_access_key` renders verbatim into `~/.aws/config`
+  (`region`, `output`, `role_arn`, `source_profile`, `sso_*`, …); quote
+  values YAML would type-cast (unquoted booleans render `True`/`False`).
+- **Credentials entries are only written for profiles carrying keys**, and a
+  profile must set both keys or neither (asserted). `~/.aws/credentials` is
+  still always written — empty when no profile has keys — so removed keys
+  are scrubbed on the next converge.
+- Bash completion and the unzip/gnupg prerequisites are now installed only
+  when the CLI is; acl only when `aws_config` is non-empty.
+
+### From the ecgalaxy wrapper
+
+Also in this release, the CLI install no longer wraps `ecgalaxy.aws_cli`
+(whose GPG verification silently passed on a key that expired in 2023); the
+role downloads, verifies and installs the AWS CLI itself.
 
 - Remove `ecgalaxy.aws_cli` from your `requirements.yml` if you carried it
   there; it is gone from the collection's.
 - Any external `awscli_*` variables you set for the wrapped role are replaced
   by the `aws_cli_*` variables documented in the
-  [role README](../roles/aws_cli/README.md) (`aws_cli_version`,
-  `aws_cli_download_path`, `aws_cli_ssm_install`, `aws_cli_ssm_version`,
-  `aws_cli_ssm_checksums`). `aws_cli_config` is unchanged.
+  [role README](../roles/aws/README.md).
 - The CLI and Session Manager plugin versions are now pinned; arm64 is
   supported.
 
