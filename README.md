@@ -52,7 +52,6 @@ Reference the roles using the collection namespace:
 | [phpbu](roles/phpbu/README.md) | PHPBU database backups |
 | [rabbitmq](roles/rabbitmq/README.md) | RabbitMQ message broker |
 | [redis](roles/redis/README.md) | Redis server |
-| [rrsync](roles/rrsync/README.md) | Restricted rsync |
 | [ssl](roles/ssl/README.md) | SSL certificate management |
 | [stripe_cli](roles/stripe_cli/README.md) | Stripe CLI |
 | [sudo](roles/sudo/README.md) | Sudo configuration |
