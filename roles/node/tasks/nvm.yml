@@ -6,6 +6,7 @@
     pkg:
       - git
       - curl
+      - ca-certificates
       - acl
     state: present
     update_cache: true
