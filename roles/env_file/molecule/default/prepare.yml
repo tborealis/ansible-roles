@@ -9,12 +9,12 @@
   tasks:
     - name: Create app user
       ansible.builtin.user:
-        name: "{{ environment_test_owner }}"
+        name: "{{ env_file_test_owner }}"
 
     - name: Create app directory
       ansible.builtin.file:
-        path: "{{ environment_test_dir }}"
+        path: "{{ env_file_test_dir }}"
         state: directory
-        owner: "{{ environment_test_owner }}"
-        group: "{{ environment_test_owner }}"
+        owner: "{{ env_file_test_owner }}"
+        group: "{{ env_file_test_owner }}"
         mode: "0755"

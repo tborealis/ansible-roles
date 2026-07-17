@@ -1,0 +1,30 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    env_file_list:
+      # group/mode left unset to exercise the defaults (group=owner, 0644).
+      - file: "{{ env_file_test_profile_file }}"
+        owner: root
+        export: true
+        vars:
+          APP_ENV: staging
+          APP_MESSAGE: molecule says hi
+      - file: "{{ env_file_test_dotenv_file }}"
+        owner: "{{ env_file_test_owner }}"
+        group: "{{ env_file_test_owner }}"
+        mode: "0640"
+        vars:
+          APP_ENV: staging
+          DATABASE_URL: "{{ env_file_test_database_url }}"
+      # export/group/mode left unset to exercise the defaults
+      # (plain NAME=value, group=owner, 0644).
+      - file: "{{ env_file_test_defaults_file }}"
+        owner: "{{ env_file_test_owner }}"
+        vars:
+          APP_NAME: molecule-defaults
+  roles:
+    - role: tborealis.roles.env_file

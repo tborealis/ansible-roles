@@ -1,0 +1,8 @@
+#
+# {{ ansible_managed }}
+#
+
+{% set prefix = 'export ' if item.export | default(false) else '' %}
+{% for name, value in item.vars.items() %}
+{{ prefix }}{{ name }}={{ value | quote }}
+{% endfor %}

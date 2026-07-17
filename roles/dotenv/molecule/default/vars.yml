@@ -1,8 +1,0 @@
----
-# Throwaway test values shared by converge.yml and verify.yml.
-dotenv_test_owner: moleculeapp
-dotenv_test_dir: /opt/molecule-app
-dotenv_test_env_file: /opt/molecule-app/.env
-dotenv_test_local_file: /opt/molecule-app/.env.local
-dotenv_test_database_url: mysql://molecule_user:Molecule-Db-Passw0rd1@127.0.0.1:3306/molecule_db
-dotenv_test_session_secret: molecule-throwaway-session-secret

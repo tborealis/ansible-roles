@@ -1,0 +1,91 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Stat the profile.d env file
+      ansible.builtin.stat:
+        path: "{{ env_file_test_profile_file }}"
+      register: env_file_verify_profile
+
+    - name: Assert the profile.d file defaults to owner group and 0644
+      ansible.builtin.assert:
+        that:
+          - env_file_verify_profile.stat.exists
+          - env_file_verify_profile.stat.pw_name == 'root'
+          - env_file_verify_profile.stat.gr_name == 'root'
+          - env_file_verify_profile.stat.mode == '0644'
+
+    - name: Read the profile.d env file
+      ansible.builtin.slurp:
+        src: "{{ env_file_test_profile_file }}"
+      register: env_file_verify_profile_content
+
+    - name: Assert variables are exported with quoted values
+      ansible.builtin.assert:
+        that:
+          - "'export APP_ENV=staging' in env_file_verify_profile_content.content | b64decode"
+          - "\"export APP_MESSAGE='molecule says hi'\" in env_file_verify_profile_content.content | b64decode"
+          - "'# Ansible managed' in env_file_verify_profile_content.content | b64decode"
+
+    - name: Source the profile.d file in a shell and read a value back
+      ansible.builtin.shell: . {{ env_file_test_profile_file }} && printf '%s' "$APP_MESSAGE"
+      changed_when: false
+      register: env_file_verify_sourced
+
+    - name: Assert the exported value round-trips through the shell
+      ansible.builtin.assert:
+        that:
+          - env_file_verify_sourced.stdout == 'molecule says hi'
+
+    - name: Stat the dotenv file
+      ansible.builtin.stat:
+        path: "{{ env_file_test_dotenv_file }}"
+      register: env_file_verify_dotenv
+
+    - name: Assert dotenv ownership and mode
+      ansible.builtin.assert:
+        that:
+          - env_file_verify_dotenv.stat.exists
+          - env_file_verify_dotenv.stat.pw_name == env_file_test_owner
+          - env_file_verify_dotenv.stat.gr_name == env_file_test_owner
+          - env_file_verify_dotenv.stat.mode == '0640'
+
+    - name: Read the dotenv file
+      ansible.builtin.slurp:
+        src: "{{ env_file_test_dotenv_file }}"
+      register: env_file_verify_dotenv_content
+
+    - name: Assert dotenv values are rendered without export statements
+      ansible.builtin.assert:
+        that:
+          - "'APP_ENV=staging' in env_file_verify_dotenv_content.content | b64decode"
+          - "'DATABASE_URL=' ~ env_file_test_database_url in env_file_verify_dotenv_content.content | b64decode"
+          - "'export' not in env_file_verify_dotenv_content.content | b64decode"
+          - "'# Ansible managed' in env_file_verify_dotenv_content.content | b64decode"
+
+    - name: Stat the defaults-exercising env file
+      ansible.builtin.stat:
+        path: "{{ env_file_test_defaults_file }}"
+      register: env_file_verify_defaults
+
+    - name: Assert the defaults-exercising file gets owner group and 0644
+      ansible.builtin.assert:
+        that:
+          - env_file_verify_defaults.stat.exists
+          - env_file_verify_defaults.stat.pw_name == env_file_test_owner
+          - env_file_verify_defaults.stat.gr_name == env_file_test_owner
+          - env_file_verify_defaults.stat.mode == '0644'
+
+    - name: Read the defaults-exercising env file
+      ansible.builtin.slurp:
+        src: "{{ env_file_test_defaults_file }}"
+      register: env_file_verify_defaults_content
+
+    - name: Assert the defaults-exercising file renders plain NAME=value
+      ansible.builtin.assert:
+        that:
+          - "'APP_NAME=molecule-defaults' in env_file_verify_defaults_content.content | b64decode"
+          - "'export' not in env_file_verify_defaults_content.content | b64decode"

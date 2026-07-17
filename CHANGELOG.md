@@ -32,6 +32,12 @@ flagged with **BREAKING** and require a MAJOR version bump.
   removing the cron entry, phar, config, data/log directories and the `phpbu`
   user, with its own molecule scenario proving removal converges and is
   idempotent. (#127)
+- **env_file:** new role replacing `dotenv` and `environment`: one
+  `env_file_list` whose items render `NAME=value` files (mapping `vars`,
+  names verbatim, values shell-quoted, `ansible_managed` header) with
+  `group` defaulting to the owner and `mode` to `0644`; the file-level
+  `export: true` flag renders `export NAME=value` profile scripts instead.
+  See `docs/migrating-v6.md`. (#136)
 
 ### Changed
 
@@ -78,6 +84,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 - **base:** **BREAKING** — dead `ssh_extra_conf_files` variable removed (used
   by no task) along with the unreachable `fix-prompt.yml` task file. See
   `docs/migrating-v6.md`. (#138)
+- **dotenv, environment:** **BREAKING** — both roles are removed, replaced by
+  the new `env_file` role. See `docs/migrating-v6.md`. (#136)
 - **rrsync:** **BREAKING** — the role is removed. rsync ships
   `/usr/bin/rrsync` since bookworm, so the role was reduced to installing
   rsync plus a redundant `/usr/local/bin/rrsync` symlink; `dbcd` installs

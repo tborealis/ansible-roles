@@ -1,0 +1,8 @@
+---
+# Throwaway test values shared by converge.yml and verify.yml.
+env_file_test_owner: moleculeapp
+env_file_test_dir: /opt/molecule-app
+env_file_test_profile_file: /etc/profile.d/molecule_env.sh
+env_file_test_dotenv_file: /opt/molecule-app/.env
+env_file_test_defaults_file: /opt/molecule-app/.env.defaults
+env_file_test_database_url: pgsql://molecule_user:Molecule-Db-Passw0rd1@127.0.0.1:5432/molecule_db
