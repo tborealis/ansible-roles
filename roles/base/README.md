@@ -17,7 +17,6 @@ Base system configuration including locales, timezone, users, DNS, and essential
 | `local_hostnames` | `[]` | Local hostname entries |
 | `known_hosts` | `[]` | SSH known hosts entries |
 | `ssh_extra_user_groups` | `[]` | Extra groups for SSH users |
-| `ssh_extra_conf_files` | `[]` | Extra SSH config files |
 | `ssh_allow_tcp_forwarding` | `false` | Allow SSH TCP forwarding |
 | `base_default_system_packages` | See defaults | Essential system packages |
 | `base_profile_config` | `[]` | Profile configuration entries |
