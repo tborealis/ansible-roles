@@ -1,0 +1,7 @@
+{% for profile in profiles %}
+[{{ 'default' if profile.name == 'default' else 'profile ' ~ profile.name }}]
+{% for key, value in profile.items() if key not in ('name', 'access_key_id', 'secret_access_key') %}
+{{ key }} = {{ value }}
+{% endfor %}
+
+{% endfor %}

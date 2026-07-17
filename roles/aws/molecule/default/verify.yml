@@ -1,0 +1,114 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+    # Role defaults, loaded so the assertions track the pinned versions.
+    - ../../defaults/main.yml
+  tasks:
+    - name: Check the AWS CLI version
+      ansible.builtin.command: aws --version
+      register: aws_verify_version
+      changed_when: false
+
+    - name: Assert the pinned AWS CLI version is installed
+      ansible.builtin.assert:
+        that:
+          - aws_verify_version.stdout.startswith('aws-cli/' ~ aws_cli_version ~ ' ')
+
+    - name: Check the Session Manager plugin version
+      ansible.builtin.command: session-manager-plugin --version
+      register: aws_verify_ssm_version
+      changed_when: false
+
+    - name: Assert the pinned Session Manager plugin version is installed
+      ansible.builtin.assert:
+        that:
+          - aws_verify_ssm_version.stdout == aws_cli_ssm_version | string
+
+    - name: Read the bash completion file
+      ansible.builtin.slurp:
+        src: /etc/bash_completion.d/aws-cli
+      register: aws_verify_completion
+
+    - name: Assert completion hooks aws_completer
+      ansible.builtin.assert:
+        that:
+          - "\"complete -C '/usr/local/bin/aws_completer' aws\" in aws_verify_completion.content | b64decode"
+
+    - name: Stat the per-user .aws directory
+      ansible.builtin.stat:
+        path: "/home/{{ aws_molecule_user }}/.aws"
+      register: aws_verify_dir
+
+    - name: Assert the .aws directory is private to the user
+      ansible.builtin.assert:
+        that:
+          - aws_verify_dir.stat.isdir
+          - aws_verify_dir.stat.pw_name == aws_molecule_user
+          - aws_verify_dir.stat.mode == '0700'
+
+    - name: Stat the per-user config files
+      ansible.builtin.stat:
+        path: "/home/{{ aws_molecule_user }}/.aws/{{ item }}"
+      loop:
+        - config
+        - credentials
+      register: aws_verify_files
+
+    - name: Assert the config files are private to the user
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.pw_name == aws_molecule_user
+          - item.stat.mode == '0600'
+      loop: "{{ aws_verify_files.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Read the per-user config file
+      ansible.builtin.slurp:
+        src: "/home/{{ aws_molecule_user }}/.aws/config"
+      register: aws_verify_config
+
+    - name: Assert both profiles render with their settings and no credentials
+      ansible.builtin.assert:
+        that:
+          - "'[default]' in aws_verify_config.content | b64decode"
+          - "'region = ' ~ aws_molecule_default_region in aws_verify_config.content | b64decode"
+          - "'output = ' ~ aws_molecule_default_output in aws_verify_config.content | b64decode"
+          - "'[profile backup]' in aws_verify_config.content | b64decode"
+          - "'region = ' ~ aws_molecule_backup_region in aws_verify_config.content | b64decode"
+          - "'access_key_id' not in aws_verify_config.content | b64decode"
+
+    - name: Read the per-user credentials file
+      ansible.builtin.slurp:
+        src: "/home/{{ aws_molecule_user }}/.aws/credentials"
+      register: aws_verify_credentials
+
+    - name: Assert both profiles hold the converge keys
+      ansible.builtin.assert:
+        that:
+          - "'[default]' in aws_verify_credentials.content | b64decode"
+          - "'aws_access_key_id = ' ~ aws_molecule_default_access_key_id in aws_verify_credentials.content | b64decode"
+          - "'aws_secret_access_key = ' ~ aws_molecule_default_secret_access_key in aws_verify_credentials.content | b64decode"
+          - "'[backup]' in aws_verify_credentials.content | b64decode"
+          - "'aws_access_key_id = ' ~ aws_molecule_backup_access_key_id in aws_verify_credentials.content | b64decode"
+          - "'aws_secret_access_key = ' ~ aws_molecule_backup_secret_access_key in aws_verify_credentials.content | b64decode"
+
+    - name: Read the configured regions back through the CLI as the test user
+      become_user: "{{ aws_molecule_user }}"
+      become: true
+      ansible.builtin.command: "aws configure get region {{ item }}"
+      loop:
+        - ""
+        - "--profile backup"
+      register: aws_verify_regions
+      changed_when: false
+
+    - name: Assert the CLI resolves the regions set by converge
+      ansible.builtin.assert:
+        that:
+          - aws_verify_regions.results[0].stdout == aws_molecule_default_region
+          - aws_verify_regions.results[1].stdout == aws_molecule_backup_region

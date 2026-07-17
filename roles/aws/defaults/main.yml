@@ -1,11 +1,13 @@
 ---
-aws_cli_config: []
+aws_config: []
+aws_cli_install: true
 aws_cli_version: 2.35.22
 # Must be on an exec-mounted filesystem: the AWS installer runs from here.
 aws_cli_download_path: /var/tmp
 
-# Optional Session Manager plugin. When bumping the version, update the
-# checksums for both architectures (see README).
+# Optional Session Manager plugin, installed only alongside the CLI. When
+# bumping the version, update the checksums for both architectures (see
+# README).
 aws_cli_ssm_install: true
 aws_cli_ssm_version: 1.2.835.0
 aws_cli_ssm_checksums:
