@@ -53,7 +53,6 @@ Reference the roles using the collection namespace:
 | [sudo](roles/sudo/README.md) | Sudo configuration |
 | [supervisor](roles/supervisor/README.md) | Supervisor process manager |
 | [symfony_params](roles/symfony_params/README.md) | Symfony parameters |
-| [tasks](roles/tasks/README.md) | Shared task files |
 
 ## Development
 
