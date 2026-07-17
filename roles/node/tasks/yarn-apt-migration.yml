@@ -1,0 +1,38 @@
+---
+# The removed yarn role installed Yarn 1.x from the dl.yarnpkg.com apt repo;
+# Yarn is now installed via npm (package-managers.yml). Clean up the package,
+# repository and keyring the old role left behind.
+- name: Remove the apt-installed Yarn package
+  ansible.builtin.apt:
+    pkg: yarn
+    state: absent
+    purge: true
+
+- name: Find Yarn apt repository files
+  ansible.builtin.find:
+    paths: /etc/apt/sources.list.d
+    patterns:
+      - "*.list"
+      - "*.sources"
+    contains: 'dl\.yarnpkg\.com'
+    read_whole_file: true
+  register: node_yarn_repo_files
+
+- name: Remove Yarn apt repository files
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ node_yarn_repo_files.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+  register: node_yarn_repo_removed
+
+- name: Remove the Yarn signing keyring
+  ansible.builtin.file:
+    path: /etc/apt/keyrings/yarn-repo.gpg
+    state: absent
+
+- name: Update apt cache after removing the Yarn repository # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: node_yarn_repo_removed is changed

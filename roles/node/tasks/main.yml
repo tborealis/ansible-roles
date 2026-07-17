@@ -1,67 +1,19 @@
 ---
-- name: Remove historic node repo
-  ansible.builtin.import_tasks: remove-old-node-repo.yml
+- name: Assert node_version is set
+  ansible.builtin.assert:
+    that:
+      - node_version is defined
+      - node_version | string is match('^[0-9]+$')
+    fail_msg: node_version must be set to the Node.js major to install (e.g. 22).
 
-- name: Install deb822 dependency
-  ansible.builtin.apt:
-    pkg: python3-debian
-    state: present
-    update_cache: true
-    cache_valid_time: 3600
+- name: Migrate away from the apt-installed Yarn
+  ansible.builtin.import_tasks: yarn-apt-migration.yml
 
-- name: Add Node repo
-  ansible.builtin.deb822_repository:
-    name: nodesource
-    types: [deb]
-    uris: "https://deb.nodesource.com/node_{{ node_version }}.x"
-    suites: nodistro
-    components: main
-    signed_by: /etc/apt/keyrings/nodesource.gpg
-  register: node_repo
+- name: Install Node from NodeSource
+  ansible.builtin.import_tasks: apt.yml
 
-- name: Update apt cache after adding repository # noqa: no-handler
-  ansible.builtin.apt:
-    update_cache: true
-  when: node_repo is changed
+- name: Remove stale corepack shims
+  ansible.builtin.import_tasks: corepack-cleanup.yml
 
-- name: Install Node
-  ansible.builtin.apt:
-    pkg: nodejs
-    state: "{{ node_repo.changed | ternary('latest', 'present') }}"
-    update_cache: true
-    cache_valid_time: 3600
-
-- name: Check corepack shims
-  ansible.builtin.command: >-
-    bash -c 'bin="$(dirname "$(command -v corepack)")";
-    for shim in {{ node_corepack_enable if node_corepack_enable is string else 'yarn pnpm' }};
-    do test -e "$bin/$shim" || exit 1; done'
-  register: node_corepack_shims
-  failed_when: false
-  changed_when: false
-  when: node_corepack_enable is not false
-
-- name: Enable package managers via corepack
-  ansible.builtin.command: >-
-    corepack enable
-    {{ node_corepack_enable if node_corepack_enable is string else '' }}
-  changed_when: true
-  when:
-    - node_corepack_enable is not false
-    - node_corepack_shims.rc != 0
-
-- name: Write .npmrc
-  ansible.builtin.template:
-    src: "node/{{ item.template }}"
-    dest: "{{ item.dir }}/.npmrc"
-    owner: "{{ item.user }}"
-    group: "{{ item.user }}"
-    mode: "0600"
-  with_items: "{{ node_npmrc }}"
-
-- name: Install Node global packages
-  community.general.npm:
-    name: "{{ item }}"
-    global: true
-    production: true
-  with_items: "{{ node_global_packages }}"
+- name: Install package managers and global packages
+  ansible.builtin.import_tasks: package-managers.yml

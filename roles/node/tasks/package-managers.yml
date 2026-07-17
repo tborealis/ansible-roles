@@ -1,0 +1,39 @@
+---
+- name: "Pin npm to {{ node_npm_version }}"
+  community.general.npm:
+    name: npm
+    version: "{{ node_npm_version }}"
+    global: true
+  when: node_npm_version | length > 0
+
+- name: "Install Yarn classic {{ node_yarn_version }}"
+  community.general.npm:
+    name: yarn
+    version: "{{ node_yarn_version }}"
+    global: true
+    production: true
+  when: node_yarn_enabled
+
+- name: "Install pnpm {{ node_pnpm_version }}"
+  community.general.npm:
+    name: pnpm
+    version: "{{ node_pnpm_version }}"
+    global: true
+    production: true
+  when: node_pnpm_enabled
+
+- name: Write .npmrc
+  ansible.builtin.template:
+    src: "node/{{ item.template }}"
+    dest: "{{ item.dir }}/.npmrc"
+    owner: "{{ item.user }}"
+    group: "{{ item.user }}"
+    mode: "0600"
+  with_items: "{{ node_npmrc }}"
+
+- name: Install Node global packages
+  community.general.npm:
+    name: "{{ item }}"
+    global: true
+    production: true
+  with_items: "{{ node_global_packages }}"

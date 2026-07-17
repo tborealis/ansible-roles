@@ -1,0 +1,9 @@
+---
+# Shared by converge.yml and verify.yml.
+# Matches the version the apt_keys manifest pins for live key verification.
+node_molecule_version: 22
+node_molecule_yarn_version: "1.22.22"
+node_molecule_pnpm_version: "11.13.1"
+# Tiny dependency-free package with a CLI, used to exercise the
+# global-packages path (#131).
+node_molecule_global_package: semver

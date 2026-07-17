@@ -1,4 +1,20 @@
 ---
-node_corepack_enable: false
+# node_version is required and has no default: the single system Node.js major
+# (e.g. 22) installed from the NodeSource repository. Switching majors removes
+# the old repository and upgrades the package in place.
+
+# Optional exact version to pin the bundled npm itself ("" leaves it alone).
+node_npm_version: ""
+
+# Package managers, installed globally via npm against the system Node. Pin
+# exact versions: community.general.npm reinstalls on every run for ranges or
+# dist-tags. Yarn classic also launches Yarn berry projects that commit
+# .yarnrc.yml yarnPath / .yarn/releases. Disabling a manager does not
+# uninstall it.
+node_yarn_enabled: false
+node_yarn_version: "1.22.22"
+node_pnpm_enabled: false
+node_pnpm_version: "11.13.1"
+
 node_global_packages: []
 node_npmrc: []

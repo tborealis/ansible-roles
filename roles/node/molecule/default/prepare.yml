@@ -1,0 +1,46 @@
+---
+# Simulates a host converged by the pre-v6 yarn role and corepack support:
+# a Yarn apt repo with its keyring, and a corepack shim occupying the path
+# npm needs for the real Yarn. Converge must remove the repo before its
+# first apt update (the dummy repo would fail verification) and the shim
+# before `npm install -g yarn` (npm refuses to overwrite foreign files).
+- name: Prepare
+  hosts: all
+  become: true
+  tasks:
+    - name: Write a leftover Yarn apt source
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/yarn.sources
+        content: |
+          Types: deb
+          URIs: https://dl.yarnpkg.com/debian/
+          Suites: stable
+          Components: main
+          Signed-By: /etc/apt/keyrings/yarn-repo.gpg
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Ensure the keyrings directory exists
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Write a leftover Yarn keyring
+      ansible.builtin.copy:
+        dest: /etc/apt/keyrings/yarn-repo.gpg
+        content: "not a real keyring\n"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Create a stale corepack shim
+      ansible.builtin.file:
+        src: /usr/lib/node_modules/corepack/dist/yarn.js
+        dest: /usr/bin/yarn
+        state: link
+        force: true
+        follow: false

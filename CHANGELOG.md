@@ -99,6 +99,17 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Removed
 
+- **yarn:** **BREAKING** — the role is removed; the `node` role installs the
+  pinned Yarn classic via npm (`node_yarn_enabled`) and removes the frozen
+  dl.yarnpkg.com apt repo, its keyring and the apt package on converge. See
+  `docs/migrating-v6.md`.
+- **node:** **BREAKING** — corepack support (`node_corepack_enable`) is
+  removed: the Node.js TSC voted to stop distributing corepack (gone from
+  Node 25+) and it downloads package-manager binaries at run time. Package
+  managers are now explicit pinned npm installs (`node_yarn_*`,
+  `node_pnpm_*`, `node_npm_version`) and stale corepack shims are cleaned up
+  on converge. Switching `node_version` now removes NodeSource repos for
+  other majors. See `docs/migrating-v6.md`.
 - **php_repo_sury, php_cli, php_fpm, composer, new_relic:** **BREAKING**
   removed, replaced by the consolidated `php` role. Variables are renamed or
   collapsed (`php_` prefix throughout, e.g. `newrelic_key` →
