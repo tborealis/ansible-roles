@@ -1,0 +1,15 @@
+---
+# Shared by prepare.yml, converge.yml and verify.yml.
+# The credentials are deliberately synthetic shapes: a real access key ID
+# matches AKIA[0-9A-Z]{16} and a real secret is 40 base64-ish characters,
+# both of which trip GitHub push protection and secret scanners. XKIA is not
+# a valid AWS prefix and the secret is a readable placeholder string.
+aws_molecule_user: molecule
+aws_molecule_region: eu-west-1
+aws_molecule_access_key_id: XKIAMOLECULETEST0001
+aws_molecule_secret_access_key: molecule-default-secret-key-not-real
+aws_molecule_role_arn: arn:aws:iam::000000000000:role/molecule-test
+# Second user exercises keyless profiles (instance-profile/SSO hosts): the
+# credentials file is written but empty.
+aws_molecule_keyless_user: molecule2
+aws_molecule_keyless_region: eu-west-2

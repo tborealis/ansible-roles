@@ -1,0 +1,17 @@
+---
+# The per-user config tasks rely on the account existing; on real hosts other
+# roles create the accounts, which is not part of the role's contract.
+- name: Prepare
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Create test users
+      ansible.builtin.user:
+        name: "{{ item }}"
+        shell: /bin/bash
+        create_home: true
+      loop:
+        - "{{ aws_molecule_user }}"
+        - "{{ aws_molecule_keyless_user }}"
