@@ -1,7 +1,7 @@
 ---
 - name: Check current chromedriver version
   ansible.builtin.command: /usr/local/bin/chromedriver --version
-  register: chromedriver_current_version
+  register: chrome_chromedriver_current_version
   changed_when: false
   failed_when: false
 
@@ -9,30 +9,30 @@
   ansible.builtin.uri:
     url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json
     return_content: true
-  register: chromedriver_channel_versions
+  register: chrome_chromedriver_channel_versions
   when: chrome_chromedriver_version in chrome_release_channels
 
 - name: Set the chromedriver target version
   ansible.builtin.set_fact:
-    chromedriver_target_version: >-
-      {{ chromedriver_channel_versions.json.channels[chrome_chromedriver_version | capitalize].version
+    chrome_chromedriver_target_version: >-
+      {{ chrome_chromedriver_channel_versions.json.channels[chrome_chromedriver_version | capitalize].version
          if chrome_chromedriver_version in chrome_release_channels else chrome_chromedriver_version }}
 
 - name: Install chromedriver
-  ansible.builtin.command: "npx --yes @puppeteer/browsers install chromedriver@{{ chromedriver_target_version }} --path /opt"
-  register: chromedriver_install_result
+  ansible.builtin.command: "npx --yes @puppeteer/browsers install chromedriver@{{ chrome_chromedriver_target_version }} --path /opt"
+  register: chrome_chromedriver_install_result
   changed_when: true
-  when: chromedriver_current_version.rc != 0 or chromedriver_target_version not in chromedriver_current_version.stdout
+  when: chrome_chromedriver_current_version.rc != 0 or chrome_chromedriver_target_version not in chrome_chromedriver_current_version.stdout
 
 - name: Process chromedriver path
   ansible.builtin.set_fact:
-    chromedriver_path: "{{ chromedriver_install_result.stdout | regex_search('chromedriver@[\\d.]+ (.+)', '\\1') | first }}"
-  when: chromedriver_install_result is not skipped
+    chrome_chromedriver_path: "{{ chrome_chromedriver_install_result.stdout | regex_search('chromedriver@[\\d.]+ (.+)', '\\1') | first }}"
+  when: chrome_chromedriver_install_result is not skipped
 
 - name: Link chromedriver
   ansible.builtin.file:
-    src: "{{ chromedriver_path }}"
+    src: "{{ chrome_chromedriver_path }}"
     dest: /usr/local/bin/chromedriver
     state: link
     force: true
-  when: chromedriver_install_result is not skipped
+  when: chrome_chromedriver_install_result is not skipped
