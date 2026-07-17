@@ -82,6 +82,17 @@
           - "'effective_cache_size = 512MB' in pgsql_verify_conf.content | b64decode"
           - "'max_wal_size = 2GB' in pgsql_verify_conf.content | b64decode"
           - "'fsync = on' in pgsql_verify_conf.content | b64decode"
+          - "'work_mem = 8MB' in pgsql_verify_conf.content | b64decode"
+          - "'maintenance_work_mem = 256MB' in pgsql_verify_conf.content | b64decode"
+          - "'random_page_cost = 1.1' in pgsql_verify_conf.content | b64decode"
+          - "'wal_compression = zstd' in pgsql_verify_conf.content | b64decode"
+          - "\"timezone = 'Pacific/Auckland'\" in pgsql_verify_conf.content | b64decode"
+
+    - name: Assert io_method renders only on PostgreSQL 18+
+      ansible.builtin.assert:
+        that: >-
+          ('io_method = worker' in pgsql_verify_conf.content | b64decode)
+          == (pgsql_version | int >= 18)
 
     - name: Stat pg_hba.conf
       ansible.builtin.stat:

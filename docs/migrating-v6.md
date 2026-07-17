@@ -201,6 +201,27 @@ vars:
 | `postgres_max_wal_size` | `pgsql_max_wal_size` |
 | `postgres_locale` | `pgsql_locale` |
 
+### Version support
+
+Server mode now supports PostgreSQL **15–18** (16 is newly accepted; 12 and
+13 are dropped). Hosts still on 12/13 must upgrade the cluster to 15+ before
+converging v6 server mode — `pg_upgradecluster` with both majors installed
+(use the pre-v6 role or manual packages), or dump/restore into a fresh 15+
+cluster. Client mode still accepts any PGDG major.
+
+### New tunables and changed defaults
+
+The per-version config templates are unified; the template now also manages
+`work_mem`, `maintenance_work_mem`, `random_page_cost`, `wal_compression`,
+`timezone`/`log_timezone` (via `pgsql_timezone`, same Europe/London default)
+and, on 18+, `io_method` — see the role README's Tuning section. Deliberate
+default changes to review: memory baseline 2GB → 4GB
+(`pgsql_shared_buffers` 512MB → 1GB, `pgsql_effective_cache_size` 1GB →
+2GB — set the old values explicitly on 2GB hosts),
+`pgsql_random_page_cost: 1.1` (SSD/NVMe; set 4.0 on spinning disks),
+`pgsql_wal_compression: lz4` (safe on existing clusters; set `"off"` to keep
+stock behaviour) and `pgsql_maintenance_work_mem: 256MB` (stock 64MB).
+
 ### Behavioural changes
 
 - `pgsql_locale` no longer defaults to base's `system_default_locale`; it is

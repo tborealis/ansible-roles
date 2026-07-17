@@ -19,10 +19,15 @@ pgsql_client_packages:
 pgsql_server_packages:
   - "postgresql-{{ pgsql_version }}"
 pgsql_additional_packages: []
-# Memory assumed at 2GB
-pgsql_shared_buffers: 512MB # 1/4 ram
-pgsql_effective_cache_size: 1GB # 1/2 ram
+# Memory assumed at 4GB
+pgsql_shared_buffers: 1GB # 1/4 ram
+pgsql_effective_cache_size: 2GB # 1/2 ram
+pgsql_work_mem: 4MB
+pgsql_maintenance_work_mem: 256MB
 pgsql_max_connections: 100
+
+# 1.1 SSD/NVMe / 4.0 spinning disks
+pgsql_random_page_cost: 1.1
 
 # The following option can cause unrecoverable data corruption on a system crash but results in a large speed increase.
 # Only set to false if data is disposable.
@@ -32,5 +37,11 @@ pgsql_synchronous_commit: "{{ 'off' if pgsql_risky_fast else 'on' }}"
 pgsql_fsync: "{{ 'off' if pgsql_risky_fast else 'on' }}"
 
 pgsql_max_wal_size: 1GB
+# Compresses WAL full-page images; "off" to disable, zstd for a higher ratio.
+pgsql_wal_compression: lz4
 
+# PostgreSQL 18+ only; ignored on older majors.
+pgsql_io_method: worker
+
+pgsql_timezone: Europe/London
 pgsql_locale: en_GB.UTF-8
