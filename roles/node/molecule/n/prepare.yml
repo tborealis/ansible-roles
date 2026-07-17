@@ -1,0 +1,7 @@
+---
+# No preparation needed; this play only keeps `molecule test --all` from
+# classifying the scenario as "missing files".
+- name: Prepare
+  hosts: all
+  gather_facts: false
+  tasks: []
