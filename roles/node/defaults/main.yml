@@ -3,9 +3,10 @@
 # (e.g. 22) installed from the NodeSource repository. Switching majors removes
 # the old repository and upgrades the package in place.
 
-# Extra Node.js versions beyond the system one: "none" or "n" (machine-wide
+# Extra Node.js versions beyond the system one: "none", "n" (machine-wide
 # cache under /usr/local/n, used via `n run`/`n exec`; the system Node stays
-# the default `node` on PATH — the role never activates a cached version).
+# the default `node` on PATH — the role never activates a cached version) or
+# "nvm" (per-user ~/.nvm installs). n and nvm are mutually exclusive.
 node_version_manager: none
 
 # tj/n release used by the n manager, and the sha256 of bin/n at that tag.
@@ -33,3 +34,13 @@ node_pnpm_version: "11.13.1"
 
 node_global_packages: []
 node_npmrc: []
+
+# Per-user nvm installs (git clone of nvm-sh/nvm at the pinned tag).
+# Item shape:
+#   - user: deploy
+#     default_version: 20      # any nvm version, or 'system' for the apt Node
+#     versions:
+#       - version: 20          # or 'system' to skip installing
+#         global_packages: [semver]
+node_nvm_version: "0.40.5"
+node_nvm_config: []

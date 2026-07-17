@@ -1,0 +1,59 @@
+---
+- name: "Config for user {{ node_nvm_user_config.user }}"
+  become_user: "{{ node_nvm_user_config.user }}"
+  become: true
+  block:
+    # The old curl installer fell back to a tarball copy when git was
+    # missing; that layout is not a git repo and would fail the clone below.
+    # Re-cloning is safe: declared versions reinstall in this same converge.
+    - name: Check for a git-managed ~/.nvm
+      ansible.builtin.stat:
+        path: "~/.nvm/.git"
+      register: node_nvm_git_dir
+
+    - name: Check ~/.nvm exists
+      ansible.builtin.stat:
+        path: "~/.nvm"
+      register: node_nvm_dir
+
+    - name: Remove a tarball-installed ~/.nvm
+      ansible.builtin.file:
+        path: "~/.nvm"
+        state: absent
+      when: node_nvm_dir.stat.exists and not node_nvm_git_dir.stat.exists
+
+    - name: "Install nvm {{ node_nvm_version }}"
+      ansible.builtin.git:
+        repo: https://github.com/nvm-sh/nvm
+        dest: "~/.nvm"
+        version: "v{{ node_nvm_version }}"
+        depth: 1
+
+    - name: Manage nvm initialisation in .bashrc
+      ansible.builtin.blockinfile:
+        path: "~/.bashrc"
+        create: true
+        mode: "0644"
+        marker: "# {mark} ANSIBLE MANAGED: nvm"
+        block: |
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+    - name: Per-version nvm config
+      ansible.builtin.include_tasks: nvm-per-version.yml
+      with_items: "{{ node_nvm_user_config.versions }}"
+      loop_control:
+        loop_var: node_nvm_user_config_version
+        label: "{{ node_nvm_user_config_version.version }}"
+
+    - name: Check default Node version alias
+      ansible.builtin.command: 'bash -ic "cat \"$NVM_DIR/alias/default\""'
+      register: node_nvm_default_alias
+      failed_when: false
+      changed_when: false
+
+    - name: "Set default Node version to {{ node_nvm_user_config.default_version }}"
+      ansible.builtin.command: 'bash -ic "nvm alias default {{ node_nvm_user_config.default_version }}"'
+      changed_when: true
+      when: node_nvm_default_alias.stdout != node_nvm_user_config.default_version | string

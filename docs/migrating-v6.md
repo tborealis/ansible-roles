@@ -302,17 +302,20 @@ Files that previously ended up stricter than `0644` will be loosened unless
 the item sets `mode` — set `mode: "0600"` explicitly on files carrying
 secrets.
 
-## node + yarn → node
+## node + nvm + yarn → node
 
-The `yarn` role is removed and its job absorbed by
+The `nvm` and `yarn` roles are removed and their jobs absorbed by
 [`node`](../roles/node/README.md), which also drops corepack support. Yarn
-classic and pnpm are now installed globally via npm with pinned versions.
+classic and pnpm are now installed globally via npm with pinned versions,
+and extra Node versions come from a version manager selected with
+`node_version_manager` (`n` or `nvm`).
 
 ```yaml
 # before
 roles:
   - role: tborealis.roles.node
   - role: tborealis.roles.yarn
+  - role: tborealis.roles.nvm
 
 # after
 roles:
@@ -323,12 +326,16 @@ roles:
 # inventory / group_vars
 node_version: 22
 node_yarn_enabled: true          # where the yarn role was applied
+node_version_manager: nvm        # where the nvm role was applied
 ```
 
 | Old | New |
 |-----|-----|
 | `node_corepack_enable` | removed — see below |
 | yarn role (no variables) | `node_yarn_enabled: true` (+ `node_yarn_version`) |
+| `nvm_version` | `node_nvm_version` |
+| `nvm_config` | `node_nvm_config` (+ `node_version_manager: nvm`) — same item shape, minus `corepack_enable` |
+| per-version `corepack_enable` | removed — use `global_packages: [yarn@1.22.22]` |
 | — | `node_npm_version` (optional npm self-pin) |
 | — | `node_pnpm_enabled` / `node_pnpm_version` |
 
@@ -353,12 +360,21 @@ Behavioural changes:
 - **New: extra Node versions via tj/n.** `node_version_manager: n` caches
   additional versions machine-wide (`node_n_versions`), used explicitly via
   `n --offline run`/`n --offline exec`; the system Node stays the default.
+  n and nvm are mutually exclusive.
+- **nvm is no longer installed by `curl | bash`.** Each user's `~/.nvm` is a
+  git clone of nvm-sh/nvm at the pinned `node_nvm_version` tag, and the init
+  lines in `~/.bashrc` are now a role-managed block. A `~/.nvm` originally
+  installed as a tarball (host without git at install time) is re-cloned;
+  declared versions reinstall in the same converge. Init lines the old
+  installer appended are left in place — sourcing nvm.sh twice is harmless.
 
 First converge on an existing host: corepack-shimmed or apt-installed Yarn is
 replaced by the npm install in a single converge (there is a brief gap
 mid-converge where no `yarn` binary exists). Anything pinned through corepack
 (`packageManager` fields relying on shims) must move to the explicit
-`node_yarn_version`/`node_pnpm_version` pins.
+`node_yarn_version`/`node_pnpm_version` pins. Per-user corepack shims under
+`~/.nvm/versions/node/*/bin` are not cleaned up — replace them by declaring
+the package manager in that version's `global_packages`.
 
 ## phpbu: version-pinned, GPG-verified install
 

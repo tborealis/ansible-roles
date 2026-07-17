@@ -1,0 +1,11 @@
+---
+# Shared by prepare.yml, converge.yml and verify.yml.
+node_molecule_user: molecule
+# Matches the role default; verify asserts the git clone landed on this tag.
+node_molecule_nvm_version: "0.40.5"
+# Matches the version the apt_keys manifest pins for live key verification.
+node_molecule_version: 22
+node_molecule_nvm_node_major: 20
+# Tiny dependency-free package with a CLI, used to exercise the
+# global-packages path (#131).
+node_molecule_global_package: semver

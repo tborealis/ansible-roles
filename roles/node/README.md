@@ -4,7 +4,7 @@ Installs a single system Node.js from the NodeSource repository, plus npm-based
 package managers (Yarn classic, pnpm) and global packages, all version-pinned.
 Extra Node versions can be layered on top with the tj/n version manager.
 
-This role absorbed the removed `yarn` role — see
+This role absorbed the removed `yarn` and `nvm` roles — see
 [docs/migrating-v6.md](../../docs/migrating-v6.md).
 
 ## Role Variables
@@ -12,7 +12,7 @@ This role absorbed the removed `yarn` role — see
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `node_version` | — | **Required.** Major Node.js version to install (e.g. `22`). Switching majors removes the old NodeSource repo and upgrades in place |
-| `node_version_manager` | `none` | `none` or `n` — how extra Node versions beyond the system one are provided |
+| `node_version_manager` | `none` | `none`, `n` or `nvm` — how extra Node versions beyond the system one are provided |
 | `node_npm_version` | `""` | Optional exact version to pin the bundled npm itself; empty leaves the bundled npm alone |
 | `node_yarn_enabled` | `false` | Install Yarn classic globally via npm |
 | `node_yarn_version` | `"1.22.22"` | Exact Yarn classic version |
@@ -56,6 +56,30 @@ folder (they include package managers: `global_packages: [yarn@1.22.22]`).
 A major pin caches the latest release of that major once and does not chase
 later patch releases; pin an exact `X.Y.Z` to control upgrades. n downloads
 official nodejs.org tarballs with curl at converge time.
+
+## Extra Node versions with nvm (`node_version_manager: nvm`)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `node_nvm_version` | `"0.40.5"` | nvm release; installed per user as a git clone of nvm-sh/nvm at this tag |
+| `node_nvm_config` | `[]` | Per-user config; see below |
+
+```yaml
+node_version_manager: nvm
+node_nvm_config:
+  - user: webdev              # existing account to install nvm for
+    default_version: 20       # any nvm version, or 'system' for the apt Node
+    versions:
+      - version: 20           # or 'system' to skip installing
+        global_packages: [gulp, yarn@1.22.22]
+```
+
+nvm is installed per user via a git clone at the pinned tag (its official
+manual-install method — no `curl | bash`), with the init lines managed as a
+block in `~/.bashrc`. `default_version: system` falls through to the apt
+Node when no version is picked. Per-version package managers are just
+`global_packages` entries. `nvm install` fetches official nodejs.org
+tarballs at converge time. To upgrade nvm, bump `node_nvm_version`.
 
 ## Corepack is not used
 

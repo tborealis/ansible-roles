@@ -109,6 +109,12 @@ flagged with **BREAKING** and require a MAJOR version bump.
   pinned Yarn classic via npm (`node_yarn_enabled`) and removes the frozen
   dl.yarnpkg.com apt repo, its keyring and the apt package on converge. See
   `docs/migrating-v6.md`.
+- **nvm:** **BREAKING** — the role is removed, absorbed by `node`
+  (`node_version_manager: nvm`, `nvm_config` → `node_nvm_config`,
+  `nvm_version` → `node_nvm_version`). nvm is no longer installed by piping
+  the hosted install script to bash: each user's `~/.nvm` is a git clone at
+  the pinned tag and the `.bashrc` init lines are a role-managed block. See
+  `docs/migrating-v6.md`.
 - **node:** **BREAKING** — corepack support (`node_corepack_enable`) is
   removed: the Node.js TSC voted to stop distributing corepack (gone from
   Node 25+) and it downloads package-manager binaries at run time. Package

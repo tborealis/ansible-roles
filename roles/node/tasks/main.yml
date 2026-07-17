@@ -18,6 +18,12 @@
       - node_version_manager == 'n' or node_n_versions | length == 0
     fail_msg: node_n_versions requires node_version_manager "n".
 
+- name: Assert node_nvm_config is only used with the nvm manager
+  ansible.builtin.assert:
+    that:
+      - node_version_manager == 'nvm' or node_nvm_config | length == 0
+    fail_msg: node_nvm_config requires node_version_manager "nvm".
+
 - name: "Assert numeric n version: {{ item.version | default(item) }}"
   ansible.builtin.assert:
     that:
@@ -45,3 +51,7 @@
 - name: Cache extra Node versions with n
   ansible.builtin.import_tasks: n.yml
   when: node_version_manager == 'n'
+
+- name: Configure per-user nvm
+  ansible.builtin.import_tasks: nvm.yml
+  when: node_version_manager == 'nvm'

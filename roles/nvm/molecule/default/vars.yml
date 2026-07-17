@@ -1,7 +1,0 @@
----
-# Shared by prepare.yml, converge.yml and verify.yml.
-nvm_molecule_user: molecule
-nvm_molecule_node_major: 22
-# Tiny dependency-free package with a CLI, used to exercise the
-# global-packages and corepack paths (#131).
-nvm_molecule_global_package: semver
