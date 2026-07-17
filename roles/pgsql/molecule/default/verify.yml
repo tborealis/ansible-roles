@@ -5,13 +5,43 @@
   vars_files:
     - vars.yml
   tasks:
+    - name: Run psql # noqa: command-instead-of-module (functional check that the binary works)
+      ansible.builtin.command: psql --version
+      changed_when: false
+      register: pgsql_verify_psql
+
+    - name: Assert psql is the requested major version
+      ansible.builtin.assert:
+        that:
+          - pgsql_verify_psql.stdout is search('^psql \(PostgreSQL\) ' ~ pgsql_version ~ '\.')
+
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+
+    - name: Assert the client package was installed from the PGDG repository
+      ansible.builtin.assert:
+        that:
+          - "'pgdg' in ansible_facts.packages['postgresql-client-' ~ pgsql_version][0].version"
+
+    - name: Read the PGDG apt source
+      ansible.builtin.slurp:
+        src: /etc/apt/sources.list.d/postgresql.sources
+      register: pgsql_verify_source
+
+    - name: Assert the PGDG source targets this release and the shared keyring
+      ansible.builtin.assert:
+        that:
+          - "'URIs: https://apt.postgresql.org/pub/repos/apt/' in pgsql_verify_source.content | b64decode"
+          - "'Signed-By: /etc/apt/keyrings/postgresql.gpg' in pgsql_verify_source.content | b64decode"
+          - (ansible_facts['distribution_release'] ~ '-pgdg') in pgsql_verify_source.content | b64decode
+
     - name: Gather service facts
       ansible.builtin.service_facts:
 
     - name: Assert the PostgreSQL cluster service is running
       ansible.builtin.assert:
         that:
-          - ansible_facts.services['postgresql@' ~ postgres_version ~ '-main.service'].state == 'running'
+          - ansible_facts.services['postgresql@' ~ pgsql_version ~ '-main.service'].state == 'running'
 
     - name: Query the server version as the postgres superuser
       become: true
@@ -23,13 +53,13 @@
     - name: Assert the requested major version is running
       ansible.builtin.assert:
         that:
-          - pgsql_verify_version.query_result[0].server_version.split('.')[0] == postgres_version | string
+          - pgsql_verify_version.query_result[0].server_version.split('.')[0] == pgsql_version | string
 
     - name: Log in as the created user over TCP and query the created database
       community.postgresql.postgresql_query:
         login_host: 127.0.0.1
         login_user: molecule_user
-        login_password: "{{ postgres_molecule_user_password }}"
+        login_password: "{{ pgsql_molecule_user_password }}"
         login_db: molecule_db
         query: SELECT current_database() AS db
       register: pgsql_verify_login
@@ -41,7 +71,7 @@
 
     - name: Read postgresql.conf
       ansible.builtin.slurp:
-        src: /etc/postgresql/{{ postgres_version }}/main/postgresql.conf
+        src: /etc/postgresql/{{ pgsql_version }}/main/postgresql.conf
       register: pgsql_verify_conf
 
     - name: Assert tuning values from converge are templated
@@ -52,10 +82,21 @@
           - "'effective_cache_size = 512MB' in pgsql_verify_conf.content | b64decode"
           - "'max_wal_size = 2GB' in pgsql_verify_conf.content | b64decode"
           - "'fsync = on' in pgsql_verify_conf.content | b64decode"
+          - "'work_mem = 8MB' in pgsql_verify_conf.content | b64decode"
+          - "'maintenance_work_mem = 256MB' in pgsql_verify_conf.content | b64decode"
+          - "'random_page_cost = 1.1' in pgsql_verify_conf.content | b64decode"
+          - "'wal_compression = zstd' in pgsql_verify_conf.content | b64decode"
+          - "\"timezone = 'Pacific/Auckland'\" in pgsql_verify_conf.content | b64decode"
+
+    - name: Assert io_method renders only on PostgreSQL 18+
+      ansible.builtin.assert:
+        that: >-
+          ('io_method = worker' in pgsql_verify_conf.content | b64decode)
+          == (pgsql_version | int >= 18)
 
     - name: Stat pg_hba.conf
       ansible.builtin.stat:
-        path: /etc/postgresql/{{ postgres_version }}/main/pg_hba.conf
+        path: /etc/postgresql/{{ pgsql_version }}/main/pg_hba.conf
       register: pgsql_verify_hba
 
     - name: Assert pg_hba.conf ownership and mode
@@ -67,7 +108,7 @@
 
     - name: Read pg_hba.conf
       ansible.builtin.slurp:
-        src: /etc/postgresql/{{ postgres_version }}/main/pg_hba.conf
+        src: /etc/postgresql/{{ pgsql_version }}/main/pg_hba.conf
       register: pgsql_verify_hba_content
 
     - name: Assert TCP connections require scram-sha-256

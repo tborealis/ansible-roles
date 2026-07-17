@@ -4,5 +4,7 @@
   become: true
   vars_files:
     - vars.yml
+  vars:
+    pgsql_mode: client
   roles:
-    - role: tborealis.roles.pgsql_client
+    - role: tborealis.roles.pgsql

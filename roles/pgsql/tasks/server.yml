@@ -1,0 +1,94 @@
+---
+# locales for the locale_gen task, acl for unprivileged become_user postgres
+- name: Install server prerequisites
+  ansible.builtin.apt:
+    pkg:
+      - locales
+      - acl
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install PostgreSQL server packages
+  ansible.builtin.apt:
+    pkg: "{{ pgsql_server_packages + pgsql_additional_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Ensure required locale present
+  community.general.locale_gen:
+    name: "{{ pgsql_locale }}"
+    state: present
+
+- name: Configure PostgreSQL
+  ansible.builtin.template:
+    src: postgresql.conf.j2
+    dest: "/etc/postgresql/{{ pgsql_version }}/main/postgresql.conf"
+    mode: "0644"
+  register: pgsql_configure
+
+- name: Set access control
+  ansible.builtin.template:
+    src: pg_hba.conf.j2
+    dest: "/etc/postgresql/{{ pgsql_version }}/main/pg_hba.conf"
+    owner: postgres
+    group: postgres
+    mode: "0640"
+  register: pgsql_access
+
+- name: Restart PostgreSQL
+  ansible.builtin.service:
+    name: postgresql.service
+    enabled: true
+    state: restarted
+  when: pgsql_configure is changed or pgsql_access is changed
+
+- name: Create databases
+  become: true
+  become_user: "{{ pgsql_become_user }}"
+  community.postgresql.postgresql_db:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ pgsql_databases }}"
+
+- name: Create users
+  become: true
+  become_user: "{{ pgsql_become_user }}"
+  community.postgresql.postgresql_user:
+    name: "{{ item.user }}"
+    password: "{{ item.password }}"
+    login_db: "{{ item.db | default(omit) }}"
+    priv: "{{ item.priv | default(omit) }}"
+  no_log: true
+  with_items: "{{ pgsql_users }}"
+
+- name: Create schemas
+  become: true
+  become_user: "{{ pgsql_become_user }}"
+  community.postgresql.postgresql_schema:
+    login_db: "{{ item.db }}"
+    name: "{{ item.name }}"
+    owner: "{{ item.owner | default(omit) }}"
+  with_items: "{{ pgsql_schemas }}"
+
+- name: Apply privs
+  become: true
+  become_user: "{{ pgsql_become_user }}"
+  community.postgresql.postgresql_privs:
+    login_db: "{{ item.db }}"
+    roles: "{{ item.roles }}"
+    privs: "{{ item.privs }}"
+    type: "{{ item.type | default(omit) }}"
+    objs: "{{ item.objs | default(omit) }}"
+    schema: "{{ item.schema | default(omit) }}"
+    target_roles: "{{ item.target_roles | default(omit) }}"
+  with_items: "{{ pgsql_privs }}"
+
+- name: Enable extensions
+  become: true
+  become_user: "{{ pgsql_become_user }}"
+  community.postgresql.postgresql_ext:
+    name: "{{ item.name }}"
+    login_db: "{{ item.db }}"
+  with_items: "{{ pgsql_extensions }}"

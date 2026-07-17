@@ -1,9 +1,10 @@
 ---
 # Values shared by converge.yml and verify.yml. Throwaway test credentials
 # with a realistic shape, never real ones.
-# The role has no default for postgres_version and ships config templates for
-# 12, 13, 15, 17 and 18; PGDG publishes all of them for bookworm and trixie.
-# Split the coverage across the platforms: bookworm exercises the widely
-# deployed 15, trixie the newest major (17 shares 18's template shape).
-postgres_version: "{{ 15 if ansible_facts['distribution_release'] == 'bookworm' else 18 }}"
-postgres_molecule_user_password: molecule-Pgsql-Passw0rd1
+# The role has no default for pgsql_version; server mode supports 15-18 via
+# one unified template, and PGDG publishes all of them for bookworm and
+# trixie. Split the coverage across the platforms: bookworm exercises the
+# widely deployed 15, trixie the newest major 18 (which also proves the
+# io_method conditional renders).
+pgsql_version: "{{ 15 if ansible_facts['distribution_release'] == 'bookworm' else 18 }}"
+pgsql_molecule_user_password: molecule-Pgsql-Passw0rd1

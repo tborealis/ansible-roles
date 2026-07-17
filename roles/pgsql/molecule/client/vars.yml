@@ -1,0 +1,5 @@
+---
+# Values shared by converge.yml and verify.yml.
+# Client mode accepts any PGDG major; keep the same release split as the
+# default scenario for symmetry.
+pgsql_version: "{{ 15 if ansible_facts['distribution_release'] == 'bookworm' else 18 }}"

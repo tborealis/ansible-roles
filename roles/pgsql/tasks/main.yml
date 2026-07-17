@@ -1,136 +1,29 @@
 ---
-- name: Assert postgres_version is a supported major
+- name: Assert pgsql_mode is valid
   ansible.builtin.assert:
     that:
-      - postgres_version is defined
-      - postgres_version | string in pgsql_supported_versions | map('string') | list
+      - pgsql_mode in ['server', 'client']
+    fail_msg: pgsql_mode must be "server" or "client".
+
+- name: Assert pgsql_version is set
+  ansible.builtin.assert:
+    that:
+      - pgsql_version is defined
     fail_msg: >-
-      postgres_version must be set to a PostgreSQL major the role ships config
-      templates for ({{ pgsql_supported_versions | join(', ') }}).
+      pgsql_version must be set to the PostgreSQL major version to install.
 
-# locales for the locale_gen task, acl for unprivileged become_user postgres
-- name: Install prerequisites
-  ansible.builtin.apt:
-    pkg:
-      - python3-debian
-      - locales
-      - acl
-    state: present
-    update_cache: true
-    cache_valid_time: 3600
+- name: Assert pgsql_version is a supported server major
+  ansible.builtin.assert:
+    that:
+      - pgsql_version | string in pgsql_supported_versions | map('string') | list
+    fail_msg: >-
+      In server mode pgsql_version must be a PostgreSQL major the role ships
+      config templates for ({{ pgsql_supported_versions | join(', ') }}).
+  when: pgsql_mode == 'server'
 
-- name: Add PostgreSQL repository
-  ansible.builtin.deb822_repository:
-    name: postgresql
-    types: [deb]
-    uris: https://apt.postgresql.org/pub/repos/apt/
-    suites: "{{ ansible_facts['distribution_release'] }}-pgdg"
-    components: main
-    signed_by: /etc/apt/keyrings/postgresql.gpg
-    state: present
-  register: postgres_repo
+- name: Set up the PGDG repository and client tools
+  ansible.builtin.import_tasks: client.yml
 
-- name: Find legacy PostgreSQL list file
-  ansible.builtin.find:
-    paths: /etc/apt/sources.list.d
-    patterns: "*.list"
-    contains: 'apt\.postgresql\.org'
-    read_whole_file: true
-  register: postgres_legacy_list
-
-- name: Remove legacy PostgreSQL list file
-  ansible.builtin.file:
-    path: "{{ item.path }}"
-    state: absent
-  loop: "{{ postgres_legacy_list.files }}"
-  loop_control:
-    label: "{{ item.path }}"
-
-- name: Update apt cache after adding repository # noqa: no-handler
-  ansible.builtin.apt:
-    update_cache: true
-  when: postgres_repo is changed
-
-- name: Install PostgreSQL packages
-  ansible.builtin.apt:
-    pkg: "{{ postgres_default_packages + postgres_additional_packages }}"
-    state: present
-    update_cache: true
-    cache_valid_time: 3600
-
-- name: Ensure required locale present
-  community.general.locale_gen:
-    name: "{{ postgres_locale }}"
-    state: present
-
-- name: Configure PostgreSQL
-  ansible.builtin.template:
-    src: postgresql-{{ postgres_version }}.conf.j2
-    dest: "/etc/postgresql/{{ postgres_version }}/main/postgresql.conf"
-    mode: "0644"
-  register: check_postgres_configure
-
-- name: Set access control
-  ansible.builtin.template:
-    src: pg_hba-{{ postgres_version }}.conf.j2
-    dest: "/etc/postgresql/{{ postgres_version }}/main/pg_hba.conf"
-    owner: postgres
-    group: postgres
-    mode: "0640"
-  register: check_postgres_access
-
-- name: Restart PostgreSQL
-  ansible.builtin.service:
-    name: postgresql.service
-    enabled: true
-    state: restarted
-  when: check_postgres_configure is changed or check_postgres_access is changed
-
-- name: Create databases
-  become: true
-  become_user: "{{ postgres_become_user }}"
-  community.postgresql.postgresql_db:
-    name: "{{ item }}"
-    state: present
-  with_items: "{{ postgres_databases }}"
-
-- name: Create users
-  become: true
-  become_user: "{{ postgres_become_user }}"
-  community.postgresql.postgresql_user:
-    name: "{{ item.user }}"
-    password: "{{ item.password }}"
-    login_db: "{{ item.db | default(omit) }}"
-    priv: "{{ item.priv | default(omit) }}"
-  no_log: true
-  with_items: "{{ postgres_users }}"
-
-- name: Create schemas
-  become: true
-  become_user: "{{ postgres_become_user }}"
-  community.postgresql.postgresql_schema:
-    login_db: "{{ item.db }}"
-    name: "{{ item.name }}"
-    owner: "{{ item.owner | default(omit) }}"
-  with_items: "{{ postgres_schemas }}"
-
-- name: Apply privs
-  become: true
-  become_user: "{{ postgres_become_user }}"
-  community.postgresql.postgresql_privs:
-    login_db: "{{ item.db }}"
-    roles: "{{ item.roles }}"
-    privs: "{{ item.privs }}"
-    type: "{{ item.type | default(omit) }}"
-    objs: "{{ item.objs | default(omit) }}"
-    schema: "{{ item.schema | default(omit) }}"
-    target_roles: "{{ item.target_roles | default(omit) }}"
-  with_items: "{{ postgres_privs }}"
-
-- name: Enable extensions
-  become: true
-  become_user: "{{ postgres_become_user }}"
-  community.postgresql.postgresql_ext:
-    name: "{{ item.name }}"
-    login_db: "{{ item.db }}"
-  with_items: "{{ postgres_extensions }}"
+- name: Install and configure the PostgreSQL server
+  ansible.builtin.import_tasks: server.yml
+  when: pgsql_mode == 'server'

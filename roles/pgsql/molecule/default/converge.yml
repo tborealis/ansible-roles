@@ -6,14 +6,17 @@
     - vars.yml
   vars:
     # Non-default tuning values so verify can assert the templates took them.
-    postgres_max_connections: 50
-    postgres_shared_buffers: 128MB
-    postgres_effective_cache_size: 512MB
-    postgres_max_wal_size: 2GB
-    postgres_databases:
+    pgsql_max_connections: 50
+    pgsql_shared_buffers: 128MB
+    pgsql_effective_cache_size: 512MB
+    pgsql_max_wal_size: 2GB
+    pgsql_work_mem: 8MB
+    pgsql_wal_compression: zstd
+    pgsql_timezone: Pacific/Auckland
+    pgsql_databases:
       - molecule_db
-    postgres_users:
+    pgsql_users:
       - user: molecule_user
-        password: "{{ postgres_molecule_user_password }}"
+        password: "{{ pgsql_molecule_user_password }}"
   roles:
     - role: tborealis.roles.pgsql

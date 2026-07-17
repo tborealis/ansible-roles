@@ -15,7 +15,7 @@
     components: main
     signed_by: /etc/apt/keyrings/postgresql.gpg
     state: present
-  register: postgres_repo
+  register: pgsql_repo
 
 - name: Find legacy PostgreSQL list file
   ansible.builtin.find:
@@ -23,24 +23,24 @@
     patterns: "*.list"
     contains: 'apt\.postgresql\.org'
     read_whole_file: true
-  register: postgres_legacy_list
+  register: pgsql_legacy_list
 
 - name: Remove legacy PostgreSQL list file
   ansible.builtin.file:
     path: "{{ item.path }}"
     state: absent
-  loop: "{{ postgres_legacy_list.files }}"
+  loop: "{{ pgsql_legacy_list.files }}"
   loop_control:
     label: "{{ item.path }}"
 
 - name: Update apt cache after adding repository # noqa: no-handler
   ansible.builtin.apt:
     update_cache: true
-  when: postgres_repo is changed
+  when: pgsql_repo is changed
 
 - name: Install PostgreSQL client packages
   ansible.builtin.apt:
-    pkg: "{{ postgres_default_packages }}"
+    pkg: "{{ pgsql_client_packages }}"
     state: present
     update_cache: true
     cache_valid_time: 3600

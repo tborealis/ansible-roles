@@ -1,0 +1,48 @@
+data_directory = '/var/lib/postgresql/{{ pgsql_version }}/main'
+hba_file = '/etc/postgresql/{{ pgsql_version }}/main/pg_hba.conf'
+ident_file = '/etc/postgresql/{{ pgsql_version }}/main/pg_ident.conf'
+external_pid_file = '/var/run/postgresql/{{ pgsql_version }}-main.pid'
+
+listen_addresses = 'localhost'
+port = 5432
+max_connections = {{ pgsql_max_connections }}
+unix_socket_directories = '/var/run/postgresql'
+
+ssl = off
+
+shared_buffers = {{ pgsql_shared_buffers }}
+work_mem = {{ pgsql_work_mem }}
+maintenance_work_mem = {{ pgsql_maintenance_work_mem }}
+shared_memory_type = mmap
+dynamic_shared_memory_type = posix
+
+fsync = {{ pgsql_fsync }}
+synchronous_commit = {{ pgsql_synchronous_commit }}
+full_page_writes = {{ pgsql_full_page_writes }}
+wal_compression = {{ pgsql_wal_compression }}
+max_wal_size = {{ pgsql_max_wal_size }}
+min_wal_size = 80MB
+
+effective_cache_size = {{ pgsql_effective_cache_size }}
+random_page_cost = {{ pgsql_random_page_cost }}
+{% if pgsql_version | int >= 18 %}
+
+io_method = {{ pgsql_io_method }}
+{% endif %}
+
+log_line_prefix = '%m [%p] %q%u@%d '
+log_timezone = '{{ pgsql_timezone }}'
+
+cluster_name = '{{ pgsql_version }}/main'
+
+datestyle = 'iso, dmy'
+timezone = '{{ pgsql_timezone }}'
+
+lc_messages = '{{ pgsql_locale }}'
+lc_monetary = '{{ pgsql_locale }}'
+lc_numeric = '{{ pgsql_locale }}'
+lc_time = '{{ pgsql_locale }}'
+
+default_text_search_config = 'pg_catalog.english'
+
+include_dir = 'conf.d'

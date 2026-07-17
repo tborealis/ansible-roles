@@ -63,6 +63,31 @@ flagged with **BREAKING** and require a MAJOR version bump.
   (`molecule test --all`); `make test` accepts `SCENARIO=<name>`.
 - **meta:** all v6.0.0 breaking changes are collected in one migration guide,
   `docs/migrating-v6.md`, which absorbs `docs/migrating-php-roles.md`.
+- **pgsql:** **BREAKING** — consolidated with `pgsql_client` behind a
+  `pgsql_mode` switch (`server`, the default, or `client`), and all
+  `postgres_*` variables renamed to `pgsql_*`. The colliding
+  `postgres_default_packages` (server+client packages in `pgsql`, client
+  packages in `pgsql_client`) is split into `pgsql_server_packages` and
+  `pgsql_client_packages`; `pgsql_locale` is decoupled from base's
+  `system_default_locale` (same `en_GB.UTF-8` effective default); the dead
+  `Restart postgres` handler and the unreachable
+  `remove-postgres.yml`/`remove-postgres-client.yml` task files are removed.
+  See `docs/migrating-v6.md`. (#128)
+- **pgsql:** **BREAKING** — server mode drops PostgreSQL 12/13 and supports
+  15–18 (16 newly accepted); the per-version config templates — identical
+  for 15/17/18 — are unified into one `postgresql.conf.j2`/`pg_hba.conf.j2`.
+  New tunables: `pgsql_work_mem` (4MB), `pgsql_maintenance_work_mem` (256MB,
+  sized for the new baseline), `pgsql_random_page_cost`,
+  `pgsql_wal_compression`, `pgsql_timezone` (replaces the hardcoded
+  Europe/London `timezone`/`log_timezone`, same default) and
+  `pgsql_io_method` (rendered on 18+ only, stock `worker`). Changed
+  defaults, deliberately fleet-tuned for SSD/NVMe hosts: the memory baseline
+  moves from 2GB to 4GB RAM (`pgsql_shared_buffers` 512MB → 1GB,
+  `pgsql_effective_cache_size` 1GB → 2GB), `pgsql_random_page_cost` is 1.1
+  (stock 4.0 models spinning disks — query plans can shift, generally for
+  the better), and `pgsql_wal_compression` is `lz4` (stock off; compresses
+  WAL full-page images, safe on existing clusters as it only affects newly
+  written WAL). The README gains a per-variable tuning guide. (#128)
 
 ### Removed
 
@@ -86,6 +111,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
   `docs/migrating-v6.md`. (#138)
 - **dotenv, environment:** **BREAKING** — both roles are removed, replaced by
   the new `env_file` role. See `docs/migrating-v6.md`. (#136)
+- **pgsql_client:** **BREAKING** — the role is removed, merged into `pgsql`
+  as `pgsql_mode: client`. See `docs/migrating-v6.md`. (#128)
 - **rrsync:** **BREAKING** — the role is removed. rsync ships
   `/usr/bin/rrsync` since bookworm, so the role was reduced to installing
   rsync plus a redundant `/usr/local/bin/rrsync` symlink; `dbcd` installs

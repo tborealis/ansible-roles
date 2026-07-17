@@ -108,7 +108,7 @@ apt_keys_keyrings:
       suites: main
       components: main
 
-  # Shared by the pgsql and pgsql_client roles (identical keyring).
+  # Used by the pgsql role (server and client modes).
   - name: postgresql
     src: postgresql.gpg
     dest: /etc/apt/keyrings/postgresql.gpg

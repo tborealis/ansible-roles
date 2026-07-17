@@ -157,6 +157,82 @@ AWS CLI itself.
 - The CLI and Session Manager plugin versions are now pinned; arm64 is
   supported.
 
+## pgsql + pgsql_client → pgsql
+
+The `pgsql_client` role is removed; the [`pgsql`](../roles/pgsql/README.md)
+role now handles both jobs via `pgsql_mode` (`server`, the default, or
+`client`). All `postgres_*` variables are renamed to `pgsql_*`.
+
+```yaml
+# before
+roles:
+  - role: tborealis.roles.pgsql_client
+vars:
+  postgres_version: 15
+
+# after
+roles:
+  - role: tborealis.roles.pgsql
+vars:
+  pgsql_mode: client
+  pgsql_version: 15
+```
+
+### Variable mapping
+
+| Old | New |
+|-----|-----|
+| `postgres_version` | `pgsql_version` |
+| `postgres_default_packages` (pgsql: server+client packages; pgsql_client: client packages — same name, conflicting meanings) | split into `pgsql_server_packages` and `pgsql_client_packages` |
+| `postgres_databases` | `pgsql_databases` |
+| `postgres_users` | `pgsql_users` |
+| `postgres_schemas` | `pgsql_schemas` |
+| `postgres_privs` | `pgsql_privs` |
+| `postgres_extensions` | `pgsql_extensions` |
+| `postgres_become_user` | `pgsql_become_user` |
+| `postgres_additional_packages` | `pgsql_additional_packages` |
+| `postgres_shared_buffers` | `pgsql_shared_buffers` |
+| `postgres_effective_cache_size` | `pgsql_effective_cache_size` |
+| `postgres_max_connections` | `pgsql_max_connections` |
+| `postgres_risky_fast` | `pgsql_risky_fast` |
+| `postgres_full_page_writes` | `pgsql_full_page_writes` |
+| `postgres_synchronous_commit` | `pgsql_synchronous_commit` |
+| `postgres_fsync` | `pgsql_fsync` |
+| `postgres_max_wal_size` | `pgsql_max_wal_size` |
+| `postgres_locale` | `pgsql_locale` |
+
+### Version support
+
+Server mode now supports PostgreSQL **15–18** (16 is newly accepted; 12 and
+13 are dropped). Hosts still on 12/13 must upgrade the cluster to 15+ before
+converging v6 server mode — `pg_upgradecluster` with both majors installed
+(use the pre-v6 role or manual packages), or dump/restore into a fresh 15+
+cluster. Client mode still accepts any PGDG major.
+
+### New tunables and changed defaults
+
+The per-version config templates are unified; the template now also manages
+`work_mem`, `maintenance_work_mem`, `random_page_cost`, `wal_compression`,
+`timezone`/`log_timezone` (via `pgsql_timezone`, same Europe/London default)
+and, on 18+, `io_method` — see the role README's Tuning section. Deliberate
+default changes to review: memory baseline 2GB → 4GB
+(`pgsql_shared_buffers` 512MB → 1GB, `pgsql_effective_cache_size` 1GB →
+2GB — set the old values explicitly on 2GB hosts),
+`pgsql_random_page_cost: 1.1` (SSD/NVMe; set 4.0 on spinning disks),
+`pgsql_wal_compression: lz4` (safe on existing clusters; set `"off"` to keep
+stock behaviour) and `pgsql_maintenance_work_mem: 256MB` (stock 64MB).
+
+### Behavioural changes
+
+- `pgsql_locale` no longer defaults to base's `system_default_locale`; it is
+  a fixed `en_GB.UTF-8` (the same effective default). Set it explicitly if
+  your hosts use another locale.
+- The never-notified `Restart postgres` handler is gone (the role restarts
+  inline on config changes, as before). Any cross-role `notify: Restart
+  postgres` in your playbooks — which never worked reliably — must go.
+- The unreachable `remove-postgres.yml` / `remove-postgres-client.yml` task
+  files are deleted.
+
 ## dotenv + environment → env_file
 
 Both roles are removed, replaced by the single
