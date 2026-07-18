@@ -39,6 +39,7 @@ roles/example/
 ├── defaults/main.yml    # Default variables (use role_ prefix)
 ├── tasks/main.yml       # Main tasks
 ├── handlers/main.yml    # Handlers (if needed)
+├── meta/main.yml        # Only when the role has dependencies (e.g. - role: apt_keys)
 ├── templates/           # Jinja2 templates
 └── README.md            # Role documentation with variable table
 ```
@@ -79,7 +80,7 @@ files must pass `make lint`. Full guide: [`docs/testing.md`](docs/testing.md).
 Role READMEs should include:
 - Brief description
 - Requirements (if any)
-- Variables table with Name, Default, and Description columns
+- Variables table with Variable, Default, and Description columns
 - No example playbook sections
 
 ## Versioning & releases

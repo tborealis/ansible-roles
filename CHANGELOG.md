@@ -186,6 +186,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Fixed
 
+- **meta:** the README role table no longer lists the long-removed `ant` role,
+  and AGENTS.md matches reality (READMEs use a `Variable` column, `meta/main.yml`
+  added to the role-structure diagram).
 - **phpbu:** `phpbu_cron_time` now defaults to daily at 02:30, so the role
   converges on stock defaults instead of erroring; the phar and XSD are no
   longer re-downloaded on every run (the install is skipped entirely while

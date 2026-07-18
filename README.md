@@ -25,7 +25,6 @@ Reference the roles using the collection namespace:
 
 | Role | Description |
 |------|-------------|
-| [ant](roles/ant/README.md) | Apache Ant installation |
 | [apache2](roles/apache2/README.md) | Apache2 web server |
 | [apt_keys](roles/apt_keys/README.md) | Centralised apt repository signing keys |
 | [aws](roles/aws/README.md) | AWS CLI installation and per-user configuration |
