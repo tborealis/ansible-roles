@@ -19,7 +19,7 @@ certbot_certs: # array of certificates to request
   - test.example.com
   deploy_hook: /path/to/deploy.sh # optional script to run after certificate renewal
 certbot_dry_run: false # test mode that prevents creation or download of certs (default: false)
-apache2_ssl_vhosts: # apache mode only: SSL vhosts to install once certificates exist (default: [])
+certbot_apache2_ssl_vhosts: # apache mode only: SSL vhosts to install once certificates exist (default: apache2_vhosts if defined, else [])
 - src: example-ssl.conf.j2 # template resolved from templates/apache2/vhosts/ next to the playbook
   dest: example-ssl.conf # filename under /etc/apache2/sites-available/, symlinked into sites-enabled
 ```
@@ -34,7 +34,7 @@ If using the `nginx` mode, this role should be run before nginx is installed as 
 are not present.
 
 If using the `apache` mode, apache2 must already be installed (e.g. via the `apache2` role). Vhost templates listed in
-`apache2_ssl_vhosts` are resolved relative to the consuming playbook, so they must live in `templates/apache2/vhosts/`
+`certbot_apache2_ssl_vhosts` are resolved relative to the consuming playbook, so they must live in `templates/apache2/vhosts/`
 next to it.
 
 If using the `dns-digitalocean` mode, you will need to set the `certbot_digitalocean_dns_token` var to an API token with

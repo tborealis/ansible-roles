@@ -1,8 +1,7 @@
 ---
-profile: shared
+profile: production
 skip_list:
   - experimental
-  - var-naming[no-role-prefix]
 kinds:
   # Shared molecule scenario values, not playbooks (see docs/testing.md)
   - vars: "**/molecule/*/vars.yml"

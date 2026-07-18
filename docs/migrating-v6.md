@@ -478,6 +478,20 @@ Removing the role does not delete the symlink from existing hosts, so
 until it is removed manually. Rewrite them to plain `rrsync` (or
 `/usr/bin/rrsync`) anyway — the symlink is no longer managed.
 
+## tasks: shared task files removed
+
+The `tasks` pseudo-role (`roles/tasks/`) and its `add-key.yml` and
+`secure-vars.yml` task files are removed.
+
+- `add-key.yml` pre-tasks are superseded by the `apt_keys` role, which
+  installs every repository keyring to `/etc/apt/keyrings/` before any
+  `apt-get update` — drop the pre-task; no replacement is needed.
+- `secure-vars.yml` had been non-functional since the FQCN conversion (#87)
+  dropped the `path` argument from its `stat` task, so any playbook still
+  importing it was already failing. Load secure vars directly with
+  `ansible.builtin.include_vars` (e.g. `with_first_found` over
+  `secure_vars/<group>.yml`) if you need the pattern.
+
 ## apache2: dead variables removed
 
 `apache2_load_modules` and `apache2_conf` are removed. They were declared and
@@ -489,11 +503,13 @@ modules.
 `apache2_user` (previously hardcoded `www-data`; the default is unchanged),
 and changes to it restart Apache.
 
-## base and exim4: variables gain role prefixes
+## base, exim4 and certbot: variables gain role prefixes
 
-All of base's unprefixed variables are renamed with a `base_` prefix, and
-exim4's `mailname` becomes `exim4_mailname`. Rendered configs are unchanged
-when the new names carry the old values — this is a pure inventory rename.
+All of base's unprefixed variables are renamed with a `base_` prefix,
+exim4's `mailname` becomes `exim4_mailname`, and certbot's
+`apache2_ssl_vhosts` becomes `certbot_apache2_ssl_vhosts`. Rendered configs
+are unchanged when the new names carry the old values — this is a pure
+inventory rename.
 
 | Old | New |
 |-----|-----|
@@ -510,9 +526,16 @@ when the new names carry the old values — this is a pure inventory rename.
 | `ssh_extra_user_groups` | `base_ssh_extra_user_groups` |
 | `ssh_allow_tcp_forwarding` | `base_ssh_allow_tcp_forwarding` |
 | `mailname` (exim4) | `exim4_mailname` |
+| `apache2_ssl_vhosts` (certbot) | `certbot_apache2_ssl_vhosts` |
 
 Note that `pgsql_locale` no longer follows `system_default_locale` (see the
 pgsql section), so renaming the base variable does not cascade.
+
+`certbot_apache2_ssl_vhosts` also gains a new default: it follows
+`apache2_vhosts` when that is defined (falling back to `[]`), so apache mode
+installs the apache2 role's vhost list without repeating it. Playbooks that
+run certbot's apache mode alongside the apache2 role and want a *different*
+SSL vhost list must now set `certbot_apache2_ssl_vhosts` explicitly.
 
 ## base: dead `ssh_extra_conf_files` removed
 

@@ -25,7 +25,7 @@ Variables defined in roles must use the role name as a prefix:
 
 ### Ansible-lint Rules
 
-The project uses the `shared` profile. Key rules enforced:
+The project uses the `production` profile. Key rules enforced:
 - `partial-become`: Tasks with `become_user` must also have `become: true`
 - `risky-shell-pipe`: Shell commands with pipes need `set -o pipefail`
 - `no-handler`: Avoid `when: result is changed` patterns
