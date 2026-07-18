@@ -8,3 +8,4 @@ Installs Git and configures SSH known hosts for common Git providers.
 |----------|---------|-------------|
 | `git_known_hosts` | GitHub keys | SSH known hosts entries for Git providers |
 | `git_rewrite_deprecated_protocol` | `true` | Rewrite git:// URLs to https:// |
+| `git_use_backports` | `true` on bookworm | Install Git from the backports repository |

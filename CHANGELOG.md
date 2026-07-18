@@ -186,6 +186,10 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Fixed
 
+- **base, git, supervisor:** READMEs document the previously missing
+  `base_use_backports`, `base_config_dhclient` and `git_use_backports`
+  variables, and the `supervisor_crashmail_*` settings required when
+  `supervisor_crashmail_enable` is on.
 - **meta:** the README role table no longer lists the long-removed `ant` role,
   and AGENTS.md matches reality (READMEs use a `Variable` column, `meta/main.yml`
   added to the role-structure diagram).

@@ -21,3 +21,5 @@ Base system configuration including locales, timezone, users, DNS, and essential
 | `base_default_system_packages` | See defaults | Essential system packages |
 | `base_profile_config` | `[]` | Profile configuration entries |
 | `base_hosts_unsafe_writes` | `false` | Write /etc/hosts in place (for containers, where the bind mount breaks atomic renames) |
+| `base_use_backports` | `true` on bookworm | Configure the backports repository and install openssh-server from it |
+| `base_config_dhclient` | `true` on bookworm | Template /etc/dhcp/dhclient.conf to prepend the configured DNS servers |
