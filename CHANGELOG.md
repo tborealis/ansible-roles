@@ -186,6 +186,11 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Fixed
 
+- **certbot, dbcd, gpg:** READMEs rewritten to the standard variables-table
+  format. dbcd's fixes the wrong variable name it documented (`dbcd_mode` →
+  `dbcd_modes`), documents `dbcd_server_user`/`dbcd_data_dir`, and corrects the
+  consumer-mode requirements (`dbcd_consumer_user` + `dbcd_known_hosts`, not
+  `dbcd_client_user`).
 - **base, git, supervisor:** READMEs document the previously missing
   `base_use_backports`, `base_config_dhclient` and `git_use_backports`
   variables, and the `supervisor_crashmail_*` settings required when

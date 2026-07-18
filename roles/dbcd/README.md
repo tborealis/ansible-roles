@@ -1,30 +1,45 @@
 # Database Copy Down (DBCD)
 
-## Server
-Serves the database dump to the consumers. Read only access rsync access via the `dbcd_server_user` (default dbcd) for 
-consumers and write only rsync access for the client. Server mode installs `rsync` (which provides `rrsync`) and
-ensures the `ssh-users` group exists.
+Moves database dumps from a production server to its consumers over restricted rsync:
+the client pushes dumps to the server, and consumers pull them down. A host can take
+any combination of the three modes via `dbcd_modes`.
 
-### Required vars
-- dbcd_mode = `["server"]`
-- dbcd_server_client_public_key - The public key for write access, used by the client
-- dbcd_server_consumer_public_keys - List of public keys for read access, used by the consumers
+- **server** — serves the dump. Write-only rsync access for the client and read-only
+  rsync access for the consumers, both via the `dbcd_server_user` account. Installs
+  `rsync` (which provides `rrsync`) and ensures the `ssh-users` group exists.
+- **client** — sends the database dump to the server.
+- **consumer** — logs in to the server to rsync the dump down.
 
-## Client
-Sends the database dump to the server.
+## Role Variables
 
-### Required vars
-- dbcd_mode = `["client"]`
-- dbcd_client_user - Username that will send dumps to the server
-- dbcd_client_private_key - Private key for write access to the server
-- dbcd_server_host
-- dbcd_known_hosts - List of known hosts for the server, needed for automation
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `dbcd_modes` | `[]` | Modes to configure on the host: any of `server`, `client`, `consumer` |
+| `dbcd_server_user` | `dbcd` | Account on the server that clients and consumers connect as |
+| `dbcd_data_dir` | `/home/{{ dbcd_server_user }}/data` | Directory on the server that holds the dumps |
 
-## Consumer
-Logs in to the server to rsync the database dump.
+The remaining variables have no defaults and are required by the modes below.
 
-### Required vars
-- dbcd_mode = `["consumer"]`
-- dbcd_client_user
-- dbcd_consumer_user
-- dbcd_server_host
+### server
+
+| Variable | Description |
+|----------|-------------|
+| `dbcd_server_client_public_key` | Public key granted write-only access, used by the client |
+| `dbcd_server_consumer_public_keys` | List of public keys granted read-only access, used by consumers |
+
+### client
+
+| Variable | Description |
+|----------|-------------|
+| `dbcd_client_user` | Username that sends dumps to the server |
+| `dbcd_client_private_key` | Private key with write access to the server |
+| `dbcd_server_host` | Server hostname |
+| `dbcd_known_hosts` | List of known-hosts entries for the server, needed for automation |
+
+### consumer
+
+| Variable | Description |
+|----------|-------------|
+| `dbcd_consumer_user` | Local user that pulls dumps (gets the `dbcd-server-r` SSH host alias) |
+| `dbcd_server_host` | Server hostname |
+| `dbcd_known_hosts` | List of known-hosts entries for the server, needed for automation |
