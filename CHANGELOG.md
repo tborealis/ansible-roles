@@ -66,6 +66,10 @@ flagged with **BREAKING** and require a MAJOR version bump.
   See `docs/migrating-v6.md`.
 - **chrome:** the internal chromedriver registers/facts gain the `chrome_`
   prefix (no user-facing variables changed).
+- **stripe_cli:** the CLI is installed from Stripe's GPG-signed apt repository
+  (`packages.stripe.dev`, key managed by `apt_keys`) instead of an unverified
+  `.deb` downloaded from GitHub releases. Version pinning via
+  `stripe_cli_version` is unchanged (the repository retains every release).
 - **redis:** the `Restart Redis` handler is renamed `Restart redis`, matching
   the lowercase handler naming used by every other role.
 - **meta:** ansible-lint moves from the `shared` profile to the strictest
