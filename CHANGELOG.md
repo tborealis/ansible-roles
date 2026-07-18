@@ -66,6 +66,12 @@ flagged with **BREAKING** and require a MAJOR version bump.
   See `docs/migrating-v6.md`.
 - **chrome:** the internal chromedriver registers/facts gain the `chrome_`
   prefix (no user-facing variables changed).
+- **stripe_cli:** the CLI is installed from Stripe's GPG-signed apt repository
+  (`packages.stripe.dev`, key managed by `apt_keys`) instead of an unverified
+  `.deb` downloaded from GitHub releases. Version pinning via
+  `stripe_cli_version` is unchanged (the repository retains every release).
+- **redis:** the `Restart Redis` handler is renamed `Restart redis`, matching
+  the lowercase handler naming used by every other role.
 - **meta:** ansible-lint moves from the `shared` profile to the strictest
   `production` profile, and `var-naming[no-role-prefix]` is no longer skipped,
   so role variables must carry the role-name prefix.
@@ -127,6 +133,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Removed
 
+- **rabbitmq:** the unused `Restart rabbitmq` handler — nothing in the role
+  notifies it and no task writes config that would need a restart.
 - **tasks:** **BREAKING** — the shared task-file pseudo-role (`roles/tasks/`)
   is removed. `add-key.yml` was superseded by the `apt_keys` role, and
   `secure-vars.yml` had been non-functional since the FQCN conversion (#87)
@@ -186,6 +194,18 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Fixed
 
+- **certbot, dbcd, gpg:** READMEs rewritten to the standard variables-table
+  format. dbcd's fixes the wrong variable name it documented (`dbcd_mode` →
+  `dbcd_modes`), documents `dbcd_server_user`/`dbcd_data_dir`, and corrects the
+  consumer-mode requirements (`dbcd_consumer_user` + `dbcd_known_hosts`, not
+  `dbcd_client_user`).
+- **base, git, supervisor:** READMEs document the previously missing
+  `base_use_backports`, `base_config_dhclient` and `git_use_backports`
+  variables, and the `supervisor_crashmail_*` settings required when
+  `supervisor_crashmail_enable` is on.
+- **meta:** the README role table no longer lists the long-removed `ant` role,
+  and AGENTS.md matches reality (READMEs use a `Variable` column, `meta/main.yml`
+  added to the role-structure diagram).
 - **phpbu:** `phpbu_cron_time` now defaults to daily at 02:30, so the role
   converges on stock defaults instead of erroring; the phar and XSD are no
   longer re-downloaded on every run (the install is skipped entirely while

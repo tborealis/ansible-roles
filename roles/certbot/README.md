@@ -1,47 +1,51 @@
-Certbot role
-============
+# certbot
 
-This role installs certbot and requests certificates for the specified domains. It can be used in three modes: 
-- `nginx`
-- `apache`
-- `dns-digitalocean`
+Installs certbot and requests Let's Encrypt certificates in one of three modes:
+`nginx`, `apache` or `dns-digitalocean`.
 
-Config
-------
+## Requirements
+
+- `nginx` mode should run **before** nginx is installed, as nginx fails to start
+  when configured certificates are missing.
+- `apache` mode expects apache2 to be installed already (e.g. via the `apache2` role).
+- `dns-digitalocean` mode needs a DigitalOcean API token with all `domain` scopes,
+  generated at https://cloud.digitalocean.com/account/api/tokens/new.
+
+## Role Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `certbot_mode` | Required | Mode: `nginx`, `apache` or `dns-digitalocean` |
+| `certbot_certs` | `[]` | Certificates to request; see below |
+| `certbot_dry_run` | `false` | Pass `--dry-run` to certbot: exercises the request without creating certificates, avoiding rate limits |
+| `certbot_apache2_ssl_vhosts` | `apache2_vhosts` if defined, else `[]` | `apache` mode only: SSL vhosts to install once certificates exist; see below |
+| `certbot_digitalocean_dns_token` | Required in `dns-digitalocean` mode | DigitalOcean API token with all `domain` scopes |
+
+## Certificates
+
+Each `certbot_certs` item requests one certificate:
 
 ```yaml
-certbot_mode: nginx|dns-digitalocean|apache
-certbot_certs: # array of certificates to request
-- admin_email: admin@example.com # administration email address
-  name: example.com # name of the certificate
-  domains: # array of domains in single certificate
-  - example.com
-  - test.example.com
-  deploy_hook: /path/to/deploy.sh # optional script to run after certificate renewal
-certbot_dry_run: false # test mode that prevents creation or download of certs (default: false)
-certbot_apache2_ssl_vhosts: # apache mode only: SSL vhosts to install once certificates exist (default: apache2_vhosts if defined, else [])
-- src: example-ssl.conf.j2 # template resolved from templates/apache2/vhosts/ next to the playbook
-  dest: example-ssl.conf # filename under /etc/apache2/sites-available/, symlinked into sites-enabled
+certbot_certs:
+  - name: example.com                # certificate directory: /etc/letsencrypt/live/<name>/
+    admin_email: admin@example.com   # registration and expiry email address
+    domains:                         # domains covered by the single certificate
+      - example.com
+      - test.example.com
+    deploy_hook: /path/to/deploy.sh  # optional: script run after issue/renewal
 ```
 
-Notes
------
+See https://certbot.eff.org/docs/using.html#where-are-my-certificates for which keys
+and certificates to reference in webserver config.
 
-The name key will be used for the dir of the certificate. In the example above the cert will be
-stored at `/etc/letsencrypt/live/example.com/cert.pem`.
+## Apache SSL vhosts
 
-If using the `nginx` mode, this role should be run before nginx is installed as nginx will fail to start if the certs 
-are not present.
+`apache` mode installs the vhosts in `certbot_apache2_ssl_vhosts` after the
+certificates exist. Templates are resolved relative to the consuming playbook, so they
+must live in `templates/apache2/vhosts/` next to it:
 
-If using the `apache` mode, apache2 must already be installed (e.g. via the `apache2` role). Vhost templates listed in
-`certbot_apache2_ssl_vhosts` are resolved relative to the consuming playbook, so they must live in `templates/apache2/vhosts/`
-next to it.
-
-If using the `dns-digitalocean` mode, you will need to set the `certbot_digitalocean_dns_token` var to an API token with
-all `domain` scopes. This can be generated at https://cloud.digitalocean.com/account/api/tokens/new.
-
-See https://certbot.eff.org/docs/using.html#where-are-my-certificates for more details on which keys and certs
-should be used in the webserver config.
-
-The `certbot_dry_run` option is useful for testing the role without actually requesting certificates, which avoids rate 
-limit issues.
+```yaml
+certbot_apache2_ssl_vhosts:
+  - src: example-ssl.conf.j2  # template in templates/apache2/vhosts/
+    dest: example-ssl.conf    # filename under /etc/apache2/sites-available/, symlinked into sites-enabled
+```

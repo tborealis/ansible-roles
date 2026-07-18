@@ -1,13 +1,30 @@
 ---
-- name: Check existing stripe version
-  ansible.builtin.command: /usr/bin/stripe --version
-  changed_when: false
-  failed_when: stripe_cli_version_result.rc not in [0, 2]
-  register: stripe_cli_version_result
+- name: Install deb822 dependency
+  ansible.builtin.apt:
+    pkg: python3-debian
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Add Stripe CLI repository
+  ansible.builtin.deb822_repository:
+    name: stripe
+    types: [deb]
+    uris: https://packages.stripe.dev/stripe-cli-debian-local
+    suites: stable
+    components: main
+    signed_by: /etc/apt/keyrings/stripe.gpg
+  register: stripe_cli_repo
+
+- name: Update apt cache after adding repository # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: stripe_cli_repo is changed
 
 - name: Install stripe-cli
   ansible.builtin.apt:
-    deb: "https://github.com/stripe/stripe-cli/releases/download/v{{ stripe_cli_version }}/stripe_{{ stripe_cli_version }}_linux_amd64.deb"
+    name: "stripe={{ stripe_cli_version }}"
+    allow_downgrade: true
+    state: present
     update_cache: true
     cache_valid_time: 3600
-  when: stripe_cli_version_result is failed or stripe_cli_version|string not in stripe_cli_version_result.stdout

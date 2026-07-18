@@ -50,7 +50,7 @@
     owner: root
     group: redis
     mode: "0640"
-  notify: Restart Redis
+  notify: Restart redis
 
 - name: Include Redis overrides
   ansible.builtin.lineinfile:
@@ -58,7 +58,7 @@
     line: include /etc/redis/redis-ansible.conf
     insertafter: EOF
     state: present
-  notify: Restart Redis
+  notify: Restart redis
 
 - name: Enable and start Redis
   ansible.builtin.systemd:

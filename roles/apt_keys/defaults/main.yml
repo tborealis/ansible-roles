@@ -99,6 +99,15 @@ apt_keys_keyrings:
       suites: main
       components: main
 
+  - name: stripe
+    src: stripe.gpg
+    dest: /etc/apt/keyrings/stripe.gpg
+    url: https://packages.stripe.dev/api/security/keypair/stripe-cli-gpg/public
+    repo:
+      uris: https://packages.stripe.dev/stripe-cli-debian-local
+      suites: stable
+      components: main
+
   # Used by the pgsql role (server and client modes).
   - name: postgresql
     src: postgresql.gpg
