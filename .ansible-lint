@@ -1,5 +1,5 @@
 ---
-profile: shared
+profile: production
 skip_list:
   - experimental
 kinds:

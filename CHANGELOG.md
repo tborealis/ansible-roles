@@ -66,7 +66,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
   See `docs/migrating-v6.md`.
 - **chrome:** the internal chromedriver registers/facts gain the `chrome_`
   prefix (no user-facing variables changed).
-- **meta:** `var-naming[no-role-prefix]` is no longer skipped by ansible-lint,
+- **meta:** ansible-lint moves from the `shared` profile to the strictest
+  `production` profile, and `var-naming[no-role-prefix]` is no longer skipped,
   so role variables must carry the role-name prefix.
 - **phpbu:** molecule prepare uses the new `php` role instead of
   `php_repo_sury` plus manual package installs.
