@@ -66,6 +66,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
   See `docs/migrating-v6.md`.
 - **chrome:** the internal chromedriver registers/facts gain the `chrome_`
   prefix (no user-facing variables changed).
+- **redis:** the `Restart Redis` handler is renamed `Restart redis`, matching
+  the lowercase handler naming used by every other role.
 - **meta:** ansible-lint moves from the `shared` profile to the strictest
   `production` profile, and `var-naming[no-role-prefix]` is no longer skipped,
   so role variables must carry the role-name prefix.
@@ -127,6 +129,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Removed
 
+- **rabbitmq:** the unused `Restart rabbitmq` handler — nothing in the role
+  notifies it and no task writes config that would need a restart.
 - **tasks:** **BREAKING** — the shared task-file pseudo-role (`roles/tasks/`)
   is removed. `add-key.yml` was superseded by the `apt_keys` role, and
   `secure-vars.yml` had been non-functional since the FQCN conversion (#87)
