@@ -133,6 +133,10 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Removed
 
+- **mysql:** **BREAKING** — the deprecated `mysql_innodb_log_file_size` and
+  `mysql_innodb_log_files_in_group` variables are removed and now silently
+  ignored; set `mysql_innodb_redo_log_capacity` (size × group) instead. See
+  `docs/migrating-v6.md`.
 - **rabbitmq:** the unused `Restart rabbitmq` handler — nothing in the role
   notifies it and no task writes config that would need a restart.
 - **tasks:** **BREAKING** — the shared task-file pseudo-role (`roles/tasks/`)
