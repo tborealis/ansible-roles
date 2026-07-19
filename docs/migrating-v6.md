@@ -492,6 +492,23 @@ The `tasks` pseudo-role (`roles/tasks/`) and its `add-key.yml` and
   `ansible.builtin.include_vars` (e.g. `with_first_found` over
   `secure_vars/<group>.yml`) if you need the pattern.
 
+## mysql: deprecated InnoDB redo log variables removed
+
+`mysql_innodb_log_file_size` and `mysql_innodb_log_files_in_group` are
+removed and now silently ignored if set. Previously they overrode
+`mysql_innodb_redo_log_capacity` (derived as `size × group`). Set
+`mysql_innodb_redo_log_capacity` to the same product instead — the default
+`256M` equals the old defaults (`128M × 2`):
+
+```yaml
+# before
+mysql_innodb_log_file_size: 512M
+mysql_innodb_log_files_in_group: 2
+
+# after
+mysql_innodb_redo_log_capacity: 1G
+```
+
 ## apache2: dead variables removed
 
 `apache2_load_modules` and `apache2_conf` are removed. They were declared and
