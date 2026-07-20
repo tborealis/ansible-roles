@@ -203,6 +203,10 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Fixed
 
+- **base:** the "Restart cron" handler (notified on timezone changes) now
+  restarts cron only when it is installed, instead of failing on images that
+  ship without cron (e.g. Debian 13 DigitalOcean droplets); base does not
+  install cron itself.
 - **node, php:** looped task names no longer reference the loop variable
   (node's n-version assert; php's remove-other-versions tasks), which emitted
   an "'item' is undefined" template-error warning on every run.

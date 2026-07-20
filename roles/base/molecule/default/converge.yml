@@ -12,10 +12,10 @@
       - en_GB.UTF-8
     base_system_default_locale: en_GB.UTF-8
     base_system_timezone: Europe/London
-    # cron also satisfies the role's "Restart cron" handler: the test image
-    # ships without cron, and the packages task runs before the handler fires.
-    base_system_packages:
-      - cron
+    # The test images ship without cron. Install it on bookworm only, mirroring
+    # the real DO images, so both handler paths are exercised: restart on
+    # bookworm, skip on trixie.
+    base_system_packages: "{{ ['cron'] if ansible_facts['distribution_release'] == 'bookworm' else [] }}"
     base_dns_primary_nameserver: 9.9.9.9
     base_dns_secondary_nameserver: 149.112.112.112
     base_local_hostnames:

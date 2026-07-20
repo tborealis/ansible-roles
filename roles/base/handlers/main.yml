@@ -1,9 +1,17 @@
 ---
+- name: Gather service facts for cron restart
+  ansible.builtin.service_facts:
+  listen: Restart cron
+
+# Base does not install cron; skip the restart on images without it (e.g.
+# DigitalOcean's Debian 13 no longer ships cron).
 - name: Restart cron
   ansible.builtin.service:
     name: cron
     state: restarted
     enabled: true
+  when: "'cron.service' in ansible_facts.services"
+  listen: Restart cron
 
 - name: Reload sshd
   ansible.builtin.service:

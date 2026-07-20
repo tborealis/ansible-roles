@@ -2,6 +2,10 @@
 
 Base system configuration including locales, timezone, users, DNS, and essential packages.
 
+The role does not install cron. When cron is present it is restarted after a
+timezone change so scheduled jobs pick up the new zone; on images without cron
+(e.g. DigitalOcean's Debian 13) the restart is skipped.
+
 ## Role Variables
 
 | Variable | Default | Description |
