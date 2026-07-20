@@ -1,6 +1,6 @@
 namespace: tborealis
 name: roles
-version: 5.2.0
+version: 6.0.0
 readme: README.md
 authors:
   - Tom Borealis <tom@lampbristol.com>
