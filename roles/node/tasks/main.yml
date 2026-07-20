@@ -24,7 +24,7 @@
       - node_version_manager == 'nvm' or node_nvm_config | length == 0
     fail_msg: node_nvm_config requires node_version_manager "nvm".
 
-- name: "Assert numeric n version: {{ item.version | default(item) }}"
+- name: Assert numeric n versions
   ansible.builtin.assert:
     that:
       - item.version is defined
