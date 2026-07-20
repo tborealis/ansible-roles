@@ -70,16 +70,27 @@
           - "'htop' in ansible_facts.packages"
           - "'zstd' in ansible_facts.packages"
           - "'openssh-server' in ansible_facts.packages"
-          - "'cron' in ansible_facts.packages"
 
     - name: Gather service facts
       ansible.builtin.service_facts:
 
-    - name: Assert cron and sshd are running
+    - name: Assert sshd is running
       ansible.builtin.assert:
         that:
-          - ansible_facts.services['cron.service'].state == 'running'
           - ansible_facts.services['ssh.service'].state == 'running'
+
+    - name: Assert cron was installed and restarted (bookworm)
+      ansible.builtin.assert:
+        that:
+          - "'cron' in ansible_facts.packages"
+          - ansible_facts.services['cron.service'].state == 'running'
+      when: ansible_facts['distribution_release'] == 'bookworm'
+
+    - name: Assert the cron restart was skipped on a cron-less image (trixie)
+      ansible.builtin.assert:
+        that:
+          - "'cron' not in ansible_facts.packages"
+      when: ansible_facts['distribution_release'] == 'trixie'
 
     - name: Read the passwd database
       ansible.builtin.getent:
