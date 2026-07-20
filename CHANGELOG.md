@@ -11,6 +11,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+## [6.0.0] - 2026-07-20
+
 ### Added
 
 - **meta:** custom ansible-lint rule `loop-var-in-name`
