@@ -20,7 +20,12 @@ Variables defined in roles must use the role name as a prefix:
 
 ### Task Naming
 
-- Jinja templates go at the end of task names: `Install packages for {{ item.name }}`
+- Jinja templates go at the end of task names: `Install packages for {{ php_version }}`
+- Never reference a task's own loop variable in its name — names are templated once,
+  before the loop, so the variable is always undefined there. Use `loop_control.label`
+  for per-item detail. Enforced by the custom `loop-var-in-name` lint rule
+  (`.config/ansible-lint-rules/`). Include-loop vars (`include_tasks` +
+  `loop_control.loop_var`) are fine in the *included* file's task names.
 - Use FQCNs for modules: `ansible.builtin.apt`, `community.general.locale_gen`
 
 ### Ansible-lint Rules

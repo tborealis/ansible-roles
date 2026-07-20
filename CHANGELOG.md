@@ -13,6 +13,11 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Added
 
+- **meta:** custom ansible-lint rule `loop-var-in-name`
+  (`.config/ansible-lint-rules/`) failing the lint gate when a task's name
+  references its own loop variable — names are templated before the loop, so
+  such names always emit an "'item' is undefined" template warning at run
+  time, which molecule never fails on.
 - **node:** optional tj/n version manager (`node_version_manager: n`): extra
   Node versions cached machine-wide from official nodejs.org builds
   (`node_n_versions`, with per-version global packages and pruning of
@@ -198,6 +203,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Fixed
 
+- **node, php:** looped task names no longer reference the loop variable
+  (node's n-version assert; php's remove-other-versions tasks), which emitted
+  an "'item' is undefined" template-error warning on every run.
 - **certbot, dbcd, gpg:** READMEs rewritten to the standard variables-table
   format. dbcd's fixes the wrong variable name it documented (`dbcd_mode` →
   `dbcd_modes`), documents `dbcd_server_user`/`dbcd_data_dir`, and corrects the

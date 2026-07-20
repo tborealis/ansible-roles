@@ -15,7 +15,7 @@
   ansible.builtin.service_facts:
   when: php_other_versions | length > 0
 
-- name: Stop and disable PHP FPM for other version {{ item }}
+- name: Stop and disable PHP FPM for other versions
   ansible.builtin.service:
     name: "php{{ item }}-fpm"
     state: stopped
@@ -23,7 +23,7 @@
   loop: "{{ php_other_versions }}"
   when: "'php' ~ item ~ '-fpm.service' in ansible_facts.services | default({})"
 
-- name: Purge PHP packages for other version {{ item }}
+- name: Purge PHP packages for other versions
   ansible.builtin.apt:
     pkg:
       - "php{{ item }}"
@@ -32,7 +32,7 @@
     purge: true
   loop: "{{ php_other_versions }}"
 
-- name: Remove configuration of other version {{ item }}
+- name: Remove configuration of other versions
   ansible.builtin.file:
     path: "/etc/php/{{ item }}"
     state: absent
