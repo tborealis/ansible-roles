@@ -1,5 +1,8 @@
 ---
 profile: production
+use_default_rules: true
+rulesdir:
+  - .config/ansible-lint-rules
 skip_list:
   - experimental
 kinds:
