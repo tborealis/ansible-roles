@@ -76,6 +76,9 @@
 - name: Configure unattended upgrades
   ansible.builtin.import_tasks: unattended-upgrades.yml
 
+- name: Configure needrestart
+  ansible.builtin.import_tasks: needrestart.yml
+
 - name: Generate required locales
   community.general.locale_gen:
     name: "{{ item }}"

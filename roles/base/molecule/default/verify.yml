@@ -71,6 +71,7 @@
           - "'zstd' in ansible_facts.packages"
           - "'openssh-server' in ansible_facts.packages"
           - "'unattended-upgrades' in ansible_facts.packages"
+          - "'needrestart' in ansible_facts.packages"
 
     - name: Gather service facts
       ansible.builtin.service_facts:
@@ -318,3 +319,70 @@
       ansible.builtin.assert:
         that:
           - "'argv[]=/usr/lib/apt/apt.systemd.daily update' in base_verify_upgrade_service.stdout"
+
+    # needrestart end-to-end, last because it mutates the container: run a
+    # daemon, swap its binary underneath it, then let a non-interactive apt
+    # run (the unattended-upgrades path) trigger needrestart's hook.
+    - name: Install a stand-in daemon binary
+      ansible.builtin.copy:
+        src: /usr/bin/sleep
+        dest: /usr/local/sbin/molecule-stale
+        remote_src: true
+        mode: "0755"
+
+    - name: Install the stand-in daemon unit
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/molecule-stale.service
+        content: |
+          [Service]
+          ExecStart=/usr/local/sbin/molecule-stale infinity
+        mode: "0644"
+
+    - name: Start the stand-in daemon
+      ansible.builtin.systemd_service:
+        name: molecule-stale.service
+        state: started
+        daemon_reload: true
+
+    - name: Record the stand-in daemon's PID # noqa: command-instead-of-module (reads unit properties for assertions)
+      ansible.builtin.command: systemctl show molecule-stale.service --property=MainPID --value
+      register: base_verify_stale_pid_before
+      changed_when: false
+
+    - name: Replace the binary under the running daemon
+      ansible.builtin.command: cp --remove-destination /usr/bin/sleep /usr/local/sbin/molecule-stale
+      changed_when: true
+
+    - name: List services needrestart considers outdated
+      ansible.builtin.command: needrestart -b
+      register: base_verify_needrestart_before
+      changed_when: false
+
+    - name: Assert needrestart detects the outdated daemon
+      ansible.builtin.assert:
+        that:
+          - "'NEEDRESTART-SVC: molecule-stale.service' in base_verify_needrestart_before.stdout_lines"
+
+    # The .deb is still cached from converge, so this needs no network.
+    - name: Reinstall a package to fire the needrestart apt hook # noqa: command-instead-of-module (the apt module cannot reinstall)
+      ansible.builtin.command: apt-get install -y --reinstall nano
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+      changed_when: true
+
+    - name: Record the stand-in daemon's PID after the hook # noqa: command-instead-of-module (reads unit properties for assertions)
+      ansible.builtin.command: systemctl show molecule-stale.service --property=MainPID --value
+      register: base_verify_stale_pid_after
+      changed_when: false
+
+    - name: List services needrestart considers outdated after the hook
+      ansible.builtin.command: needrestart -b
+      register: base_verify_needrestart_after
+      changed_when: false
+
+    - name: Assert the apt hook restarted the daemon automatically
+      ansible.builtin.assert:
+        that:
+          - base_verify_stale_pid_after.stdout | int > 0
+          - base_verify_stale_pid_after.stdout != base_verify_stale_pid_before.stdout
+          - "'NEEDRESTART-SVC: molecule-stale.service' not in base_verify_needrestart_after.stdout_lines"
