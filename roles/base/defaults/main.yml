@@ -35,3 +35,8 @@ base_config_dhclient: "{{ ansible_facts['distribution_release'] == 'bookworm' }}
 # In-place /etc/hosts writes for containers, where the bind mount breaks the
 # default atomic rename.
 base_hosts_unsafe_writes: false
+# Local time (HH:MM) of the daily unattended upgrade run; reboots happen in the
+# same slot.
+base_unattended_upgrades_time: "04:00"
+# Reboot after the run when an installed kernel update is pending.
+base_unattended_upgrades_reboot: true

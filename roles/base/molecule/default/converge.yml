@@ -28,6 +28,9 @@
     base_profile_config:
       - src: molecule-profile.sh.j2
         dest: molecule-profile.sh
+    base_unattended_upgrades_time: "03:17"
+    # Exercise both renderings: opted out on bookworm, default (true) on trixie.
+    base_unattended_upgrades_reboot: "{{ ansible_facts['distribution_release'] != 'bookworm' }}"
     base_default_users:
       - name: molecule-admin
         password: "{{ base_molecule_admin_password_hash }}"

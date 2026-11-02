@@ -1,0 +1,7 @@
+#
+# {{ ansible_managed }}
+#
+# Refresh package lists right before upgrading; apt-daily.timer alone can leave
+# them most of a day old.
+[Service]
+ExecStartPre=-/usr/lib/apt/apt.systemd.daily update

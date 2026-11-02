@@ -73,6 +73,9 @@
     update_cache: true
     cache_valid_time: 3600
 
+- name: Configure unattended upgrades
+  ansible.builtin.import_tasks: unattended-upgrades.yml
+
 - name: Generate required locales
   community.general.locale_gen:
     name: "{{ item }}"
