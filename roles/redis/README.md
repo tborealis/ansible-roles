@@ -3,8 +3,10 @@
 Installs and configures Redis server from the official
 [`packages.redis.io`](https://packages.redis.io) APT repository.
 
-Managed directives are written to `/etc/redis/redis-ansible.conf`, which is included at
-the end of the packaged `/etc/redis/redis.conf` so its values take precedence. The
+Managed directives are written to `/etc/redis/redis-ansible.conf`, which `redis-server`
+is started with via a systemd drop-in. That file includes the packaged
+`/etc/redis/redis.conf` first, so the managed values take precedence while the packaged
+file stays unmodified and package upgrades replace it without a conffile prompt. The
 service is enabled and started, and restarted when the configuration changes.
 
 ## Role Variables

@@ -13,6 +13,12 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Fixed
 
+- **redis:** package upgrades no longer prompt about a modified `/etc/redis/redis.conf`,
+  and accepting the maintainer's version no longer drops the managed settings (leaving
+  clients unable to connect). `redis-server` now starts from
+  `/etc/redis/redis-ansible.conf` via a systemd drop-in; that file includes the
+  untouched packaged config before the managed directives, and the role removes the
+  `include` line it previously appended to `redis.conf`.
 - **chrome:** `chrome_version` / `chrome_chromedriver_version` set as a bare YAML int
   (e.g. `127`) no longer fail the install task under ansible-core 2.19+, where native
   type preservation made the target-version fact an int; the role now coerces the

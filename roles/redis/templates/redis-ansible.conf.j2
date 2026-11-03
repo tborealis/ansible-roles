@@ -1,6 +1,9 @@
 #
 # {{ ansible_managed }}
 #
+# Packaged defaults first; the directives below override them.
+include /etc/redis/redis.conf
+
 bind {{ redis_bind }}
 maxmemory {{ redis_maxmemory }}
 maxmemory-policy {{ redis_maxmemory_policy }}
