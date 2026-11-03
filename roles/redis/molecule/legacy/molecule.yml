@@ -1,0 +1,29 @@
+---
+# Same privileged platforms as the default scenario (lists replace the base
+# config's): trixie's redis-server unit needs capabilities unprivileged
+# containers cannot grant.
+platforms:
+  - name: bookworm
+    image: ${MOLECULE_IMAGE_REPO:-ghcr.io/tborealis/ansible-roles}/molecule-debian:bookworm
+    pre_build_image: true
+    command: /lib/systemd/systemd
+    cgroupns_mode: host
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp
+  - name: trixie
+    image: ${MOLECULE_IMAGE_REPO:-ghcr.io/tborealis/ansible-roles}/molecule-debian:trixie
+    pre_build_image: true
+    command: /lib/systemd/systemd
+    cgroupns_mode: host
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp

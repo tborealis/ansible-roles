@@ -1,0 +1,54 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Read packaged Redis config
+      ansible.builtin.slurp:
+        src: /etc/redis/redis.conf
+      register: redis_verify_main_conf
+
+    - name: Assert the legacy include was removed
+      ansible.builtin.assert:
+        that:
+          - "'redis-ansible.conf' not in redis_verify_main_conf.content | b64decode"
+
+    # Removing the appended line must restore the file byte-for-byte, or the
+    # next upgrade would still prompt.
+    - name: Verify redis-server package files against dpkg checksums
+      ansible.builtin.command: dpkg --verify redis-server
+      register: redis_verify_dpkg
+      changed_when: false
+      failed_when: false
+
+    - name: Assert the packaged config is unmodified
+      ansible.builtin.assert:
+        that:
+          - "'/etc/redis/redis.conf' not in redis_verify_dpkg.stdout"
+
+    - name: Ping Redis with the configured password
+      ansible.builtin.command: >-
+        redis-cli -a {{ redis_password }} --no-auth-warning ping
+      register: redis_verify_auth_ping
+      changed_when: false
+
+    - name: Read the running server's config file
+      ansible.builtin.command: >-
+        redis-cli -a {{ redis_password }} --no-auth-warning INFO server
+      register: redis_verify_info
+      changed_when: false
+
+    - name: Read the running maxmemory
+      ansible.builtin.command: >-
+        redis-cli -a {{ redis_password }} --no-auth-warning CONFIG GET maxmemory
+      register: redis_verify_maxmemory
+      changed_when: false
+
+    - name: Assert Redis runs on the managed config with the converged values
+      ansible.builtin.assert:
+        that:
+          - redis_verify_auth_ping.stdout == 'PONG'
+          - "'config_file:/etc/redis/redis-ansible.conf' in redis_verify_info.stdout"
+          - redis_verify_maxmemory.stdout_lines[1] == '67108864'

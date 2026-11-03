@@ -1,0 +1,55 @@
+---
+# Simulates a host converged before the role stopped editing the packaged
+# config: the managed file has no include of its own and is pulled in by a
+# line appended to /etc/redis/redis.conf.
+- name: Prepare
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  roles:
+    - role: tborealis.roles.apt_keys
+  tasks:
+    - name: Install deb822 dependency
+      ansible.builtin.apt:
+        pkg: python3-debian
+        state: present
+        update_cache: true
+
+    - name: Add Redis repository
+      ansible.builtin.deb822_repository:
+        name: redis
+        types: [deb]
+        uris: https://packages.redis.io/deb
+        suites: "{{ ansible_facts['distribution_release'] }}"
+        components: main
+        signed_by: /etc/apt/keyrings/redis-archive-keyring.gpg
+
+    - name: Install Redis
+      ansible.builtin.apt:
+        pkg: redis-server
+        state: present
+        update_cache: true
+
+    - name: Write the old-style managed config with a stale value
+      ansible.builtin.copy:
+        content: |
+          bind 127.0.0.1 -::1
+          maxmemory 1mb
+          maxmemory-policy noeviction
+          requirepass {{ redis_password }}
+        dest: /etc/redis/redis-ansible.conf
+        owner: root
+        group: redis
+        mode: "0640"
+
+    - name: Append the legacy include to the packaged config
+      ansible.builtin.lineinfile:
+        path: /etc/redis/redis.conf
+        line: include /etc/redis/redis-ansible.conf
+        insertafter: EOF
+
+    - name: Restart Redis on the legacy layout
+      ansible.builtin.service:
+        name: redis-server
+        state: restarted

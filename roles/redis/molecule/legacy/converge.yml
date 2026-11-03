@@ -1,0 +1,13 @@
+---
+# redis_overcommit_memory stays at its default (false): sysctl writes fail
+# in unprivileged containers.
+- name: Converge
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    redis_maxmemory: 64mb
+    redis_maxmemory_policy: allkeys-lru
+  roles:
+    - role: tborealis.roles.redis
