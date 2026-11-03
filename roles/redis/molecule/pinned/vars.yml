@@ -1,0 +1,5 @@
+---
+# Shared by converge.yml and verify.yml. An older line than the repository's
+# latest, so an ignored pin would install the wrong version.
+redis_version: "7.4"
+redis_password: molecule-Redis-Passw0rd1

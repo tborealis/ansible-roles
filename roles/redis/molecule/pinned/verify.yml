@@ -1,0 +1,24 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Read the installed redis-server version
+      ansible.builtin.command: dpkg-query -W -f='${Version}' redis-server
+      register: redis_verify_installed
+      changed_when: false
+
+    - name: Read the running server info
+      ansible.builtin.command: >-
+        redis-cli -a {{ redis_password }} --no-auth-warning INFO server
+      register: redis_verify_info
+      changed_when: false
+
+    - name: Assert the pinned line is installed and running
+      ansible.builtin.assert:
+        that:
+          - redis_verify_installed.stdout is match('^[0-9]+:' ~ (redis_version | regex_escape) ~ '\.')
+          - "'redis_version:' ~ redis_version ~ '.' in redis_verify_info.stdout"
+          - "'config_file:/etc/redis/redis-ansible.conf' in redis_verify_info.stdout"
