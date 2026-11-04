@@ -64,3 +64,4 @@
       ansible.builtin.assert:
         that:
           - "'Pin: origin deb1.rabbitmq.com' in rabbitmq_verify_erlang_pref.content | b64decode"
+          - "'Pin-Priority: 999' in rabbitmq_verify_erlang_pref.content | b64decode"
