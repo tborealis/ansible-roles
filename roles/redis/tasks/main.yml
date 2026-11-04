@@ -1,4 +1,15 @@
 ---
+# YAML has already turned an unquoted 8.10 into 8.1, so floats are rejected
+# rather than coerced.
+- name: Assert redis_version is a major or quoted major.minor
+  ansible.builtin.assert:
+    that:
+      - redis_version is not float
+      - redis_version | string is match('^([0-9]+(\.[0-9]+)?)?$')
+    fail_msg: >-
+      redis_version must be empty, a major (8) or a quoted major.minor ("8.10");
+      unquoted, YAML reads 8.10 as the number 8.1.
+
 - name: Install deb822 dependency
   ansible.builtin.apt:
     pkg: python3-debian
@@ -28,13 +39,13 @@
     owner: root
     group: root
     mode: "0644"
-  when: redis_version | length > 0
+  when: redis_version | string | length > 0
 
 - name: Remove Redis version pin
   ansible.builtin.file:
     path: /etc/apt/preferences.d/redis.pref
     state: absent
-  when: redis_version | length == 0
+  when: redis_version | string | length == 0
 
 - name: Install Redis
   ansible.builtin.apt:

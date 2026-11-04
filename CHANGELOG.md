@@ -23,6 +23,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
   (`*:X.Y.*`) never matched because apt ignores version globs with a leading `*`, so
   the latest version was always installed. The pin now uses `Pin-Priority: 999`, so
   hosts already running a newer line are not downgraded.
+- **redis:** `redis_version` given as a bare YAML number no longer breaks the role: a
+  major (`8`) is accepted, and an unquoted major.minor is rejected up front with a clear
+  message, because YAML reads `8.10` as `8.1`.
 - **chrome:** `chrome_version` / `chrome_chromedriver_version` set as a bare YAML int
   (e.g. `127`) no longer fail the install task under ansible-core 2.19+, where native
   type preservation made the target-version fact an int; the role now coerces the

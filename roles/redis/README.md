@@ -13,7 +13,7 @@ service is enabled and started, and restarted when the configuration changes.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `redis_version` | `""` | Empty installs the latest available version. Set to a major (`8`) or major.minor (`7.4`) to pin that line via `/etc/apt/preferences.d/redis.pref`. The pinned version must still be present in the repository pool. Hosts already on a newer line are kept there rather than downgraded. |
+| `redis_version` | `""` | Empty installs the latest available version. Set to a major (`8`) or a quoted major.minor (`"8.10"`; unquoted, YAML reads it as `8.1`) to pin that line via `/etc/apt/preferences.d/redis.pref`. The pinned version must still be present in the repository pool. Hosts already on a newer line are kept there rather than downgraded. |
 | `redis_bind` | `127.0.0.1 -::1` | Addresses Redis listens on. Defaults to localhost only (IPv4 and IPv6 loopback). |
 | `redis_maxmemory` | `"0"` | Memory limit (e.g. `256mb`). `0` means no limit. |
 | `redis_maxmemory_policy` | `noeviction` | Eviction policy applied when `maxmemory` is reached. |

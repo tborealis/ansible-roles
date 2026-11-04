@@ -19,6 +19,6 @@
     - name: Assert the pinned line is installed and running
       ansible.builtin.assert:
         that:
-          - redis_verify_installed.stdout is match('^[0-9]+:' ~ (redis_version | regex_escape) ~ '\.')
+          - redis_verify_installed.stdout is match('^[0-9]+:' ~ (redis_version | string | regex_escape) ~ '\.')
           - "'redis_version:' ~ redis_version ~ '.' in redis_verify_info.stdout"
           - "'config_file:/etc/redis/redis-ansible.conf' in redis_verify_info.stdout"

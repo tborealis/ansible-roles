@@ -1,5 +1,4 @@
 ---
-# Shared by converge.yml and verify.yml. An older line than the repository's
-# latest, so an ignored pin would install the wrong version.
-redis_version: "7.4"
+# Throwaway test password shared by converge.yml and verify.yml. redis_version
+# is set per platform in molecule.yml.
 redis_password: molecule-Redis-Passw0rd1

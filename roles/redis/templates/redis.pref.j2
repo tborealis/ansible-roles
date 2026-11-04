@@ -4,5 +4,5 @@
 # apt ignores version globs with a leading "*", so match the epoch with a regex.
 # Below 1000 so hosts already on a newer line are never downgraded.
 Package: redis redis-server redis-tools redis-sentinel
-Pin: version /^[0-9]+:{{ redis_version | regex_escape }}\./
+Pin: version /^[0-9]+:{{ redis_version | string | regex_escape }}\./
 Pin-Priority: 999

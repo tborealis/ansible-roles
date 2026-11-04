@@ -27,3 +27,12 @@ platforms:
       - /run
       - /run/lock
       - /tmp
+# One redis_version form per platform: a bare int major, as a caller writing
+# `redis_version: 7`, and a quoted major.minor exercising the dot escaping.
+provisioner:
+  inventory:
+    host_vars:
+      bookworm:
+        redis_version: 7
+      trixie:
+        redis_version: "7.4"
