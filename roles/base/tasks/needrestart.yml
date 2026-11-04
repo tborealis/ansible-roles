@@ -1,0 +1,15 @@
+---
+- name: Install needrestart
+  ansible.builtin.apt:
+    pkg: needrestart
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Configure needrestart
+  ansible.builtin.template:
+    src: needrestart/base.conf.j2
+    dest: /etc/needrestart/conf.d/base.conf
+    owner: root
+    group: root
+    mode: "0644"

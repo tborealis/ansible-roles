@@ -6,6 +6,21 @@ The role does not install cron. When cron is present it is restarted after a
 timezone change so scheduled jobs pick up the new zone; on images without cron
 (e.g. DigitalOcean's Debian 13) the restart is skipped.
 
+## Automatic updates
+
+The role installs `unattended-upgrades` and `needrestart`:
+
+- Debian security updates install daily at `base_unattended_upgrades_time` (local
+  time), with package lists refreshed just beforehand. Point releases and third-party
+  repositories are not upgraded automatically.
+- When a kernel update is pending, the host reboots straight after that run, unless
+  `base_unattended_upgrades_reboot` is `false`. A kernel installed by hand also
+  triggers the reboot on the next run.
+- needrestart restarts services still running outdated binaries or libraries after
+  every apt run, including unattended ones. Debian's built-in exclusions (dbus,
+  systemd-logind, getty, docker, …) are only listed; they pick up the new code at the
+  next reboot.
+
 ## Role Variables
 
 | Variable | Default | Description |
@@ -27,3 +42,5 @@ timezone change so scheduled jobs pick up the new zone; on images without cron
 | `base_hosts_unsafe_writes` | `false` | Write /etc/hosts in place (for containers, where the bind mount breaks atomic renames) |
 | `base_use_backports` | `true` on bookworm | Configure the backports repository and install openssh-server from it |
 | `base_config_dhclient` | `true` on bookworm | Template /etc/dhcp/dhclient.conf to prepend the configured DNS servers |
+| `base_unattended_upgrades_time` | `04:00` | Local time (`HH:MM`) of the daily unattended upgrade run; reboots happen in the same slot |
+| `base_unattended_upgrades_reboot` | `true` | Reboot after the run when an installed kernel update is pending |

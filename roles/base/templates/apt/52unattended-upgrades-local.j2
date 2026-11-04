@@ -1,0 +1,17 @@
+//
+// {{ ansible_managed }}
+//
+
+// The apt-daily-upgrade timer owns the schedule, so run on every trigger.
+APT::Periodic::Update-Package-Lists "always";
+APT::Periodic::Unattended-Upgrade "always";
+
+// Security updates only; point releases are applied by hand.
+#clear Unattended-Upgrade::Origins-Pattern;
+Unattended-Upgrade::Origins-Pattern {
+        "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";
+};
+
+Unattended-Upgrade::Automatic-Reboot "{{ base_unattended_upgrades_reboot | bool | lower }}";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+Unattended-Upgrade::Automatic-Reboot-Time "now";

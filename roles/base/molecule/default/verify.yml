@@ -70,6 +70,8 @@
           - "'htop' in ansible_facts.packages"
           - "'zstd' in ansible_facts.packages"
           - "'openssh-server' in ansible_facts.packages"
+          - "'unattended-upgrades' in ansible_facts.packages"
+          - "'needrestart' in ansible_facts.packages"
 
     - name: Gather service facts
       ansible.builtin.service_facts:
@@ -253,3 +255,134 @@
             that:
               - not base_verify_dhclient_absent.stat.exists
               - not base_verify_backports_absent.stat.exists
+
+    - name: Dump the effective apt configuration
+      ansible.builtin.command: apt-config dump
+      register: base_verify_apt_config
+      changed_when: false
+
+    - name: Assert the unattended-upgrades policy is live in apt's config
+      vars:
+        base_verify_reboot: "{{ 'false' if ansible_facts['distribution_release'] == 'bookworm' else 'true' }}"
+      ansible.builtin.assert:
+        that:
+          - "'APT::Periodic::Update-Package-Lists \"always\";' in base_verify_apt_config.stdout_lines"
+          - "'APT::Periodic::Unattended-Upgrade \"always\";' in base_verify_apt_config.stdout_lines"
+          - >-
+            'Unattended-Upgrade::Automatic-Reboot "' ~ base_verify_reboot ~ '";'
+            in base_verify_apt_config.stdout_lines
+          - >-
+            base_verify_apt_config.stdout_lines
+            | select('match', 'Unattended-Upgrade::Origins-Pattern:: ') | list
+            == ['Unattended-Upgrade::Origins-Pattern:: "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";']
+
+    - name: Dry-run unattended-upgrade
+      ansible.builtin.command: unattended-upgrade --dry-run --debug
+      register: base_verify_uu_dry_run
+      changed_when: false
+
+    - name: Assert unattended-upgrade allows only the release's security origin
+      vars:
+        base_verify_uu_output: "{{ base_verify_uu_dry_run.stdout ~ base_verify_uu_dry_run.stderr }}"
+      ansible.builtin.assert:
+        that:
+          - >-
+            'origin=Debian,codename=' ~ ansible_facts['distribution_release']
+            ~ '-security,label=Debian-Security' in base_verify_uu_output
+          - >-
+            'codename=' ~ ansible_facts['distribution_release'] ~ ',label=Debian'
+            not in base_verify_uu_output
+
+    - name: Query the apt-daily-upgrade timer # noqa: command-instead-of-module (reads unit properties for assertions)
+      ansible.builtin.command: >-
+        systemctl show apt-daily-upgrade.timer
+        --property=TimersCalendar --property=RandomizedDelayUSec
+        --property=UnitFileState --property=ActiveState
+      register: base_verify_upgrade_timer
+      changed_when: false
+
+    - name: Assert the timer fires daily at the configured time
+      ansible.builtin.assert:
+        that:
+          - "'OnCalendar=*-*-* 03:17:00' in base_verify_upgrade_timer.stdout"
+          - "'06:00' not in base_verify_upgrade_timer.stdout"
+          - "'RandomizedDelayUSec=0' in base_verify_upgrade_timer.stdout_lines"
+          - "'UnitFileState=enabled' in base_verify_upgrade_timer.stdout_lines"
+          - "'ActiveState=active' in base_verify_upgrade_timer.stdout_lines"
+
+    - name: Query the apt-daily-upgrade service pre-start commands # noqa: command-instead-of-module (reads unit properties for assertions)
+      ansible.builtin.command: systemctl show apt-daily-upgrade.service --property=ExecStartPre
+      register: base_verify_upgrade_service
+      changed_when: false
+
+    - name: Assert package lists are refreshed before upgrading
+      ansible.builtin.assert:
+        that:
+          - "'argv[]=/usr/lib/apt/apt.systemd.daily update' in base_verify_upgrade_service.stdout"
+
+    # needrestart end-to-end, last because it mutates the container: run a
+    # daemon, swap its binary underneath it, then let a non-interactive apt
+    # run (the unattended-upgrades path) trigger needrestart's hook.
+    - name: Install a stand-in daemon binary
+      ansible.builtin.copy:
+        src: /usr/bin/sleep
+        dest: /usr/local/sbin/molecule-stale
+        remote_src: true
+        mode: "0755"
+
+    - name: Install the stand-in daemon unit
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/molecule-stale.service
+        content: |
+          [Service]
+          ExecStart=/usr/local/sbin/molecule-stale infinity
+        mode: "0644"
+
+    - name: Start the stand-in daemon
+      ansible.builtin.systemd_service:
+        name: molecule-stale.service
+        state: started
+        daemon_reload: true
+
+    - name: Record the stand-in daemon's PID # noqa: command-instead-of-module (reads unit properties for assertions)
+      ansible.builtin.command: systemctl show molecule-stale.service --property=MainPID --value
+      register: base_verify_stale_pid_before
+      changed_when: false
+
+    - name: Replace the binary under the running daemon
+      ansible.builtin.command: cp --remove-destination /usr/bin/sleep /usr/local/sbin/molecule-stale
+      changed_when: true
+
+    - name: List services needrestart considers outdated
+      ansible.builtin.command: needrestart -b
+      register: base_verify_needrestart_before
+      changed_when: false
+
+    - name: Assert needrestart detects the outdated daemon
+      ansible.builtin.assert:
+        that:
+          - "'NEEDRESTART-SVC: molecule-stale.service' in base_verify_needrestart_before.stdout_lines"
+
+    # The .deb is still cached from converge, so this needs no network.
+    - name: Reinstall a package to fire the needrestart apt hook # noqa: command-instead-of-module (the apt module cannot reinstall)
+      ansible.builtin.command: apt-get install -y --reinstall nano
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+      changed_when: true
+
+    - name: Record the stand-in daemon's PID after the hook # noqa: command-instead-of-module (reads unit properties for assertions)
+      ansible.builtin.command: systemctl show molecule-stale.service --property=MainPID --value
+      register: base_verify_stale_pid_after
+      changed_when: false
+
+    - name: List services needrestart considers outdated after the hook
+      ansible.builtin.command: needrestart -b
+      register: base_verify_needrestart_after
+      changed_when: false
+
+    - name: Assert the apt hook restarted the daemon automatically
+      ansible.builtin.assert:
+        that:
+          - base_verify_stale_pid_after.stdout | int > 0
+          - base_verify_stale_pid_after.stdout != base_verify_stale_pid_before.stdout
+          - "'NEEDRESTART-SVC: molecule-stale.service' not in base_verify_needrestart_after.stdout_lines"

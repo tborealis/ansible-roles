@@ -6,3 +6,22 @@ updates:
       interval: "daily"
     labels:
       - "skip-changelog"
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      dev-tooling:
+        patterns:
+          - "*"
+    ignore:
+      # Moving to a new ansible-core series is a deliberate change: it must
+      # match the series used for deploys. Patch releases still come through.
+      - dependency-name: "ansible-core"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # 2.21.6's git module crashes re-running a shallow clone of a tag (node
+      # role's nvm clone): 'NoneType' object has no attribute 'startswith'.
+      - dependency-name: "ansible-core"
+        versions: ["2.21.6"]
+    labels:
+      - "skip-changelog"
