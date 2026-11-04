@@ -11,6 +11,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+## [7.0.0] - 2026-11-04
+
 ### Added
 
 - **base:** **BREAKING** the role now manages patching. It installs
