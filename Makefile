@@ -4,7 +4,7 @@
 APT_KEYS_SETUP = apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gpg ca-certificates python3 python3-yaml
 
 lint:
-	docker run --rm -v $(PWD):/workdir -w /workdir python:3-slim \
+	docker run --rm -v $(PWD):/workdir -w /workdir python:3.14-slim \
 		sh -c "pip install -q -r requirements-dev.txt && ansible-galaxy install -r requirements.yml && ansible-lint"
 
 # The live check runs in each release's own container, because whether a
