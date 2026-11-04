@@ -50,15 +50,59 @@
           - "'maxmemory-policy allkeys-lru' in redis_verify_conf.content | b64decode"
           - "'requirepass ' ~ redis_password in redis_verify_conf.content | b64decode"
 
+    - name: Assert the managed config includes the packaged config
+      ansible.builtin.assert:
+        that:
+          - "'include /etc/redis/redis.conf' in redis_verify_conf.content | b64decode"
+
     - name: Read packaged Redis config
       ansible.builtin.slurp:
         src: /etc/redis/redis.conf
       register: redis_verify_main_conf
 
-    - name: Assert the managed config is included by the packaged config
+    - name: Assert the packaged config does not reference the managed config
       ansible.builtin.assert:
         that:
-          - "'include /etc/redis/redis-ansible.conf' in redis_verify_main_conf.content | b64decode"
+          - "'redis-ansible.conf' not in redis_verify_main_conf.content | b64decode"
+
+    # An unmodified conffile is what lets upgrades replace it without a prompt.
+    - name: Verify redis-server package files against dpkg checksums
+      ansible.builtin.command: dpkg --verify redis-server
+      register: redis_verify_dpkg
+      changed_when: false
+      failed_when: false
+
+    - name: Assert the packaged config is unmodified
+      ansible.builtin.assert:
+        that:
+          - "'/etc/redis/redis.conf' not in redis_verify_dpkg.stdout"
+
+    - name: Read the running server's config file
+      ansible.builtin.command: >-
+        redis-cli -a {{ redis_password }} --no-auth-warning INFO server
+      register: redis_verify_info
+      changed_when: false
+
+    - name: Assert Redis was started with the managed config
+      ansible.builtin.assert:
+        that:
+          - "'config_file:/etc/redis/redis-ansible.conf' in redis_verify_info.stdout"
+
+    - name: Read runtime config values
+      ansible.builtin.command: >-
+        redis-cli -a {{ redis_password }} --no-auth-warning CONFIG GET {{ item }}
+      loop:
+        - maxmemory-policy
+        - logfile
+      register: redis_verify_runtime
+      changed_when: false
+
+    # logfile is only set by the packaged redis.conf, so it proves that file loaded.
+    - name: Assert managed overrides and packaged settings are both applied
+      ansible.builtin.assert:
+        that:
+          - redis_verify_runtime.results[0].stdout_lines[1] == 'allkeys-lru'
+          - redis_verify_runtime.results[1].stdout_lines[1] == '/var/log/redis/redis-server.log'
 
     - name: Check no apt version pin is left when redis_version is unset
       ansible.builtin.stat:

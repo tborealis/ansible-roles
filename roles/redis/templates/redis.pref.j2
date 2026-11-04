@@ -1,6 +1,8 @@
 #
 # {{ ansible_managed }}
 #
+# apt ignores version globs with a leading "*", so match the epoch with a regex.
+# Below 1000 so hosts already on a newer line are never downgraded.
 Package: redis redis-server redis-tools redis-sentinel
-Pin: version *:{{ redis_version }}.*
-Pin-Priority: 1001
+Pin: version /^[0-9]+:{{ redis_version | string | regex_escape }}\./
+Pin-Priority: 999

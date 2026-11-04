@@ -1,0 +1,4 @@
+---
+# Throwaway test password shared by converge.yml and verify.yml. redis_version
+# is set per platform in molecule.yml.
+redis_password: molecule-Redis-Passw0rd1
