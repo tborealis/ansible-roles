@@ -6,3 +6,18 @@ updates:
       interval: "daily"
     labels:
       - "skip-changelog"
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      dev-tooling:
+        patterns:
+          - "*"
+    ignore:
+      # Moving to a new ansible-core series is a deliberate change: it must
+      # match the series used for deploys. Patch releases still come through.
+      - dependency-name: "ansible-core"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    labels:
+      - "skip-changelog"
