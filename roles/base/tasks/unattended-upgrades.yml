@@ -1,0 +1,53 @@
+---
+# An invalid OnCalendar only logs a warning and leaves the timer unscheduled,
+# which would silently stop patching.
+- name: Validate the unattended upgrade time
+  ansible.builtin.assert:
+    that:
+      - base_unattended_upgrades_time is match('^([01][0-9]|2[0-3]):[0-5][0-9]$')
+    fail_msg: "base_unattended_upgrades_time must be HH:MM (24h), got '{{ base_unattended_upgrades_time }}'"
+    quiet: true
+
+- name: Install unattended-upgrades
+  ansible.builtin.apt:
+    pkg: unattended-upgrades
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Configure unattended-upgrades
+  ansible.builtin.template:
+    src: apt/52unattended-upgrades-local.j2
+    dest: /etc/apt/apt.conf.d/52unattended-upgrades-local
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Create apt-daily-upgrade drop-in directories
+  ansible.builtin.file:
+    path: "/etc/systemd/system/apt-daily-upgrade.{{ item }}.d"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - timer
+    - service
+
+- name: Schedule apt-daily-upgrade
+  ansible.builtin.template:
+    src: "apt/apt-daily-upgrade.{{ item }}.conf.j2"
+    dest: "/etc/systemd/system/apt-daily-upgrade.{{ item }}.d/base.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - timer
+    - service
+  notify: Restart apt-daily-upgrade timer
+
+- name: Enable the apt-daily-upgrade timer
+  ansible.builtin.systemd_service:
+    name: apt-daily-upgrade.timer
+    enabled: true
+    state: started

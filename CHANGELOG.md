@@ -11,6 +11,17 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Added
+
+- **base:** **BREAKING** the role now manages patching. It installs
+  `unattended-upgrades`, which applies Debian security updates only (point releases are
+  no longer applied automatically, unlike the stock image config) daily at
+  `base_unattended_upgrades_time` (default `04:00` local; previously Debian's
+  randomised 06:00–07:00). Hosts reboot straight after the run when a kernel update is
+  pending; set `base_unattended_upgrades_reboot: false` to opt out. It also installs
+  `needrestart`, configured to restart services running outdated libraries
+  automatically, including after unattended upgrades.
+
 ### Fixed
 
 - **chrome:** `chrome_version` / `chrome_chromedriver_version` set as a bare YAML int

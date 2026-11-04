@@ -1,0 +1,9 @@
+#
+# {{ ansible_managed }}
+#
+# Restart services automatically. The default interactive mode falls back to
+# list-only when run non-interactively, e.g. under unattended-upgrades.
+$nrconf{restart} = 'a';
+
+# Kernel reboots are handled by unattended-upgrades; print hints, don't prompt.
+$nrconf{kernelhints} = -1;
