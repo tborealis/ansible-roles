@@ -26,13 +26,15 @@
     signed_by: /etc/apt/keyrings/rabbitmq.gpg
   register: rabbitmq_server_repo
 
+# Below 1000: still preferred over Debian's Erlang, but apt never downgrades a
+# newer installed version to match the pin.
 - name: Prefer RabbitMQ upstream Erlang packages
   ansible.builtin.copy:
     dest: /etc/apt/preferences.d/rabbitmq-erlang.pref
     content: |
       Package: erlang*
       Pin: origin deb1.rabbitmq.com
-      Pin-Priority: 1000
+      Pin-Priority: 999
     owner: root
     group: root
     mode: "0644"

@@ -41,6 +41,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
   (e.g. `127`) no longer fail the install task under ansible-core 2.19+, where native
   type preservation made the target-version fact an int; the role now coerces the
   version to a string.
+- **rabbitmq:** the upstream Erlang apt pin drops from `Pin-Priority: 1000` to `999`,
+  so apt no longer downgrades a newer installed Erlang to match it; fresh installs
+  still take the RabbitMQ Erlang packages over Debian's.
 
 ## [6.2.1] - 2026-09-08
 
