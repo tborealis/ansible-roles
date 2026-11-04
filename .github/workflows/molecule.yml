@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   detect:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       matrix: ${{ steps.gen.outputs.matrix }}
       any: ${{ steps.gen.outputs.any }}
@@ -52,7 +52,7 @@ jobs:
   test:
     needs: detect
     if: needs.detect.outputs.any == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       max-parallel: 8
@@ -91,7 +91,7 @@ jobs:
   notify:
     needs: [detect, test]
     if: ${{ always() && github.event_name != 'pull_request' && needs.detect.outputs.any == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - name: Notify Slack on failure
         if: ${{ contains(needs.test.result, 'failure') }}
