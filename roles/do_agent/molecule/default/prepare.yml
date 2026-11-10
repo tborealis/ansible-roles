@@ -1,0 +1,51 @@
+---
+# Recreates DigitalOcean's droplet-creation setup (the steps of its
+# droplet-agent install.sh) so converge has a real install to remove: the
+# dearmored key, the legacy one-line source, the pin, and both packages.
+- name: Prepare
+  hosts: all
+  become: true
+  tasks:
+    - name: Install gpg to dearmor the repository key
+      ansible.builtin.apt:
+        pkg: gpg
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Download the droplet-agent repository key
+      ansible.builtin.get_url:
+        url: https://repos-droplet.digitalocean.com/gpg.key
+        dest: /var/tmp/droplet-agent.gpg.key
+        mode: "0644"
+
+    - name: Dearmor the droplet-agent repository key
+      ansible.builtin.command: >-
+        gpg --dearmor -o /usr/share/keyrings/droplet-agent-keyring.gpg
+        /var/tmp/droplet-agent.gpg.key
+      args:
+        creates: /usr/share/keyrings/droplet-agent-keyring.gpg
+
+    - name: Add the droplet-agent repository
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/droplet-agent.list
+        content: |
+          deb [signed-by=/usr/share/keyrings/droplet-agent-keyring.gpg] https://repos-droplet.digitalocean.com/apt/droplet-agent main main
+        mode: "0644"
+
+    - name: Add the droplet-agent apt pin
+      ansible.builtin.copy:
+        dest: /etc/apt/preferences.d/droplet-agent.pref
+        content: |
+          Package: *
+          Pin: origin repos-droplet.digitalocean.com
+          Pin-Priority: 100
+        mode: "0644"
+
+    - name: Install droplet-agent
+      ansible.builtin.apt:
+        pkg:
+          - droplet-agent
+          - droplet-agent-keyring
+        state: present
+        update_cache: true

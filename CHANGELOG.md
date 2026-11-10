@@ -11,6 +11,15 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Security
+
+- **do_agent:** **BREAKING** the role now purges DigitalOcean's `droplet-agent` and
+  `droplet-agent-keyring` packages, plus the apt source and pin that DigitalOcean's
+  install script adds. The agent powers the control panel's Droplet Console, which
+  writes temporary keys into `authorized_keys` and so grants a shell without going
+  through the managed keys. The Recovery Console is unaffected. Set
+  `do_agent_remove_droplet_agent: false` to keep the agent.
+
 ## [7.0.0] - 2026-11-04
 
 ### Added

@@ -1,4 +1,32 @@
 ---
+- name: Remove DigitalOcean droplet-agent
+  when: do_agent_remove_droplet_agent
+  block:
+    # The package's postrm stops and disables the agent and its update timer.
+    - name: Purge droplet-agent packages
+      ansible.builtin.apt:
+        pkg:
+          - droplet-agent
+          - droplet-agent-keyring
+        state: absent
+        purge: true
+
+    # Written by DigitalOcean's install script, not owned by either package.
+    - name: Remove droplet-agent apt source, pin and keyring
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/apt/sources.list.d/droplet-agent.list
+        - /etc/apt/preferences.d/droplet-agent.pref
+        - /usr/share/keyrings/droplet-agent-keyring.gpg
+      register: do_agent_droplet_agent_files
+
+    - name: Update apt cache after removing droplet-agent repository # noqa: no-handler
+      ansible.builtin.apt:
+        update_cache: true
+      when: do_agent_droplet_agent_files is changed
+
 - name: Install deb822 dependency
   ansible.builtin.apt:
     pkg: python3-debian
