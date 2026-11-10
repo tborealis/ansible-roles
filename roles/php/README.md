@@ -48,7 +48,7 @@ at runtime. Re-running the role disables it again.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `php_version` | — (required) | PHP version to install; must be one the role supports (8.1–8.5) |
+| `php_version` | — (required) | PHP version to install; must be one the role supports (8.2–8.5) |
 | `php_fpm` | `true` | Install and manage PHP-FPM |
 | `php_composer` | `true` | Install Composer |
 | `php_new_relic` | `false` | Install the New Relic PHP agent |

@@ -47,6 +47,11 @@ flagged with **BREAKING** and require a MAJOR version bump.
   `php_fpm_session_upload_progress_enabled: true` to turn session upload progress
   back on.
 
+### Removed
+
+- **php:** **BREAKING** PHP 8.1 is no longer accepted for `php_version`; it reached
+  end of life on 31 December 2025 and gets no security fixes.
+
 ## [7.0.0] - 2026-11-04
 
 ### Added
