@@ -21,6 +21,8 @@ zend.assertions = {{ php_fpm_zend_assertions }}
 session.save_path = "{{ php_fpm_session_save_path }}"
 session.use_strict_mode = {{ 1 if php_fpm_session_use_strict_mode else 0 }}
 session.cookie_httponly = {{ 'On' if php_fpm_session_cookie_httponly else 'Off' }}
+session.cookie_secure = {{ 'On' if php_fpm_session_cookie_secure else 'Off' }}
+session.cookie_samesite = "{{ php_fpm_session_cookie_samesite }}"
 session.upload_progress.enabled = {{ 'On' if php_fpm_session_upload_progress_enabled else 'Off' }}
 
 opcache.memory_consumption = {{ php_fpm_opcache_memory_consumption }}

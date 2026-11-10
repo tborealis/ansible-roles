@@ -143,6 +143,8 @@
           - "'session.save_path => /var/lib/php/sessions => /var/lib/php/sessions' in php_verify_fpm_info.stdout"
           - "'session.use_strict_mode => On => On' in php_verify_fpm_info.stdout"
           - "'session.cookie_httponly => On => On' in php_verify_fpm_info.stdout"
+          - "'session.cookie_secure => On => On' in php_verify_fpm_info.stdout"
+          - "'session.cookie_samesite => Lax => Lax' in php_verify_fpm_info.stdout"
           - "'session.upload_progress.enabled => Off => Off' in php_verify_fpm_info.stdout"
           - "'opcache.memory_consumption => 64 => 64' in php_verify_fpm_info.stdout"
           - "'opcache.max_accelerated_files => 20000 => 20000' in php_verify_fpm_info.stdout"

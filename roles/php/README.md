@@ -78,6 +78,8 @@ at runtime. Re-running the role disables it again.
 | `php_fpm_session_save_path` | `/var/lib/php/sessions` | `session.save_path`; the Debian default dir (sticky, cleaned by the `sessionclean` timer) instead of PHP's `/tmp` fallback |
 | `php_fpm_session_use_strict_mode` | `true` | `session.use_strict_mode` (session-fixation hardening) |
 | `php_fpm_session_cookie_httponly` | `true` | `session.cookie_httponly` |
+| `php_fpm_session_cookie_secure` | `true` | `session.cookie_secure`: the session cookie is only sent over HTTPS; set `false` for sites served over plain HTTP |
+| `php_fpm_session_cookie_samesite` | `Lax` | `session.cookie_samesite` (`Lax`, `Strict` or `None`; `""` leaves it unset) |
 | `php_fpm_session_upload_progress_enabled` | `false` | `session.upload_progress.enabled`; off by default as PHP advises for CVE-2026-109619 and CVE-2026-115560 |
 | `php_fpm_opcache_preload` | `""` | `opcache.preload` script path (e.g. a Symfony `config/preload.php`); empty disables preloading |
 | `php_fpm_opcache_preload_user` | `www-data` | `opcache.preload_user`, rendered with `opcache.preload` |

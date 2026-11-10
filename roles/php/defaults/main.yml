@@ -43,6 +43,10 @@ php_fpm_extra_ini: {}
 php_fpm_session_save_path: /var/lib/php/sessions
 php_fpm_session_use_strict_mode: true
 php_fpm_session_cookie_httponly: true
+# Secure cookies are never sent over plain HTTP; turn off for HTTP-only sites.
+php_fpm_session_cookie_secure: true
+# Lax, Strict or None (None also needs cookie_secure); "" leaves it unset.
+php_fpm_session_cookie_samesite: Lax
 # Off per PHP's advisories for CVE-2026-109619 and CVE-2026-115560.
 php_fpm_session_upload_progress_enabled: false
 

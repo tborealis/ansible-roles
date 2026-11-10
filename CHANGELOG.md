@@ -46,6 +46,11 @@ flagged with **BREAKING** and require a MAJOR version bump.
   CVE-2026-109619. php-fpm restarts to apply it. Set
   `php_fpm_session_upload_progress_enabled: true` to turn session upload progress
   back on.
+- **php:** **BREAKING** PHP-FPM now sets `session.cookie_secure = On` and
+  `session.cookie_samesite = Lax`, so session cookies are never sent over plain HTTP
+  or with cross-site subrequests. Sites served over plain HTTP lose their sessions
+  unless `php_fpm_session_cookie_secure` is set to `false`; change the SameSite value
+  with `php_fpm_session_cookie_samesite`.
 
 ### Removed
 
