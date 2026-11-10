@@ -24,7 +24,12 @@
       - "{{ base_molecule_known_host_entry }}"
     base_ssh_extra_user_groups:
       - sftp-users
+      # Lets root past AllowGroups, so verify's root login probe tests
+      # PermitRootLogin on its own.
+      - root
     base_ssh_allow_tcp_forwarding: true
+    # Exercise both: key-only root login on bookworm, the default (no) on trixie.
+    base_ssh_permit_root_login: "{{ 'prohibit-password' if ansible_facts['distribution_release'] == 'bookworm' else 'no' }}"
     base_profile_config:
       - src: molecule-profile.sh.j2
         dest: molecule-profile.sh

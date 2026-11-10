@@ -11,6 +11,37 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Security
+
+- **base:** **BREAKING** sshd now sets `PermitRootLogin no`, overriding images that
+  allow root login (DigitalOcean's ship `PermitRootLogin yes`). Root was previously
+  kept out only by `AllowGroups`, so adding a group such as `root` to
+  `base_ssh_extra_user_groups` re-enabled it. A first provision connected as root
+  still completes (sshd reloads at the end of the play); set
+  `base_ssh_permit_root_login` to choose another value.
+- **base:** **BREAKING** once a managed user has an authorized key, the role deletes
+  `/root/.ssh/authorized_keys`, removing the keys DigitalOcean injects at creation.
+  It runs at the end of the play, so a first provision connected as root completes.
+  It is on by default only while root login is `no`, and skipped when `root` is a
+  managed user; set `base_ssh_clear_root_authorized_keys: false` to keep the keys.
+- **base:** **BREAKING** the role restores Debian's stock `/etc/ssh/sshd_config`
+  (discarding local edits, such as those in DigitalOcean's image), so openssh
+  upgrades, including unattended security upgrades, replace it instead of keeping a
+  modified copy. DigitalOcean's settings worth keeping move to the drop-in
+  as `base_ssh_password_authentication` (default `false`) and
+  `base_ssh_client_alive_interval` (default `120`). Password authentication is now
+  disabled explicitly; it was previously left to the image.
+- **base:** **BREAKING** sshd now sets `AllowStreamLocalForwarding no`, so Unix
+  socket forwarding (e.g. `ssh -R /path.sock:...`) is refused alongside TCP
+  forwarding. Agent forwarding is unaffected. Set
+  `base_ssh_allow_stream_local_forwarding: true` to allow it.
+- **do_agent:** **BREAKING** the role now purges DigitalOcean's `droplet-agent` and
+  `droplet-agent-keyring` packages, plus the apt source and pin that DigitalOcean's
+  install script adds. The agent powers the control panel's Droplet Console, which
+  writes temporary keys into `authorized_keys` and so grants a shell without going
+  through the managed keys. The Recovery Console is unaffected. Set
+  `do_agent_remove_droplet_agent: false` to keep the agent.
+
 ## [7.0.0] - 2026-11-04
 
 ### Added

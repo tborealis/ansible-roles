@@ -50,6 +50,49 @@
           - "'do-agent.service' in ansible_facts.services"
           - ansible_facts.services['do-agent.service'].status == 'enabled'
 
+    - name: Query droplet-agent package records # noqa: command-instead-of-module (dpkg state incl. purge, no module equivalent)
+      ansible.builtin.command: dpkg-query -W droplet-agent droplet-agent-keyring
+      register: do_agent_verify_droplet_pkgs
+      changed_when: false
+      failed_when: false
+
+    - name: Assert the droplet-agent packages were purged, not just removed
+      ansible.builtin.assert:
+        that:
+          - do_agent_verify_droplet_pkgs.rc == 1
+          - do_agent_verify_droplet_pkgs.stdout == ''
+
+    - name: Query droplet-agent units # noqa: command-instead-of-module (reads unit properties for assertions)
+      ansible.builtin.command: >-
+        systemctl show droplet-agent.service droplet-agent-update.timer
+        --property=LoadState --property=ActiveState
+      register: do_agent_verify_droplet_units
+      changed_when: false
+
+    - name: Assert the droplet-agent service and update timer are stopped and gone
+      ansible.builtin.assert:
+        that:
+          - do_agent_verify_droplet_units.stdout_lines | select('eq', 'LoadState=not-found') | list | length == 2
+          - do_agent_verify_droplet_units.stdout_lines | select('eq', 'ActiveState=inactive') | list | length == 2
+
+    - name: Check droplet-agent binary, apt source, pin and keyring are gone
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - /opt/digitalocean/bin/droplet-agent
+        - /etc/apt/sources.list.d/droplet-agent.list
+        - /etc/apt/preferences.d/droplet-agent.pref
+        - /usr/share/keyrings/droplet-agent-keyring.gpg
+      register: do_agent_verify_droplet_files
+      failed_when: do_agent_verify_droplet_files.stat.exists
+
+    - name: Find cached droplet-agent apt lists
+      ansible.builtin.find:
+        paths: /var/lib/apt/lists
+        patterns: "repos-droplet.digitalocean.com_*"
+      register: do_agent_verify_droplet_lists
+      failed_when: do_agent_verify_droplet_lists.matched > 0
+
     - name: Read do-agent unit file # noqa: command-instead-of-module (querying the unit file, no module equivalent)
       ansible.builtin.command: systemctl cat do-agent.service
       register: do_agent_verify_unit

@@ -19,6 +19,11 @@
     state: reloaded
     enabled: true
 
+- name: Remove root authorized keys
+  ansible.builtin.file:
+    path: /root/.ssh/authorized_keys
+    state: absent
+
 - name: Restart apt-daily-upgrade timer
   ansible.builtin.systemd_service:
     name: apt-daily-upgrade.timer
