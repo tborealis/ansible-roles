@@ -5,6 +5,8 @@
 # - a pre-existing user with a stray authorized key simulates adopting an
 #   existing host, so verify can prove the role's exclusive key handling
 #   removes keys it does not manage.
+# - DigitalOcean images ship openssh-server with `PermitRootLogin yes` in the
+#   main sshd_config, which the role's drop-in must override.
 - name: Prepare
   hosts: all
   become: true
@@ -18,6 +20,19 @@
         update_cache: true
         cache_valid_time: 3600
       when: ansible_facts['distribution_release'] == 'bookworm'
+
+    - name: Install openssh-server as shipped on the image
+      ansible.builtin.apt:
+        pkg: openssh-server
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Allow root login in the main sshd_config, as DigitalOcean's image does
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?PermitRootLogin "
+        line: PermitRootLogin yes
 
     - name: Create a pre-existing legacy user for the role to adopt
       ansible.builtin.user:

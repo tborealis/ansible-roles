@@ -6,6 +6,18 @@ The role does not install cron. When cron is present it is restarted after a
 timezone change so scheduled jobs pick up the new zone; on images without cron
 (e.g. DigitalOcean's Debian 13) the restart is skipped.
 
+## SSH
+
+sshd settings go in `/etc/ssh/sshd_config.d/99-custom.conf`. Debian's `sshd_config`
+includes that directory before its own settings, and sshd keeps the first value it
+reads, so these override the main file (but not an earlier-sorting drop-in). Logins
+are limited to members of `ssh-users` and `base_ssh_extra_user_groups`.
+
+Root login is disabled by default (`PermitRootLogin no`), overriding images that
+allow it, such as DigitalOcean's (`PermitRootLogin yes`). A first provision
+connected as root still completes, because sshd only reloads in a handler at the
+end of the play; later runs must connect as one of the managed users.
+
 ## Automatic updates
 
 The role installs `unattended-upgrades` and `needrestart`:
@@ -37,6 +49,7 @@ The role installs `unattended-upgrades` and `needrestart`:
 | `base_known_hosts` | `[]` | SSH known hosts entries |
 | `base_ssh_extra_user_groups` | `[]` | Extra groups for SSH users |
 | `base_ssh_allow_tcp_forwarding` | `false` | Allow SSH TCP forwarding |
+| `base_ssh_permit_root_login` | `"no"` | sshd `PermitRootLogin` value (`no`, `prohibit-password`, `forced-commands-only` or `yes`); quote it so YAML keeps it a string |
 | `base_default_system_packages` | See defaults | Essential system packages |
 | `base_profile_config` | `[]` | Profile configuration entries |
 | `base_hosts_unsafe_writes` | `false` | Write /etc/hosts in place (for containers, where the bind mount breaks atomic renames) |

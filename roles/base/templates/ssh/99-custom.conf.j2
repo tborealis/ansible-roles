@@ -3,6 +3,7 @@
 #
 
 AuthorizedKeysFile	.ssh/authorized_keys
+PermitRootLogin {{ base_ssh_permit_root_login }}
 AllowTcpForwarding {{ 'yes' if base_ssh_allow_tcp_forwarding else 'no' }}
 X11Forwarding no
 UseDNS no

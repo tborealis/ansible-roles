@@ -13,6 +13,7 @@ base_local_hostnames: []
 base_known_hosts: []
 base_ssh_extra_user_groups: []
 base_ssh_allow_tcp_forwarding: false
+base_ssh_permit_root_login: "no"
 base_default_system_packages:
   - ssl-cert
   - acl

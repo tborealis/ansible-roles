@@ -13,6 +13,12 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Security
 
+- **base:** **BREAKING** sshd now sets `PermitRootLogin no`, overriding images that
+  allow root login (DigitalOcean's ship `PermitRootLogin yes`). Root was previously
+  kept out only by `AllowGroups`, so adding a group such as `root` to
+  `base_ssh_extra_user_groups` re-enabled it. A first provision connected as root
+  still completes (sshd reloads at the end of the play); set
+  `base_ssh_permit_root_login` to choose another value.
 - **do_agent:** **BREAKING** the role now purges DigitalOcean's `droplet-agent` and
   `droplet-agent-keyring` packages, plus the apt source and pin that DigitalOcean's
   install script adds. The agent powers the control panel's Droplet Console, which

@@ -155,13 +155,64 @@
       register: base_verify_sshd_config
       changed_when: false
 
+    # sshd -T prints prohibit-password under its legacy name.
     - name: Assert converge values are live in the effective sshd config
+      vars:
+        base_verify_permit_root: "{{ 'without-password' if ansible_facts['distribution_release'] == 'bookworm' else 'no' }}"
       ansible.builtin.assert:
         that:
           - "'allowtcpforwarding yes' in base_verify_sshd_config.stdout_lines"
           - "'allowgroups ssh-users' in base_verify_sshd_config.stdout_lines"
           - "'allowgroups sftp-users' in base_verify_sshd_config.stdout_lines"
+          - "'allowgroups root' in base_verify_sshd_config.stdout_lines"
           - "'x11forwarding no' in base_verify_sshd_config.stdout_lines"
+          - "'permitrootlogin ' ~ base_verify_permit_root in base_verify_sshd_config.stdout_lines"
+
+    - name: Generate a throwaway SSH client key
+      ansible.builtin.command: ssh-keygen -q -t ed25519 -N '' -C molecule-probe -f /var/tmp/molecule-ssh-probe
+      args:
+        creates: /var/tmp/molecule-ssh-probe
+
+    - name: Read the throwaway public key
+      ansible.builtin.slurp:
+        src: /var/tmp/molecule-ssh-probe.pub
+      register: base_verify_probe_pubkey
+
+    - name: Authorize the throwaway key for the admin user and root
+      ansible.posix.authorized_key:
+        user: "{{ item }}"
+        key: "{{ base_verify_probe_pubkey.content | b64decode }}"
+      loop:
+        - molecule-admin
+        - root
+
+    - name: Log in over SSH as the admin user
+      ansible.builtin.command: >-
+        ssh -i /var/tmp/molecule-ssh-probe -o BatchMode=yes -o IdentitiesOnly=yes
+        -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR
+        molecule-admin@127.0.0.1 id -un
+      register: base_verify_ssh_admin
+      changed_when: false
+
+    - name: Attempt to log in over SSH as root
+      ansible.builtin.command: >-
+        ssh -i /var/tmp/molecule-ssh-probe -o BatchMode=yes -o IdentitiesOnly=yes
+        -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR
+        root@127.0.0.1 id -un
+      register: base_verify_ssh_root
+      changed_when: false
+      failed_when: false
+
+    - name: Assert the admin can log in and root login follows the configured value
+      vars:
+        base_verify_root_allowed: "{{ ansible_facts['distribution_release'] == 'bookworm' }}"
+      ansible.builtin.assert:
+        that:
+          - base_verify_ssh_admin.stdout == 'molecule-admin'
+          - >-
+            (base_verify_ssh_root.rc == 0 and base_verify_ssh_root.stdout == 'root')
+            if base_verify_root_allowed else
+            (base_verify_ssh_root.rc == 255 and 'Permission denied' in base_verify_ssh_root.stderr)
 
     - name: Stat the sshd drop-in
       ansible.builtin.stat:
