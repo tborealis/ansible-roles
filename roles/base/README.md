@@ -13,6 +13,10 @@ includes that directory before its own settings, and sshd keeps the first value 
 reads, so these override the main file (but not an earlier-sorting drop-in). Logins
 are limited to members of `ssh-users` and `base_ssh_extra_user_groups`.
 
+The role restores Debian's stock `/etc/ssh/sshd_config`, which DigitalOcean's image
+edits (any local changes to that file are discarded), so openssh upgrades replace it
+cleanly instead of keeping a locally modified copy.
+
 Root login is disabled by default (`PermitRootLogin no`), overriding images that
 allow it, such as DigitalOcean's (`PermitRootLogin yes`). A first provision
 connected as root still completes, because sshd only reloads in a handler at the
@@ -56,6 +60,8 @@ The role installs `unattended-upgrades` and `needrestart`:
 | `base_ssh_extra_user_groups` | `[]` | Extra groups for SSH users |
 | `base_ssh_allow_tcp_forwarding` | `false` | Allow SSH TCP forwarding |
 | `base_ssh_permit_root_login` | `"no"` | sshd `PermitRootLogin` value (`no`, `prohibit-password`, `forced-commands-only` or `yes`); quote it so YAML keeps it a string |
+| `base_ssh_password_authentication` | `false` | Allow SSH password authentication |
+| `base_ssh_client_alive_interval` | `120` | Seconds between sshd keepalive probes to idle clients (`0` disables) |
 | `base_ssh_clear_root_authorized_keys` | `true` while root login is `no` | Delete `/root/.ssh/authorized_keys` once a managed user has an authorized key |
 | `base_default_system_packages` | See defaults | Essential system packages |
 | `base_profile_config` | `[]` | Profile configuration entries |

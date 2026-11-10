@@ -24,6 +24,13 @@ flagged with **BREAKING** and require a MAJOR version bump.
   It runs at the end of the play, so a first provision connected as root completes.
   It is on by default only while root login is `no`, and skipped when `root` is a
   managed user; set `base_ssh_clear_root_authorized_keys: false` to keep the keys.
+- **base:** **BREAKING** the role restores Debian's stock `/etc/ssh/sshd_config`
+  (discarding local edits, such as those in DigitalOcean's image), so openssh
+  upgrades, including unattended security upgrades, replace it instead of keeping a
+  modified copy. DigitalOcean's settings worth keeping move to the drop-in
+  as `base_ssh_password_authentication` (default `false`) and
+  `base_ssh_client_alive_interval` (default `120`). Password authentication is now
+  disabled explicitly; it was previously left to the image.
 - **do_agent:** **BREAKING** the role now purges DigitalOcean's `droplet-agent` and
   `droplet-agent-keyring` packages, plus the apt source and pin that DigitalOcean's
   install script adds. The agent powers the control panel's Droplet Console, which

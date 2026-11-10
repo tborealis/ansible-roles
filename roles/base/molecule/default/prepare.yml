@@ -5,9 +5,10 @@
 # - a pre-existing user with a stray authorized key simulates adopting an
 #   existing host, so verify can prove the role's exclusive key handling
 #   removes keys it does not manage.
-# - DigitalOcean images ship openssh-server with `PermitRootLogin yes` in the
-#   main sshd_config, which the role's drop-in must override, and inject the
-#   account's keys into root's authorized_keys, which the role must remove.
+# - DigitalOcean's image hand-edits sshd_config after installing openssh
+#   (debconf answers stay at Debian's defaults), which the role must restore
+#   to stock, and DigitalOcean injects the account's keys into root's
+#   authorized_keys, which the role must remove.
 - name: Prepare
   hosts: all
   become: true
@@ -29,11 +30,17 @@
         update_cache: true
         cache_valid_time: 3600
 
-    - name: Allow root login in the main sshd_config, as DigitalOcean's image does
+    - name: Edit sshd_config as DigitalOcean's image does
       ansible.builtin.lineinfile:
         path: /etc/ssh/sshd_config
-        regexp: "^#?PermitRootLogin "
-        line: PermitRootLogin yes
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      loop:
+        - {regexp: "^#?PermitRootLogin ", line: PermitRootLogin yes}
+        - {regexp: "^#?PasswordAuthentication ", line: PasswordAuthentication no}
+        - {regexp: "^#?ClientAliveInterval ", line: ClientAliveInterval 120}
+      loop_control:
+        label: "{{ item.line }}"
 
     - name: Inject an account key for root, as DigitalOcean does at creation
       ansible.posix.authorized_key:
