@@ -9,6 +9,10 @@ php_composer: true
 php_new_relic: false
 php_remove_other_versions: true
 
+# Let unattended-upgrades install updates from the Sury PHP repository;
+# false removes that opt-in.
+php_unattended_upgrades: true
+
 # Extension names, e.g. [curl, mbstring]; installed as php{{ php_version }}-<name>
 php_extensions: []
 

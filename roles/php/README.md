@@ -20,6 +20,15 @@ not pinned, so with several versions installed `php` may not point at
 roles at the same version get the packaged `php.ini`/`php-fpm.conf` restored
 once, detected via the old templates' Ansible-managed marker.
 
+## Automatic updates
+
+The role installs `unattended-upgrades` and adds the Sury repository to its
+allowed origins, so PHP updates, including security releases, install
+unattended on the schedule `base` configures. With `base`'s needrestart setup,
+php-fpm is restarted onto the new binaries. On a host without `base`,
+installing `unattended-upgrades` also enables Debian's default automatic updates.
+Set `php_unattended_upgrades: false` to leave PHP upgrades to manual runs.
+
 ## FPM pools
 
 Pool config is supplied by the consuming playbook: each `php_fpm_pools` item
@@ -53,6 +62,7 @@ at runtime. Re-running the role disables it again.
 | `php_composer` | `true` | Install Composer |
 | `php_new_relic` | `false` | Install the New Relic PHP agent |
 | `php_remove_other_versions` | `true` | Stop, purge and remove config of other installed PHP versions |
+| `php_unattended_upgrades` | `true` | Let unattended-upgrades install updates from the Sury PHP repository |
 | `php_extensions` | `[]` | Extension names (e.g. `[curl, mbstring]`), installed as `php<version>-<name>` |
 | `php_date_timezone` | `Europe/London` | `date.timezone` for both SAPIs |
 | `php_error_reporting` | `E_ALL & ~E_DEPRECATED` | `error_reporting` for both SAPIs |

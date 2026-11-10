@@ -34,7 +34,8 @@ The role installs `unattended-upgrades` and `needrestart`:
 
 - Debian security updates install daily at `base_unattended_upgrades_time` (local
   time), with package lists refreshed just beforehand. Point releases and third-party
-  repositories are not upgraded automatically.
+  repositories are not upgraded automatically, unless a role opts its repository in
+  (the `php` role adds the Sury PHP repository).
 - When a kernel update is pending, the host reboots straight after that run, unless
   `base_unattended_upgrades_reboot` is `false`. A kernel installed by hand also
   triggers the reboot on the next run.

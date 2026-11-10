@@ -1,0 +1,23 @@
+---
+- name: Install unattended-upgrades
+  ansible.builtin.apt:
+    pkg: unattended-upgrades
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: php_unattended_upgrades
+
+- name: Allow unattended-upgrades to install updates from the PHP repository
+  ansible.builtin.template:
+    src: unattended-upgrades-php.j2
+    dest: /etc/apt/apt.conf.d/53unattended-upgrades-php
+    owner: root
+    group: root
+    mode: "0644"
+  when: php_unattended_upgrades
+
+- name: Remove the PHP repository from unattended-upgrades
+  ansible.builtin.file:
+    path: /etc/apt/apt.conf.d/53unattended-upgrades-php
+    state: absent
+  when: not php_unattended_upgrades

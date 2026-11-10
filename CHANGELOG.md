@@ -51,6 +51,11 @@ flagged with **BREAKING** and require a MAJOR version bump.
   or with cross-site subrequests. Sites served over plain HTTP lose their sessions
   unless `php_fpm_session_cookie_secure` is set to `false`; change the SameSite value
   with `php_fpm_session_cookie_samesite`.
+- **php:** **BREAKING** the role installs `unattended-upgrades` and adds the Sury PHP
+  repository to its allowed origins, so PHP updates, including security releases
+  such as the coming fix for CVE-2026-115560, install unattended. Previously only
+  Debian security updates were applied and PHP stayed at the installed version until
+  upgraded by hand. Set `php_unattended_upgrades: false` to opt out.
 
 ### Removed
 

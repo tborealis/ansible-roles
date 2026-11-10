@@ -158,6 +158,46 @@
       changed_when: false
       failed_when: php_verify_fpm_stock.rc != 1
 
+    # --- unattended upgrades -------------------------------------------------
+    - name: Dump the effective apt configuration
+      ansible.builtin.command: apt-config dump
+      register: php_verify_apt_config
+      changed_when: false
+
+    - name: Dry-run unattended-upgrade
+      ansible.builtin.command: unattended-upgrade --dry-run --debug
+      register: php_verify_uu_dry_run
+      changed_when: false
+
+    - name: Read the apt policy of the installed PHP CLI
+      ansible.builtin.command: apt-cache policy php{{ php_test_version }}-cli
+      register: php_verify_php_policy
+      changed_when: false
+
+    - name: Read the apt policy of all sources
+      ansible.builtin.command: apt-cache policy
+      register: php_verify_apt_policy
+      changed_when: false
+
+    # The policies prove PHP comes from the Sury source and that the source's
+    # release fields match the pattern.
+    - name: Assert unattended-upgrades allows the Sury repository PHP comes from
+      ansible.builtin.assert:
+        that:
+          - >-
+            'Unattended-Upgrade::Origins-Pattern:: "origin=deb.sury.org,codename=${distro_codename}";'
+            in php_verify_apt_config.stdout_lines
+          - >-
+            'origin=deb.sury.org,codename=' ~ ansible_facts['distribution_release']
+            in php_verify_uu_dry_run.stdout ~ php_verify_uu_dry_run.stderr
+          - >-
+            'https://packages.sury.org/php ' ~ ansible_facts['distribution_release'] ~ '/main'
+            in php_verify_php_policy.stdout
+          - >-
+            'release o=deb.sury.org,a=' ~ ansible_facts['distribution_release']
+            ~ ',n=' ~ ansible_facts['distribution_release'] ~ ','
+            in php_verify_apt_policy.stdout
+
     # --- session and opcache directories -------------------------------------
     - name: Stat the pool session directory
       ansible.builtin.stat:

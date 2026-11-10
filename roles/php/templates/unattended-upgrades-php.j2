@@ -1,0 +1,10 @@
+//
+// {{ ansible_managed }}
+//
+
+// Install updates from the Sury PHP repository unattended. This file sorts
+// after base's 52unattended-upgrades-local (which clears the list), so it
+// adds to the allowed origins.
+Unattended-Upgrade::Origins-Pattern {
+        "origin=deb.sury.org,codename=${distro_codename}";
+};
