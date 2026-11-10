@@ -135,6 +135,19 @@
   loop_control:
     label: "{{ item.name }}"
 
+# The removal runs as a handler, like the sshd reload, so a first provision
+# connected as root keeps its session until the end of the play.
+- name: Queue removal of root's authorized keys
+  ansible.builtin.stat:
+    path: /root/.ssh/authorized_keys
+  register: base_root_authorized_keys
+  changed_when: base_root_authorized_keys.stat.exists
+  notify: Remove root authorized keys
+  when:
+    - base_ssh_clear_root_authorized_keys
+    - "'root' not in (base_default_users + base_users) | map(attribute='name')"
+    - (base_default_users + base_users) | map(attribute='authorized_keys', default=[]) | flatten | length > 0
+
 - name: Install openssh from backports
   ansible.builtin.apt:
     pkg: openssh-server

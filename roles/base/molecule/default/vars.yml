@@ -15,6 +15,11 @@ base_molecule_deploy_key_file: "{{ playbook_dir }}/files/molecule_deploy_ed25519
 base_molecule_stray_public_key: >-
   ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOJ+QKrnxd+r/3XFDmz1SDzRLoxBDftQ7fk8ORY4Weld
   molecule-stray@example.invalid
+# Stands in for the account key DigitalOcean injects into root's
+# authorized_keys at creation.
+base_molecule_root_injected_public_key: >-
+  ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMEGx87lF39ytn9UV42XR3pxoYr2QhQz4L9KG1E6ypfc
+  molecule-do-injected@example.invalid
 base_molecule_known_host_entry: >-
   git.example.invalid ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIP8QQcF+eRz4HQgPTdz/Zxjrlxm++Y4aLWF18nZinmf
   molecule-knownhost@example.invalid

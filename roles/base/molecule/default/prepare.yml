@@ -6,7 +6,8 @@
 #   existing host, so verify can prove the role's exclusive key handling
 #   removes keys it does not manage.
 # - DigitalOcean images ship openssh-server with `PermitRootLogin yes` in the
-#   main sshd_config, which the role's drop-in must override.
+#   main sshd_config, which the role's drop-in must override, and inject the
+#   account's keys into root's authorized_keys, which the role must remove.
 - name: Prepare
   hosts: all
   become: true
@@ -33,6 +34,11 @@
         path: /etc/ssh/sshd_config
         regexp: "^#?PermitRootLogin "
         line: PermitRootLogin yes
+
+    - name: Inject an account key for root, as DigitalOcean does at creation
+      ansible.posix.authorized_key:
+        user: root
+        key: "{{ base_molecule_root_injected_public_key }}"
 
     - name: Create a pre-existing legacy user for the role to adopt
       ansible.builtin.user:

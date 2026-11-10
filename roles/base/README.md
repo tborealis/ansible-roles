@@ -18,6 +18,12 @@ allow it, such as DigitalOcean's (`PermitRootLogin yes`). A first provision
 connected as root still completes, because sshd only reloads in a handler at the
 end of the play; later runs must connect as one of the managed users.
 
+Once a managed user has an authorized key, the role also deletes
+`/root/.ssh/authorized_keys`, removing keys injected at creation (DigitalOcean puts
+the account's SSH keys there). The deletion also waits until the end of the play.
+It is on by default only while `base_ssh_permit_root_login` is `no`, and is skipped
+when `root` is one of the managed users.
+
 ## Automatic updates
 
 The role installs `unattended-upgrades` and `needrestart`:
@@ -50,6 +56,7 @@ The role installs `unattended-upgrades` and `needrestart`:
 | `base_ssh_extra_user_groups` | `[]` | Extra groups for SSH users |
 | `base_ssh_allow_tcp_forwarding` | `false` | Allow SSH TCP forwarding |
 | `base_ssh_permit_root_login` | `"no"` | sshd `PermitRootLogin` value (`no`, `prohibit-password`, `forced-commands-only` or `yes`); quote it so YAML keeps it a string |
+| `base_ssh_clear_root_authorized_keys` | `true` while root login is `no` | Delete `/root/.ssh/authorized_keys` once a managed user has an authorized key |
 | `base_default_system_packages` | See defaults | Essential system packages |
 | `base_profile_config` | `[]` | Profile configuration entries |
 | `base_hosts_unsafe_writes` | `false` | Write /etc/hosts in place (for containers, where the bind mount breaks atomic renames) |

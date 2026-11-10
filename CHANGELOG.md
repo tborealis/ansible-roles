@@ -19,6 +19,11 @@ flagged with **BREAKING** and require a MAJOR version bump.
   `base_ssh_extra_user_groups` re-enabled it. A first provision connected as root
   still completes (sshd reloads at the end of the play); set
   `base_ssh_permit_root_login` to choose another value.
+- **base:** **BREAKING** once a managed user has an authorized key, the role deletes
+  `/root/.ssh/authorized_keys`, removing the keys DigitalOcean injects at creation.
+  It runs at the end of the play, so a first provision connected as root completes.
+  It is on by default only while root login is `no`, and skipped when `root` is a
+  managed user; set `base_ssh_clear_root_authorized_keys: false` to keep the keys.
 - **do_agent:** **BREAKING** the role now purges DigitalOcean's `droplet-agent` and
   `droplet-agent-keyring` packages, plus the apt source and pin that DigitalOcean's
   install script adds. The agent powers the control panel's Droplet Console, which

@@ -168,6 +168,16 @@
           - "'x11forwarding no' in base_verify_sshd_config.stdout_lines"
           - "'permitrootlogin ' ~ base_verify_permit_root in base_verify_sshd_config.stdout_lines"
 
+    - name: Stat root's authorized keys
+      ansible.builtin.stat:
+        path: /root/.ssh/authorized_keys
+      register: base_verify_root_keys
+
+    - name: Assert root's injected keys were removed only where root login is disabled
+      ansible.builtin.assert:
+        that:
+          - base_verify_root_keys.stat.exists == (ansible_facts['distribution_release'] == 'bookworm')
+
     - name: Generate a throwaway SSH client key
       ansible.builtin.command: ssh-keygen -q -t ed25519 -N '' -C molecule-probe -f /var/tmp/molecule-ssh-probe
       args:
