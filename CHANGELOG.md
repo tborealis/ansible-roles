@@ -31,6 +31,10 @@ flagged with **BREAKING** and require a MAJOR version bump.
   as `base_ssh_password_authentication` (default `false`) and
   `base_ssh_client_alive_interval` (default `120`). Password authentication is now
   disabled explicitly; it was previously left to the image.
+- **base:** **BREAKING** sshd now sets `AllowStreamLocalForwarding no`, so Unix
+  socket forwarding (e.g. `ssh -R /path.sock:...`) is refused alongside TCP
+  forwarding. Agent forwarding is unaffected. Set
+  `base_ssh_allow_stream_local_forwarding: true` to allow it.
 - **do_agent:** **BREAKING** the role now purges DigitalOcean's `droplet-agent` and
   `droplet-agent-keyring` packages, plus the apt source and pin that DigitalOcean's
   install script adds. The agent powers the control panel's Droplet Console, which

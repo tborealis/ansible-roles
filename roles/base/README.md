@@ -59,6 +59,7 @@ The role installs `unattended-upgrades` and `needrestart`:
 | `base_known_hosts` | `[]` | SSH known hosts entries |
 | `base_ssh_extra_user_groups` | `[]` | Extra groups for SSH users |
 | `base_ssh_allow_tcp_forwarding` | `false` | Allow SSH TCP forwarding |
+| `base_ssh_allow_stream_local_forwarding` | `false` | Allow SSH Unix-domain socket forwarding (agent forwarding is separate and unaffected) |
 | `base_ssh_permit_root_login` | `"no"` | sshd `PermitRootLogin` value (`no`, `prohibit-password`, `forced-commands-only` or `yes`); quote it so YAML keeps it a string |
 | `base_ssh_password_authentication` | `false` | Allow SSH password authentication |
 | `base_ssh_client_alive_interval` | `120` | Seconds between sshd keepalive probes to idle clients (`0` disables) |

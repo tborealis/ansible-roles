@@ -7,6 +7,7 @@ PermitRootLogin {{ base_ssh_permit_root_login }}
 PasswordAuthentication {{ 'yes' if base_ssh_password_authentication else 'no' }}
 ClientAliveInterval {{ base_ssh_client_alive_interval }}
 AllowTcpForwarding {{ 'yes' if base_ssh_allow_tcp_forwarding else 'no' }}
+AllowStreamLocalForwarding {{ 'yes' if base_ssh_allow_stream_local_forwarding else 'no' }}
 X11Forwarding no
 UseDNS no
 AllowGroups ssh-users {{ base_ssh_extra_user_groups | join(' ') }}

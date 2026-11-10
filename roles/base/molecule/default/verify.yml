@@ -169,6 +169,7 @@
           - "'permitrootlogin ' ~ base_verify_permit_root in base_verify_sshd_config.stdout_lines"
           - "'passwordauthentication no' in base_verify_sshd_config.stdout_lines"
           - "'clientaliveinterval 120' in base_verify_sshd_config.stdout_lines"
+          - "'allowstreamlocalforwarding no' in base_verify_sshd_config.stdout_lines"
 
     - name: Compare sshd_config with the packaged copy
       ansible.builtin.command: cmp /usr/share/openssh/sshd_config /etc/ssh/sshd_config
@@ -244,6 +245,35 @@
         that:
           - base_verify_ssh_no_key.rc == 255
           - "'Permission denied (publickey).' in base_verify_ssh_no_key.stderr"
+
+    # Remote forwards are set up at login, so ExitOnForwardFailure turns a
+    # refused forward into a failed login.
+    - name: Request a remote TCP forward over SSH
+      ansible.builtin.command: >-
+        ssh -i /var/tmp/molecule-ssh-probe -o BatchMode=yes -o IdentitiesOnly=yes
+        -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR
+        -o ExitOnForwardFailure=yes -R 0:127.0.0.1:22
+        molecule-admin@127.0.0.1 true
+      register: base_verify_ssh_tcp_forward
+      changed_when: false
+      failed_when: false
+
+    - name: Request a remote Unix socket forward over SSH
+      ansible.builtin.command: >-
+        ssh -i /var/tmp/molecule-ssh-probe -o BatchMode=yes -o IdentitiesOnly=yes
+        -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR
+        -o ExitOnForwardFailure=yes -R /var/tmp/molecule-forward.sock:127.0.0.1:22
+        molecule-admin@127.0.0.1 true
+      register: base_verify_ssh_socket_forward
+      changed_when: false
+      failed_when: false
+
+    - name: Assert TCP forwarding is allowed and Unix socket forwarding is refused
+      ansible.builtin.assert:
+        that:
+          - base_verify_ssh_tcp_forward.rc == 0
+          - base_verify_ssh_socket_forward.rc == 255
+          - "'forwarding failed' in base_verify_ssh_socket_forward.stderr"
 
     # Simulates an openssh update shipping a new default sshd_config: ucf
     # replaces the file only if it still considers it unmodified.
