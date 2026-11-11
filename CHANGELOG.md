@@ -63,6 +63,14 @@ flagged with **BREAKING** and require a MAJOR version bump.
   behaviour, only arrives when `nginx_version` changes. Previously nginx stayed at
   the installed version until upgraded by hand. A host on another branch moves to
   `nginx_version` on the next run. Set `nginx_unattended_upgrades: false` to opt out.
+- **nginx:** **BREAKING** `nginx.conf` now sets TLS defaults for every server,
+  following tlsref's intermediate profile: TLS 1.2 and 1.3, forward-secret AEAD
+  ciphers only (nginx's own default also allows CBC and non-forward-secret suites),
+  X25519MLKEM768 hybrid post-quantum key exchange on trixie, and a shared session
+  cache. Remove `ssl_protocols`, `ssl_ecdh_curve`, `ssl_ciphers`,
+  `ssl_session_timeout` and `ssl_session_cache` from `http`-level config such as
+  `conf.d` files, or nginx refuses the duplicates; set the new `nginx_ssl_*`
+  variables to change the values.
 
 ### Removed
 

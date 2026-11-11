@@ -20,6 +20,15 @@ unattended on the schedule `base` configures. On a host without `base`, installi
 Changing `nginx_version` moves the host to that branch on the next run. The default
 follows the newest stable branch, so it changes, as a breaking release, each April.
 
+## TLS
+
+`nginx.conf` sets TLS defaults for every server at the `http` level, following
+tlsref's intermediate profile: TLS 1.2 and 1.3, forward-secret AEAD ciphers only,
+the hybrid post-quantum X25519MLKEM768 key exchange where OpenSSL supports it
+(trixie), and a shared session cache. Server blocks only need their certificate and
+key. Override the `nginx_ssl_*` variables to change the defaults; nginx rejects the
+same directives set again at the `http` level, e.g. in a `conf.d` file.
+
 ## Role Variables
 
 | Variable | Default | Description |
@@ -35,6 +44,11 @@ follows the newest stable branch, so it changes, as a breaking release, each Apr
 | `nginx_server_tokens` | `off` | Show/hide server version |
 | `nginx_certbot_plugin` | `false` | Install Certbot Nginx plugin |
 | `nginx_client_max_body_size` | `8m` | Maximum client request body size |
+| `nginx_ssl_protocols` | `TLSv1.2 TLSv1.3` | TLS versions offered |
+| `nginx_ssl_ecdh_curve` | `X25519MLKEM768:X25519:prime256v1:secp384r1` (bookworm: without `X25519MLKEM768`) | Key exchange groups, in order of preference |
+| `nginx_ssl_ciphers` | tlsref intermediate list | TLS 1.2 cipher suites (ECDHE with AES-GCM or ChaCha20-Poly1305) |
+| `nginx_ssl_session_timeout` | `1d` | How long a TLS session can be resumed |
+| `nginx_ssl_session_cache` | `shared:SSL:10m` | TLS session cache shared by the worker processes |
 
 ## Templates
 

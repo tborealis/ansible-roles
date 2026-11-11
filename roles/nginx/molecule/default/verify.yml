@@ -78,6 +78,64 @@
       register: nginx_verify_default_site
       failed_when: nginx_verify_default_site.stat.exists
 
+    # nginx's own defaults would accept the RSA key exchange and CBC suites, and
+    # every group OpenSSL enables, secp521r1 included.
+    - name: Handshake over TLS 1.2 with a single cipher suite
+      ansible.builtin.command:
+        cmd: >-
+          openssl s_client -connect 127.0.0.1:443 -servername molecule.test
+          -tls1_2 -cipher {{ item.name }}
+        stdin: Q
+      loop:
+        - {name: ECDHE-RSA-AES128-GCM-SHA256, accepted: true}
+        - {name: ECDHE-RSA-CHACHA20-POLY1305, accepted: true}
+        - {name: AES128-GCM-SHA256, accepted: false}
+        - {name: ECDHE-RSA-AES128-SHA, accepted: false}
+      loop_control:
+        label: "{{ item.name }}"
+      register: nginx_verify_tls_ciphers
+      changed_when: false
+      failed_when: false
+
+    - name: Handshake over TLS 1.3 with a single key exchange group
+      ansible.builtin.command:
+        cmd: >-
+          openssl s_client -connect 127.0.0.1:443 -servername molecule.test
+          -tls1_3 -groups {{ item.name }}
+        stdin: Q
+      loop: >-
+        {{ ([{'name': 'X25519MLKEM768', 'accepted': true}]
+        if ansible_facts['distribution_release'] != 'bookworm' else [])
+        + [{'name': 'X25519', 'accepted': true}, {'name': 'secp521r1', 'accepted': false}] }}
+      loop_control:
+        label: "{{ item.name }}"
+      register: nginx_verify_tls_groups
+      changed_when: false
+      failed_when: false
+
+    - name: Assert nginx accepts only the configured cipher suites and groups
+      ansible.builtin.assert:
+        that: (item.rc == 0) == item.item.accepted
+        quiet: true
+      loop: "{{ nginx_verify_tls_ciphers.results + nginx_verify_tls_groups.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+
+    # Without tickets, resumption needs the server's session cache.
+    - name: Reconnect over TLS 1.2 without session tickets
+      ansible.builtin.command:
+        cmd: >-
+          openssl s_client -connect 127.0.0.1:443 -servername molecule.test
+          -tls1_2 -no_ticket -reconnect
+        stdin: Q
+      register: nginx_verify_tls_resume
+      changed_when: false
+
+    - name: Assert the session cache resumes TLS sessions
+      ansible.builtin.assert:
+        that:
+          - "'Reused, TLSv1.2' in nginx_verify_tls_resume.stdout"
+
     - name: Read the installed nginx version
       ansible.builtin.command: dpkg-query -W -f=${Version} nginx
       register: nginx_verify_version
