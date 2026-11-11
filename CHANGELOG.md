@@ -41,6 +41,26 @@ flagged with **BREAKING** and require a MAJOR version bump.
   writes temporary keys into `authorized_keys` and so grants a shell without going
   through the managed keys. The Recovery Console is unaffected. Set
   `do_agent_remove_droplet_agent: false` to keep the agent.
+- **php:** **BREAKING** PHP-FPM now sets `session.upload_progress.enabled = Off`, as
+  PHP's advisories recommend for CVE-2026-115560 (unpatched as of 2026-11-10) and
+  CVE-2026-109619. php-fpm restarts to apply it. Set
+  `php_fpm_session_upload_progress_enabled: true` to turn session upload progress
+  back on.
+- **php:** **BREAKING** PHP-FPM now sets `session.cookie_secure = On` and
+  `session.cookie_samesite = Lax`, so session cookies are never sent over plain HTTP
+  or with cross-site subrequests. Sites served over plain HTTP lose their sessions
+  unless `php_fpm_session_cookie_secure` is set to `false`; change the SameSite value
+  with `php_fpm_session_cookie_samesite`.
+- **php:** **BREAKING** the role installs `unattended-upgrades` and adds the Sury PHP
+  repository to its allowed origins, so PHP updates, including security releases
+  such as the coming fix for CVE-2026-115560, install unattended. Previously only
+  Debian security updates were applied and PHP stayed at the installed version until
+  upgraded by hand. Set `php_unattended_upgrades: false` to opt out.
+
+### Removed
+
+- **php:** **BREAKING** PHP 8.1 is no longer accepted for `php_version`; it reached
+  end of life on 31 December 2025 and gets no security fixes.
 
 ## [7.0.0] - 2026-11-04
 
