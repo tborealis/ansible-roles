@@ -298,20 +298,26 @@
 
     - name: Stat the sshd drop-in
       ansible.builtin.stat:
-        path: /etc/ssh/sshd_config.d/99-custom.conf
+        path: /etc/ssh/sshd_config.d/00-base.conf
       register: base_verify_sshd_dropin
 
     - name: Read the sshd drop-in
       ansible.builtin.slurp:
-        src: /etc/ssh/sshd_config.d/99-custom.conf
+        src: /etc/ssh/sshd_config.d/00-base.conf
       register: base_verify_sshd_dropin_content
 
-    - name: Assert the sshd drop-in content, ownership and mode
+    - name: Stat the sshd drop-in of earlier role versions
+      ansible.builtin.stat:
+        path: /etc/ssh/sshd_config.d/99-custom.conf
+      register: base_verify_sshd_legacy_dropin
+
+    - name: Assert the sshd drop-in content, ownership and mode, and the old drop-in is gone
       ansible.builtin.assert:
         that:
           - base_verify_sshd_dropin.stat.pw_name == 'root'
           - base_verify_sshd_dropin.stat.mode == '0644'
           - "'DebianBanner no' in base_verify_sshd_dropin_content.content | b64decode"
+          - not base_verify_sshd_legacy_dropin.stat.exists
 
     - name: Read the system known hosts file
       ansible.builtin.slurp:
