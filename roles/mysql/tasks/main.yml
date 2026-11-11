@@ -64,6 +64,15 @@
     mode: "0644"
   notify: Restart mysql
 
+- name: Configure network listeners
+  ansible.builtin.template:
+    src: network.cnf.j2
+    dest: /etc/mysql/conf.d/network.cnf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart mysql
+
 - name: Start MySQL if fresh install
   ansible.builtin.service:
     name: mysql

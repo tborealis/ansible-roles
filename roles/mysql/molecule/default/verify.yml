@@ -34,6 +34,29 @@
         molecule_db --execute='SELECT 1'
       changed_when: false
 
+    # molecule_user's host is '%', so only the listener can refuse these.
+    - name: Attempt to log in over TCP on the host's own address
+      ansible.builtin.command: >-
+        mysql --protocol=tcp --host={{ ansible_facts['default_ipv4']['address'] }}
+        --user=molecule_user --password={{ mysql_molecule_user_password }}
+        molecule_db --execute='SELECT 1'
+      register: mysql_verify_external
+      changed_when: false
+      failed_when: false
+
+    - name: Assert MySQL refuses TCP connections on other addresses
+      ansible.builtin.assert:
+        that:
+          - mysql_verify_external.rc != 0
+          - "'ERROR 2003' in mysql_verify_external.stderr"
+
+    - name: Check the X Protocol port is closed
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 33060
+        state: stopped
+        timeout: 5
+
     - name: Read tuning config
       ansible.builtin.slurp:
         src: /etc/mysql/conf.d/tuning.cnf

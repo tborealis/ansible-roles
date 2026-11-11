@@ -1,0 +1,9 @@
+#
+# {{ ansible_managed }}
+#
+[mysqld]
+bind-address        = {{ mysql_bind_address }}
+mysqlx              = {{ 'ON' if mysql_mysqlx else 'OFF' }}
+{% if mysql_mysqlx %}
+mysqlx-bind-address = {{ mysql_bind_address }}
+{% endif %}
