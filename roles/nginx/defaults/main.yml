@@ -31,3 +31,7 @@ nginx_ssl_ciphers: >-
   ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305
 nginx_ssl_session_timeout: 1d
 nginx_ssl_session_cache: shared:SSL:10m
+
+# Refuse HTTPS connections and requests for hostnames that no server_name
+# matches, instead of passing them to the first vhost on 443.
+nginx_reject_unknown_hosts: true

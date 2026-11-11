@@ -71,6 +71,12 @@ flagged with **BREAKING** and require a MAJOR version bump.
   `ssl_session_timeout` and `ssl_session_cache` from `http`-level config such as
   `conf.d` files, or nginx refuses the duplicates; set the new `nginx_ssl_*`
   variables to change the values.
+- **nginx:** **BREAKING** `nginx.conf` now declares a `default_server` on 443 and
+  `[::]:443` that rejects TLS handshakes for unknown or missing SNI and closes
+  connections whose `Host` matches no `server_name`, so unknown hostnames no longer
+  reach the first vhost (and its application) on 443. Vhosts that declare their own
+  443 `default_server` now fail `nginx -t`, and clients connecting by IP address or
+  without SNI are refused. Set `nginx_reject_unknown_hosts: false` to turn it off.
 
 ### Removed
 

@@ -136,6 +136,47 @@
         that:
           - "'Reused, TLSv1.2' in nginx_verify_tls_resume.stdout"
 
+    # uri cannot pin a hostname to an address, which the SNI checks need.
+    - name: Request the TLS vhost # noqa: command-instead-of-module
+      ansible.builtin.command: curl -sSk --resolve molecule.test:443:{{ item }} https://molecule.test/
+      loop: ["127.0.0.1", "[::1]"]
+      register: nginx_verify_tls_vhost
+      changed_when: false
+
+    - name: Request the TLS vhost with a Host header no vhost serves # noqa: command-instead-of-module
+      ansible.builtin.command: >-
+        curl -sSk --resolve molecule.test:443:{{ item }} -H 'Host: unknown.test'
+        https://molecule.test/
+      loop: ["127.0.0.1", "[::1]"]
+      register: nginx_verify_unknown_host
+      changed_when: false
+      failed_when: false
+
+    - name: Handshake with an SNI no vhost serves, or none
+      ansible.builtin.command:
+        cmd: openssl s_client -connect {{ item }}
+        stdin: Q
+      loop:
+        - 127.0.0.1:443 -servername unknown.test
+        - "[::1]:443 -servername unknown.test"
+        - 127.0.0.1:443 -noservername
+      register: nginx_verify_unknown_sni
+      changed_when: false
+      failed_when: false
+
+    # return 444 closes the connection without a response: curl 7 reports an
+    # empty reply (52), curl 8 an unexpected TLS EOF (56).
+    - name: Assert unknown hostnames are refused on IPv4 and IPv6 while the vhost is served
+      ansible.builtin.assert:
+        that:
+          - nginx_verify_tls_vhost.results | map(attribute='stdout') | unique == ['molecule vhost ok']
+          - nginx_verify_unknown_host.results | map(attribute='rc') | reject('in', [52, 56]) | list == []
+          - nginx_verify_unknown_host.results | map(attribute='stdout') | unique == ['']
+          - nginx_verify_unknown_sni.results | rejectattr('rc', 'ne', 0) | list | length == 0
+          - >-
+            nginx_verify_unknown_sni.results | map(attribute='stderr')
+            | select('search', 'unrecognized name') | list | length == 3
+
     - name: Read the installed nginx version
       ansible.builtin.command: dpkg-query -W -f=${Version} nginx
       register: nginx_verify_version

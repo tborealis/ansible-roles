@@ -29,6 +29,15 @@ the hybrid post-quantum X25519MLKEM768 key exchange where OpenSSL supports it
 key. Override the `nginx_ssl_*` variables to change the defaults; nginx rejects the
 same directives set again at the `http` level, e.g. in a `conf.d` file.
 
+By default `nginx.conf` also declares the `default_server` for `443` and
+`[::]:443`. It refuses TLS handshakes whose SNI matches no `server_name`, or that
+carry none, and closes the connection on requests whose `Host` matches no
+`server_name`. Without it the first vhost on 443 answers them, so an application
+could build links from an attacker's `Host` header. Vhosts must not declare their
+own `default_server` on 443, and clients connecting by IP address or without SNI
+are refused. Set `nginx_reject_unknown_hosts: false` to turn it off. Port 80 is
+left to the vhosts.
+
 ## Role Variables
 
 | Variable | Default | Description |
@@ -49,6 +58,7 @@ same directives set again at the `http` level, e.g. in a `conf.d` file.
 | `nginx_ssl_ciphers` | tlsref intermediate list | TLS 1.2 cipher suites (ECDHE with AES-GCM or ChaCha20-Poly1305) |
 | `nginx_ssl_session_timeout` | `1d` | How long a TLS session can be resumed |
 | `nginx_ssl_session_cache` | `shared:SSL:10m` | TLS session cache shared by the worker processes |
+| `nginx_reject_unknown_hosts` | `true` | Add a default server on 443 that refuses hostnames no vhost serves |
 
 ## Templates
 
