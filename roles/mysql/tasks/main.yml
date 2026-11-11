@@ -172,7 +172,7 @@
     login_password: "{{ mysql_root_password }}"
     login_unix_socket: "{{ mysql_login_unix_socket }}"
     column_case_sensitive: true
-  no_log: false
+  no_log: true
   loop_control:
     label: "{{ item.name }}@{{ item.host | default('localhost') }}"
   with_items: "{{ mysql_users }}"

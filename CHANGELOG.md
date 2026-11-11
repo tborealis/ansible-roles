@@ -34,6 +34,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
   system entries that trust it are removed. Role versions before August 2023 added
   it, so older hosts still accepted it for git-over-SSH, letting anyone holding the
   exposed key impersonate GitHub from a network position.
+- **mysql:** the "Create users" task now sets `no_log: true`. With `no_log: false`,
+  a failing user, or any run with `-v`, printed every user's password and salt in
+  the Ansible output.
 
 ## [8.0.0] - 2026-11-11
 
