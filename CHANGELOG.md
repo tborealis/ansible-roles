@@ -19,6 +19,11 @@ flagged with **BREAKING** and require a MAJOR version bump.
   any network the host was on. Clients on other hosts need
   `mysql_bind_address: "*"` (or specific addresses); set `mysql_mysqlx: true` to
   turn the X Protocol listener back on.
+- **aws:** the AWS CLI and Session Manager plugin are now downloaded, verified and
+  installed from a private (`0700`) directory created for each install, instead of
+  fixed paths in `/var/tmp`. Any local user could plant files there first, such as
+  a keyring that makes the signature check accept their own archive, and have root
+  run their installer.
 
 ## [8.0.0] - 2026-11-11
 
