@@ -1,12 +1,10 @@
 # chrome
 
-Installs Google Chrome and optionally ChromeDriver using Puppeteer's browser installer.
-
-## Requirements
-
-Node.js must already be installed (e.g. via the `node` role) — the role fails
-fast if `npx` is not available. The role deliberately does not install Node.js
-itself, since the Node version is site-specific.
+Installs Google Chrome and optionally ChromeDriver from
+[Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/), unpacked
+under `/opt/chrome` and `/opt/chromedriver` and linked as
+`/usr/local/bin/google-chrome` and `/usr/local/bin/chromedriver`. Only the x86_64
+build is installed.
 
 ## Role Variables
 

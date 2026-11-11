@@ -8,7 +8,7 @@
         path: /usr/local/bin/google-chrome
       register: chrome_verify_link
 
-    - name: Assert chrome is linked into the puppeteer install path
+    - name: Assert chrome is linked into its install directory
       ansible.builtin.assert:
         that:
           - chrome_verify_link.stat.islnk
@@ -41,7 +41,7 @@
         path: /usr/local/bin/chromedriver
       register: chrome_verify_chromedriver_link
 
-    - name: Assert chromedriver is linked into the puppeteer install path
+    - name: Assert chromedriver is linked into its install directory
       ansible.builtin.assert:
         that:
           - chrome_verify_chromedriver_link.stat.islnk

@@ -1,5 +1,11 @@
 ---
-# Channels @puppeteer/browsers accepts; anything else is treated as a pinned version.
+# Chrome for Testing version lists and downloads (the sources @puppeteer/browsers
+# used, with the same /opt/<browser>/linux-<version> layout).
+chrome_versions_url: https://googlechromelabs.github.io/chrome-for-testing
+chrome_download_url: https://storage.googleapis.com/chrome-for-testing-public
+
+# Channels resolved through the version lists; a bare number is a milestone and
+# anything else an exact version.
 chrome_release_channels: [stable, beta, dev, canary]
 
 # Dependencies renamed by the 64-bit time_t transition in Debian 13 "trixie".

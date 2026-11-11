@@ -24,6 +24,11 @@ flagged with **BREAKING** and require a MAJOR version bump.
   fixed paths in `/var/tmp`. Any local user could plant files there first, such as
   a keyring that makes the signature check accept their own archive, and have root
   run their installer.
+- **chrome:** Chrome and ChromeDriver are now downloaded straight from Chrome for
+  Testing instead of through `npx @puppeteer/browsers`, which ran the latest npm
+  release of that package and its dependency tree as root on every install. The
+  versions, `/opt` install paths and links are unchanged, and Node.js is no longer
+  required.
 
 ## [8.0.0] - 2026-11-11
 
