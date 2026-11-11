@@ -1,4 +1,13 @@
 ---
+# Stable branch to install and stay on; upgrades only take its patch releases.
+# Only the newest stable branch gets fixes, so bump this when nginx.org releases
+# a new one each April.
+nginx_version: "1.30"
+
+# Let unattended-upgrades install updates from the nginx.org repository;
+# false removes that opt-in.
+nginx_unattended_upgrades: true
+
 nginx_user: nginx
 nginx_basic_auth: []
 nginx_conf: []
@@ -10,3 +19,19 @@ nginx_server_tokens: "off"
 nginx_certbot_plugin: false
 
 nginx_client_max_body_size: 8m
+
+# TLS settings for every server (tlsref intermediate profile); a server block can
+# override them. X25519MLKEM768 (hybrid post-quantum) needs OpenSSL 3.5, which
+# bookworm lacks.
+nginx_ssl_protocols: TLSv1.2 TLSv1.3
+nginx_ssl_ecdh_curve: >-
+  {{ 'X25519:prime256v1:secp384r1' if ansible_facts['distribution_release'] == 'bookworm'
+  else 'X25519MLKEM768:X25519:prime256v1:secp384r1' }}
+nginx_ssl_ciphers: >-
+  ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305
+nginx_ssl_session_timeout: 1d
+nginx_ssl_session_cache: shared:SSL:10m
+
+# Refuse HTTPS connections and requests for hostnames that no server_name
+# matches, instead of passing them to the first vhost on 443.
+nginx_reject_unknown_hosts: true

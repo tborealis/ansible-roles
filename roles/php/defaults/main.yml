@@ -9,6 +9,10 @@ php_composer: true
 php_new_relic: false
 php_remove_other_versions: true
 
+# Let unattended-upgrades install updates from the Sury PHP repository;
+# false removes that opt-in.
+php_unattended_upgrades: true
+
 # Extension names, e.g. [curl, mbstring]; installed as php{{ php_version }}-<name>
 php_extensions: []
 
@@ -43,6 +47,12 @@ php_fpm_extra_ini: {}
 php_fpm_session_save_path: /var/lib/php/sessions
 php_fpm_session_use_strict_mode: true
 php_fpm_session_cookie_httponly: true
+# Secure cookies are never sent over plain HTTP; turn off for HTTP-only sites.
+php_fpm_session_cookie_secure: true
+# Lax, Strict or None (None also needs cookie_secure); "" leaves it unset.
+php_fpm_session_cookie_samesite: Lax
+# Off per PHP's advisories for CVE-2026-109619 and CVE-2026-115560.
+php_fpm_session_upload_progress_enabled: false
 
 # Performance
 php_fpm_opcache_preload: ""

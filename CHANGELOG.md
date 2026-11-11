@@ -11,6 +11,85 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Security
+
+- **base:** **BREAKING** sshd now sets `PermitRootLogin no`, overriding images that
+  allow root login (DigitalOcean's ship `PermitRootLogin yes`). Root was previously
+  kept out only by `AllowGroups`, so adding a group such as `root` to
+  `base_ssh_extra_user_groups` re-enabled it. A first provision connected as root
+  still completes (sshd reloads at the end of the play); set
+  `base_ssh_permit_root_login` to choose another value.
+- **base:** **BREAKING** once a managed user has an authorized key, the role deletes
+  `/root/.ssh/authorized_keys`, removing the keys DigitalOcean injects at creation.
+  It runs at the end of the play, so a first provision connected as root completes.
+  It is on by default only while root login is `no`, and skipped when `root` is a
+  managed user; set `base_ssh_clear_root_authorized_keys: false` to keep the keys.
+- **base:** **BREAKING** the role restores Debian's stock `/etc/ssh/sshd_config`
+  (discarding local edits, such as those in DigitalOcean's image), so openssh
+  upgrades, including unattended security upgrades, replace it instead of keeping a
+  modified copy. DigitalOcean's settings worth keeping move to the drop-in
+  as `base_ssh_password_authentication` (default `false`) and
+  `base_ssh_client_alive_interval` (default `120`). Password authentication is now
+  disabled explicitly; it was previously left to the image.
+- **base:** **BREAKING** sshd now sets `AllowStreamLocalForwarding no`, so Unix
+  socket forwarding (e.g. `ssh -R /path.sock:...`) is refused alongside TCP
+  forwarding. Agent forwarding is unaffected. Set
+  `base_ssh_allow_stream_local_forwarding: true` to allow it.
+- **base:** **BREAKING** the sshd drop-in moves from `99-custom.conf` to
+  `00-base.conf`, so it sorts before other drop-ins and its settings take effect.
+  sshd keeps the first value it reads, so an earlier-sorting drop-in silently
+  overrode them, such as the `PasswordAuthentication yes` in the
+  `50-cloud-init.conf` cloud-init writes on images that allow password logins.
+  Drop-ins added by playbooks no longer override the role's settings; set the
+  `base_ssh_*` variables instead.
+- **do_agent:** **BREAKING** the role now purges DigitalOcean's `droplet-agent` and
+  `droplet-agent-keyring` packages, plus the apt source and pin that DigitalOcean's
+  install script adds. The agent powers the control panel's Droplet Console, which
+  writes temporary keys into `authorized_keys` and so grants a shell without going
+  through the managed keys. The Recovery Console is unaffected. Set
+  `do_agent_remove_droplet_agent: false` to keep the agent.
+- **php:** **BREAKING** PHP-FPM now sets `session.upload_progress.enabled = Off`, as
+  PHP's advisories recommend for CVE-2026-115560 (unpatched as of 2026-11-10) and
+  CVE-2026-109619. php-fpm restarts to apply it. Set
+  `php_fpm_session_upload_progress_enabled: true` to turn session upload progress
+  back on.
+- **php:** **BREAKING** PHP-FPM now sets `session.cookie_secure = On` and
+  `session.cookie_samesite = Lax`, so session cookies are never sent over plain HTTP
+  or with cross-site subrequests. Sites served over plain HTTP lose their sessions
+  unless `php_fpm_session_cookie_secure` is set to `false`; change the SameSite value
+  with `php_fpm_session_cookie_samesite`.
+- **php:** **BREAKING** the role installs `unattended-upgrades` and adds the Sury PHP
+  repository to its allowed origins, so PHP updates, including security releases
+  such as the coming fix for CVE-2026-115560, install unattended. Previously only
+  Debian security updates were applied and PHP stayed at the installed version until
+  upgraded by hand. Set `php_unattended_upgrades: false` to opt out.
+- **nginx:** **BREAKING** the role pins nginx to a stable branch, `nginx_version`
+  (default `1.30`), installs `unattended-upgrades` and adds the nginx.org repository
+  to its allowed origins. The branch's patch releases, six of them security releases
+  in 2026 so far, now install unattended, while a new branch, which changes
+  behaviour, only arrives when `nginx_version` changes. Previously nginx stayed at
+  the installed version until upgraded by hand. A host on another branch moves to
+  `nginx_version` on the next run. Set `nginx_unattended_upgrades: false` to opt out.
+- **nginx:** **BREAKING** `nginx.conf` now sets TLS defaults for every server,
+  following tlsref's intermediate profile: TLS 1.2 and 1.3, forward-secret AEAD
+  ciphers only (nginx's own default also allows CBC and non-forward-secret suites),
+  X25519MLKEM768 hybrid post-quantum key exchange on trixie, and a shared session
+  cache. Remove `ssl_protocols`, `ssl_ecdh_curve`, `ssl_ciphers`,
+  `ssl_session_timeout` and `ssl_session_cache` from `http`-level config such as
+  `conf.d` files, or nginx refuses the duplicates; set the new `nginx_ssl_*`
+  variables to change the values.
+- **nginx:** **BREAKING** `nginx.conf` now declares a `default_server` on 443 and
+  `[::]:443` that rejects TLS handshakes for unknown or missing SNI and closes
+  connections whose `Host` matches no `server_name`, so unknown hostnames no longer
+  reach the first vhost (and its application) on 443. Vhosts that declare their own
+  443 `default_server` now fail `nginx -t`, and clients connecting by IP address or
+  without SNI are refused. Set `nginx_reject_unknown_hosts: false` to turn it off.
+
+### Removed
+
+- **php:** **BREAKING** PHP 8.1 is no longer accepted for `php_version`; it reached
+  end of life on 31 December 2025 and gets no security fixes.
+
 ## [7.0.0] - 2026-11-04
 
 ### Added

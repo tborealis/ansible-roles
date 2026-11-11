@@ -77,3 +77,197 @@
         path: /etc/nginx/conf.d/default.conf
       register: nginx_verify_default_site
       failed_when: nginx_verify_default_site.stat.exists
+
+    # nginx's own defaults would accept the RSA key exchange and CBC suites, and
+    # every group OpenSSL enables, secp521r1 included.
+    - name: Handshake over TLS 1.2 with a single cipher suite
+      ansible.builtin.command:
+        cmd: >-
+          openssl s_client -connect 127.0.0.1:443 -servername molecule.test
+          -tls1_2 -cipher {{ item.name }}
+        stdin: Q
+      loop:
+        - {name: ECDHE-RSA-AES128-GCM-SHA256, accepted: true}
+        - {name: ECDHE-RSA-CHACHA20-POLY1305, accepted: true}
+        - {name: AES128-GCM-SHA256, accepted: false}
+        - {name: ECDHE-RSA-AES128-SHA, accepted: false}
+      loop_control:
+        label: "{{ item.name }}"
+      register: nginx_verify_tls_ciphers
+      changed_when: false
+      failed_when: false
+
+    - name: Handshake over TLS 1.3 with a single key exchange group
+      ansible.builtin.command:
+        cmd: >-
+          openssl s_client -connect 127.0.0.1:443 -servername molecule.test
+          -tls1_3 -groups {{ item.name }}
+        stdin: Q
+      loop: >-
+        {{ ([{'name': 'X25519MLKEM768', 'accepted': true}]
+        if ansible_facts['distribution_release'] != 'bookworm' else [])
+        + [{'name': 'X25519', 'accepted': true}, {'name': 'secp521r1', 'accepted': false}] }}
+      loop_control:
+        label: "{{ item.name }}"
+      register: nginx_verify_tls_groups
+      changed_when: false
+      failed_when: false
+
+    - name: Assert nginx accepts only the configured cipher suites and groups
+      ansible.builtin.assert:
+        that: (item.rc == 0) == item.item.accepted
+        quiet: true
+      loop: "{{ nginx_verify_tls_ciphers.results + nginx_verify_tls_groups.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+
+    # Without tickets, resumption needs the server's session cache.
+    - name: Reconnect over TLS 1.2 without session tickets
+      ansible.builtin.command:
+        cmd: >-
+          openssl s_client -connect 127.0.0.1:443 -servername molecule.test
+          -tls1_2 -no_ticket -reconnect
+        stdin: Q
+      register: nginx_verify_tls_resume
+      changed_when: false
+
+    - name: Assert the session cache resumes TLS sessions
+      ansible.builtin.assert:
+        that:
+          - "'Reused, TLSv1.2' in nginx_verify_tls_resume.stdout"
+
+    # uri cannot pin a hostname to an address, which the SNI checks need.
+    - name: Request the TLS vhost # noqa: command-instead-of-module
+      ansible.builtin.command: curl -sSk --resolve molecule.test:443:{{ item }} https://molecule.test/
+      loop: ["127.0.0.1", "[::1]"]
+      register: nginx_verify_tls_vhost
+      changed_when: false
+
+    - name: Request the TLS vhost with a Host header no vhost serves # noqa: command-instead-of-module
+      ansible.builtin.command: >-
+        curl -sSk --resolve molecule.test:443:{{ item }} -H 'Host: unknown.test'
+        https://molecule.test/
+      loop: ["127.0.0.1", "[::1]"]
+      register: nginx_verify_unknown_host
+      changed_when: false
+      failed_when: false
+
+    - name: Handshake with an SNI no vhost serves, or none
+      ansible.builtin.command:
+        cmd: openssl s_client -connect {{ item }}
+        stdin: Q
+      loop:
+        - 127.0.0.1:443 -servername unknown.test
+        - "[::1]:443 -servername unknown.test"
+        - 127.0.0.1:443 -noservername
+      register: nginx_verify_unknown_sni
+      changed_when: false
+      failed_when: false
+
+    # return 444 closes the connection without a response: curl 7 reports an
+    # empty reply (52), curl 8 an unexpected TLS EOF (56).
+    - name: Assert unknown hostnames are refused on IPv4 and IPv6 while the vhost is served
+      ansible.builtin.assert:
+        that:
+          - nginx_verify_tls_vhost.results | map(attribute='stdout') | unique == ['molecule vhost ok']
+          - nginx_verify_unknown_host.results | map(attribute='rc') | reject('in', [52, 56]) | list == []
+          - nginx_verify_unknown_host.results | map(attribute='stdout') | unique == ['']
+          - nginx_verify_unknown_sni.results | rejectattr('rc', 'ne', 0) | list | length == 0
+          - >-
+            nginx_verify_unknown_sni.results | map(attribute='stderr')
+            | select('search', 'unrecognized name') | list | length == 3
+
+    - name: Read the installed nginx version
+      ansible.builtin.command: dpkg-query -W -f=${Version} nginx
+      register: nginx_verify_version
+      changed_when: false
+
+    - name: Read the apt policy of nginx
+      ansible.builtin.command: apt-cache policy nginx
+      register: nginx_verify_policy
+      changed_when: false
+
+    - name: Read the apt configuration
+      ansible.builtin.command: apt-config dump
+      register: nginx_verify_apt_config
+      changed_when: false
+
+    # The pin raises the branch above every other version, whatever its number,
+    # so the newest patch of the branch is installed and is the upgrade candidate.
+    - name: Assert nginx is pinned to the stable branch and allowed in unattended-upgrades
+      ansible.builtin.assert:
+        that:
+          - nginx_verify_version.stdout is match('1\.30\.')
+          - "'Candidate: ' ~ nginx_verify_version.stdout in nginx_verify_policy.stdout"
+          - nginx_verify_policy.stdout is search('\s1\.30\.\S+ 990\n')
+          - nginx_verify_policy.stdout is search('\s1\.28\.\S+ 500\n')
+          - >-
+            'Unattended-Upgrade::Origins-Pattern:: "origin=nginx,codename=${distro_codename}";'
+            in nginx_verify_apt_config.stdout_lines
+
+    # The apt module's version pin loses to the role's preferences pin, so it
+    # finds no candidate; apt-get installs an explicit version regardless.
+    - name: Downgrade nginx to an older patch release of the branch # noqa: command-instead-of-module
+      ansible.builtin.command: >-
+        apt-get install -y --allow-downgrades
+        -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold
+        nginx={{ nginx_molecule_old_version }}-1~{{ ansible_facts['distribution_release'] }}
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+      changed_when: true
+
+    - name: Limit unattended-upgrades to nginx for the test run
+      ansible.builtin.copy:
+        content: 'Unattended-Upgrade::Package-Whitelist { "nginx"; };'
+        dest: /etc/apt/apt.conf.d/99molecule-nginx-only
+        mode: "0644"
+
+    - name: Run unattended-upgrade
+      ansible.builtin.command: unattended-upgrade --debug
+      register: nginx_verify_uu
+      changed_when: true
+
+    - name: Read the nginx version after unattended-upgrade
+      ansible.builtin.command: dpkg-query -W -f=${Version} nginx
+      register: nginx_verify_upgraded_version
+      changed_when: false
+
+    - name: Read the nginx master PID
+      ansible.builtin.slurp:
+        src: /run/nginx.pid
+      register: nginx_verify_pid
+
+    - name: Read the binary the nginx master runs
+      ansible.builtin.command: readlink /proc/{{ nginx_verify_pid.content | b64decode | trim }}/exe
+      register: nginx_verify_master_exe
+      changed_when: false
+
+    - name: Request the vhost root after unattended-upgrade
+      ansible.builtin.uri:
+        url: http://127.0.0.1/
+        return_content: true
+      register: nginx_verify_upgraded_root
+
+    - name: Read nginx.conf after unattended-upgrade
+      ansible.builtin.slurp:
+        src: /etc/nginx/nginx.conf
+      register: nginx_verify_upgraded_conf
+
+    - name: Check the default site after unattended-upgrade
+      ansible.builtin.stat:
+        path: /etc/nginx/conf.d/default.conf
+      register: nginx_verify_upgraded_default_site
+
+    # The package's conffiles must not hold the upgrade back, and the running
+    # master must have moved onto the new binary.
+    - name: Assert unattended-upgrades installed the newest patch release and nginx kept serving
+      ansible.builtin.assert:
+        that:
+          - nginx_verify_upgraded_version.stdout == nginx_verify_version.stdout
+          - >-
+            'origin=nginx,codename=' ~ ansible_facts['distribution_release']
+            in nginx_verify_uu.stdout ~ nginx_verify_uu.stderr
+          - nginx_verify_master_exe.stdout == '/usr/sbin/nginx'
+          - "'molecule vhost ok' in nginx_verify_upgraded_root.content"
+          - "'server_tokens off;' in nginx_verify_upgraded_conf.content | b64decode"
+          - not nginx_verify_upgraded_default_site.stat.exists

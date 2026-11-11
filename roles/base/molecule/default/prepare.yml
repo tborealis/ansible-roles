@@ -5,6 +5,10 @@
 # - a pre-existing user with a stray authorized key simulates adopting an
 #   existing host, so verify can prove the role's exclusive key handling
 #   removes keys it does not manage.
+# - DigitalOcean's image hand-edits sshd_config after installing openssh
+#   (debconf answers stay at Debian's defaults), which the role must restore
+#   to stock, and DigitalOcean injects the account's keys into root's
+#   authorized_keys, which the role must remove.
 - name: Prepare
   hosts: all
   become: true
@@ -18,6 +22,44 @@
         update_cache: true
         cache_valid_time: 3600
       when: ansible_facts['distribution_release'] == 'bookworm'
+
+    - name: Install openssh-server as shipped on the image
+      ansible.builtin.apt:
+        pkg: openssh-server
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Edit sshd_config as DigitalOcean's image does
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      loop:
+        - {regexp: "^#?PermitRootLogin ", line: PermitRootLogin yes}
+        - {regexp: "^#?PasswordAuthentication ", line: PasswordAuthentication no}
+        - {regexp: "^#?ClientAliveInterval ", line: ClientAliveInterval 120}
+      loop_control:
+        label: "{{ item.line }}"
+
+    # sshd keeps the first value it reads, so this overrode the role's old
+    # 99-custom.conf.
+    - name: Enable password logins in a drop-in, as cloud-init does for ssh_pwauth
+      ansible.builtin.copy:
+        content: "PasswordAuthentication yes\n"
+        dest: /etc/ssh/sshd_config.d/50-cloud-init.conf
+        mode: "0644"
+
+    - name: Plant the sshd drop-in an earlier role version wrote
+      ansible.builtin.copy:
+        content: "X11Forwarding no\n"
+        dest: /etc/ssh/sshd_config.d/99-custom.conf
+        mode: "0644"
+
+    - name: Inject an account key for root, as DigitalOcean does at creation
+      ansible.posix.authorized_key:
+        user: root
+        key: "{{ base_molecule_root_injected_public_key }}"
 
     - name: Create a pre-existing legacy user for the role to adopt
       ansible.builtin.user:

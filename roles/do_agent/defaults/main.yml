@@ -1,0 +1,4 @@
+---
+# Purge DigitalOcean's droplet-agent (Droplet Console backend) and its apt
+# repository; false leaves an existing install untouched.
+do_agent_remove_droplet_agent: true

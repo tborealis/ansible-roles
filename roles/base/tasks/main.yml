@@ -135,6 +135,19 @@
   loop_control:
     label: "{{ item.name }}"
 
+# The removal runs as a handler, like the sshd reload, so a first provision
+# connected as root keeps its session until the end of the play.
+- name: Queue removal of root's authorized keys
+  ansible.builtin.stat:
+    path: /root/.ssh/authorized_keys
+  register: base_root_authorized_keys
+  changed_when: base_root_authorized_keys.stat.exists
+  notify: Remove root authorized keys
+  when:
+    - base_ssh_clear_root_authorized_keys
+    - "'root' not in (base_default_users + base_users) | map(attribute='name')"
+    - (base_default_users + base_users) | map(attribute='authorized_keys', default=[]) | flatten | length > 0
+
 - name: Install openssh from backports
   ansible.builtin.apt:
     pkg: openssh-server
@@ -153,10 +166,32 @@
     cache_valid_time: 3600
   when: base_use_backports and base_openssh_apt_release.changed
 
+# sshd keeps the first value it reads, so the drop-in sorts first to win over
+# others, such as cloud-init's 50-cloud-init.conf.
 - name: Configure sshd
   ansible.builtin.template:
-    src: ssh/99-custom.conf.j2
-    dest: /etc/ssh/sshd_config.d/99-custom.conf
+    src: ssh/00-base.conf.j2
+    dest: /etc/ssh/sshd_config.d/00-base.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: "sshd -t -f %s"
+  notify: Reload sshd
+
+- name: Remove the sshd drop-in of earlier role versions
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d/99-custom.conf
+    state: absent
+  notify: Reload sshd
+
+# DigitalOcean's image ships an edited sshd_config, which ucf then keeps on
+# every openssh upgrade. Restore the packaged copy (all settings live in the
+# drop-in) so upgrades replace it cleanly again.
+- name: Restore the packaged sshd_config
+  ansible.builtin.copy:
+    src: /usr/share/openssh/sshd_config
+    dest: /etc/ssh/sshd_config
+    remote_src: true
     owner: root
     group: root
     mode: "0644"
