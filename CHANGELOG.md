@@ -11,6 +11,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+## [8.0.0] - 2026-11-11
+
 ### Security
 
 - **base:** **BREAKING** sshd now sets `PermitRootLogin no`, overriding images that
