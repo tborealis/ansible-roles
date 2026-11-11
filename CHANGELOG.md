@@ -29,6 +29,11 @@ flagged with **BREAKING** and require a MAJOR version bump.
   release of that package and its dependency tree as root on every install. The
   versions, `/opt` install paths and links are unchanged, and Node.js is no longer
   required.
+- **git:** GitHub's RSA host key from before March 2023, replaced after its private
+  key was exposed, is now marked `@revoked` in `/etc/ssh/ssh_known_hosts`, and
+  system entries that trust it are removed. Role versions before August 2023 added
+  it, so older hosts still accepted it for git-over-SSH, letting anyone holding the
+  exposed key impersonate GitHub from a network position.
 
 ## [8.0.0] - 2026-11-11
 
