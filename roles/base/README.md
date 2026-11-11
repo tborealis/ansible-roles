@@ -8,10 +8,12 @@ timezone change so scheduled jobs pick up the new zone; on images without cron
 
 ## SSH
 
-sshd settings go in `/etc/ssh/sshd_config.d/99-custom.conf`. Debian's `sshd_config`
+sshd settings go in `/etc/ssh/sshd_config.d/00-base.conf`. Debian's `sshd_config`
 includes that directory before its own settings, and sshd keeps the first value it
-reads, so these override the main file (but not an earlier-sorting drop-in). Logins
-are limited to members of `ssh-users` and `base_ssh_extra_user_groups`.
+reads, so as the first drop-in these override the main file and every other drop-in,
+such as the `50-cloud-init.conf` cloud-init writes on images that allow password
+logins. Change them through the role variables. Logins are limited to members of
+`ssh-users` and `base_ssh_extra_user_groups`.
 
 The role restores Debian's stock `/etc/ssh/sshd_config`, which DigitalOcean's image
 edits (any local changes to that file are discarded), so openssh upgrades replace it

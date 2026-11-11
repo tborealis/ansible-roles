@@ -35,6 +35,13 @@ flagged with **BREAKING** and require a MAJOR version bump.
   socket forwarding (e.g. `ssh -R /path.sock:...`) is refused alongside TCP
   forwarding. Agent forwarding is unaffected. Set
   `base_ssh_allow_stream_local_forwarding: true` to allow it.
+- **base:** **BREAKING** the sshd drop-in moves from `99-custom.conf` to
+  `00-base.conf`, so it sorts before other drop-ins and its settings take effect.
+  sshd keeps the first value it reads, so an earlier-sorting drop-in silently
+  overrode them, such as the `PasswordAuthentication yes` in the
+  `50-cloud-init.conf` cloud-init writes on images that allow password logins.
+  Drop-ins added by playbooks no longer override the role's settings; set the
+  `base_ssh_*` variables instead.
 - **do_agent:** **BREAKING** the role now purges DigitalOcean's `droplet-agent` and
   `droplet-agent-keyring` packages, plus the apt source and pin that DigitalOcean's
   install script adds. The agent powers the control panel's Droplet Console, which

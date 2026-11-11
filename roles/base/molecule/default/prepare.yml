@@ -42,6 +42,20 @@
       loop_control:
         label: "{{ item.line }}"
 
+    # sshd keeps the first value it reads, so this overrode the role's old
+    # 99-custom.conf.
+    - name: Enable password logins in a drop-in, as cloud-init does for ssh_pwauth
+      ansible.builtin.copy:
+        content: "PasswordAuthentication yes\n"
+        dest: /etc/ssh/sshd_config.d/50-cloud-init.conf
+        mode: "0644"
+
+    - name: Plant the sshd drop-in an earlier role version wrote
+      ansible.builtin.copy:
+        content: "X11Forwarding no\n"
+        dest: /etc/ssh/sshd_config.d/99-custom.conf
+        mode: "0644"
+
     - name: Inject an account key for root, as DigitalOcean does at creation
       ansible.posix.authorized_key:
         user: root

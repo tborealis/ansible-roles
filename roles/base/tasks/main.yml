@@ -166,14 +166,22 @@
     cache_valid_time: 3600
   when: base_use_backports and base_openssh_apt_release.changed
 
+# sshd keeps the first value it reads, so the drop-in sorts first to win over
+# others, such as cloud-init's 50-cloud-init.conf.
 - name: Configure sshd
   ansible.builtin.template:
-    src: ssh/99-custom.conf.j2
-    dest: /etc/ssh/sshd_config.d/99-custom.conf
+    src: ssh/00-base.conf.j2
+    dest: /etc/ssh/sshd_config.d/00-base.conf
     owner: root
     group: root
     mode: "0644"
     validate: "sshd -t -f %s"
+  notify: Reload sshd
+
+- name: Remove the sshd drop-in of earlier role versions
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d/99-custom.conf
+    state: absent
   notify: Reload sshd
 
 # DigitalOcean's image ships an edited sshd_config, which ucf then keeps on
