@@ -23,3 +23,7 @@ The following variables have no defaults and are required when
 | `supervisor_crashmail_smtp_host` | SMTP host (TLS is always used) |
 | `supervisor_crashmail_smtp_user` | SMTP username |
 | `supervisor_crashmail_smtp_password` | SMTP password |
+
+The crash and fatal mail listeners run as `nobody`, through a wrapper that passes the
+SMTP password to [superlance](https://github.com/Supervisor/superlance) from the
+listener's environment rather than its command line, which any local user can read.

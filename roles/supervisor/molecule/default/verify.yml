@@ -2,6 +2,8 @@
 - name: Verify
   hosts: all
   become: true
+  vars_files:
+    - vars.yml
   tasks:
     - name: Gather service facts
       ansible.builtin.service_facts:
@@ -51,3 +53,66 @@
       ansible.builtin.assert:
         that:
           - "'root' in ansible_facts.getent_group['supervisor'][2]"
+
+    - name: Query the crash mail listeners # noqa: command-instead-of-module (exercises supervisorctl against the live daemon)
+      ansible.builtin.command: supervisorctl status crashmailbatch fatalmailbatch
+      register: supervisor_verify_listeners
+      changed_when: false
+
+    - name: Read the crash mail listener PIDs # noqa: command-instead-of-module (exercises supervisorctl against the live daemon)
+      ansible.builtin.command: supervisorctl pid {{ item }}
+      loop: [crashmailbatch, fatalmailbatch]
+      register: supervisor_verify_listener_pids
+      changed_when: false
+
+    - name: Read the listeners' command lines
+      ansible.builtin.slurp:
+        src: /proc/{{ item.stdout }}/cmdline
+      loop: "{{ supervisor_verify_listener_pids.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      register: supervisor_verify_cmdlines
+
+    - name: Read the listeners' process status
+      ansible.builtin.slurp:
+        src: /proc/{{ item.stdout }}/status
+      loop: "{{ supervisor_verify_listener_pids.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      register: supervisor_verify_proc_status
+
+    # As their own user: root in a container lacks the CAP_SYS_PTRACE this needs.
+    - name: Read the listeners' environments
+      ansible.builtin.command: runuser -u nobody -- cat /proc/{{ item.stdout }}/environ
+      loop: "{{ supervisor_verify_listener_pids.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      register: supervisor_verify_environs
+      changed_when: false
+      failed_when: false
+
+    - name: Try to read a listener's environment as another unprivileged user
+      ansible.builtin.command: runuser -u www-data -- cat /proc/{{ supervisor_verify_listener_pids.results[0].stdout }}/environ
+      register: supervisor_verify_environ_other_user
+      changed_when: false
+      failed_when: false
+
+    # The command line is what ps shows to every local user.
+    - name: Assert the listeners run as nobody with the SMTP password only in their environment
+      ansible.builtin.assert:
+        that:
+          - supervisor_verify_listeners.stdout_lines | select('search', ' RUNNING ') | list | length == 2
+          - >-
+            supervisor_verify_cmdlines.results | map(attribute='content') | map('b64decode')
+            | select('search', '--userName') | list | length == 2
+          - >-
+            supervisor_verify_cmdlines.results | map(attribute='content') | map('b64decode')
+            | select('search', supervisor_crashmail_smtp_password) | list == []
+          - >-
+            supervisor_verify_proc_status.results | map(attribute='content') | map('b64decode')
+            | select('search', 'Uid:\s+65534\s') | list | length == 2
+          - >-
+            supervisor_verify_environs.results | map(attribute='stdout')
+            | select('search', 'CRASHMAIL_SMTP_PASSWORD=' ~ supervisor_crashmail_smtp_password) | list | length == 2
+          - supervisor_verify_environ_other_user.rc != 0
+          - "'Permission denied' in supervisor_verify_environ_other_user.stderr"

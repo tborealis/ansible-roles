@@ -8,10 +8,20 @@
 
 - name: Install superlance
   ansible.builtin.pip:
-    name: superlance
+    name: superlance==2.0.0
     state: present
     extra_args: --break-system-packages
   when: supervisor_crashmail_enable
+
+- name: Install the crash mail wrapper
+  ansible.builtin.copy:
+    src: supervisor-crashmail
+    dest: /usr/local/bin/supervisor-crashmail
+    owner: root
+    group: root
+    mode: "0755"
+  when: supervisor_crashmail_enable
+  notify: Restart supervisor
 
 - name: Add supervisor group
   ansible.builtin.group:
