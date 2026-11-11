@@ -32,6 +32,14 @@
   loop_control:
     label: "{{ item.path }}"
 
+- name: Pin Nginx to the stable branch {{ nginx_version }}
+  ansible.builtin.template:
+    src: apt-preferences.j2
+    dest: /etc/apt/preferences.d/nginx
+    owner: root
+    group: root
+    mode: "0644"
+
 - name: Update apt cache after adding repository # noqa: no-handler
   ansible.builtin.apt:
     update_cache: true
@@ -40,10 +48,16 @@
 # passlib for basic auth
 - name: Install Nginx
   ansible.builtin.apt:
-    pkg: "nginx,python3-passlib,ssl-cert"
+    pkg:
+      - nginx={{ nginx_version }}.*
+      - python3-passlib
+      - ssl-cert
     state: present
     update_cache: true
     cache_valid_time: 3600
+
+- name: Configure unattended Nginx updates
+  ansible.builtin.import_tasks: unattended-upgrades.yml
 
 - name: Install certbot plugin
   ansible.builtin.apt:

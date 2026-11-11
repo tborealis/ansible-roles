@@ -3,3 +3,6 @@
 nginx_molecule_auth_user: molecule
 nginx_molecule_auth_password: molecule-Basic-Passw0rd1
 nginx_molecule_htpasswd_path: /etc/nginx/.htpasswd-molecule
+# An older patch release of the default nginx_version branch, which the
+# unattended upgrade test downgrades to.
+nginx_molecule_old_version: "1.30.0"

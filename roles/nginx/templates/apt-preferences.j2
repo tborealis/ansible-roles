@@ -1,0 +1,6 @@
+# {{ ansible_managed }}
+# Keep nginx and its modules on the {{ nginx_version }} stable branch, so upgrades,
+# unattended ones included, only install its patch releases.
+Package: nginx nginx-module-*
+Pin: version {{ nginx_version }}.*
+Pin-Priority: 990

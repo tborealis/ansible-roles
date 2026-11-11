@@ -1,0 +1,11 @@
+//
+// {{ ansible_managed }}
+//
+
+// Install updates from the nginx.org repository unattended; the pin in
+// /etc/apt/preferences.d/nginx keeps them to patch releases of the configured
+// branch. This file sorts after base's 52unattended-upgrades-local (which
+// clears the list), so it adds to the allowed origins.
+Unattended-Upgrade::Origins-Pattern {
+        "origin=nginx,codename=${distro_codename}";
+};

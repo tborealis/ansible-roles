@@ -17,3 +17,15 @@ server {
         auth_basic_user_file {{ nginx_molecule_htpasswd_path }};
     }
 }
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name molecule.test;
+
+    ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem;
+    ssl_certificate_key /etc/ssl/private/ssl-cert-snakeoil.key;
+
+    root /var/www/molecule;
+    index index.html;
+}

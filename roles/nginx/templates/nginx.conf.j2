@@ -60,6 +60,21 @@ http {
 
     client_max_body_size {{ nginx_client_max_body_size }};
 
+    ssl_protocols {{ nginx_ssl_protocols }};
+    ssl_ecdh_curve {{ nginx_ssl_ecdh_curve }};
+    ssl_ciphers {{ nginx_ssl_ciphers }};
+    ssl_session_timeout {{ nginx_ssl_session_timeout }};
+    ssl_session_cache {{ nginx_ssl_session_cache }};
+{% if nginx_reject_unknown_hosts %}
+
+    server {
+        listen 443 ssl default_server;
+        listen [::]:443 ssl default_server;
+        ssl_reject_handshake on;
+        return 444;
+    }
+{% endif %}
+
     include /etc/nginx/conf.d/*.conf;
     include /etc/nginx/sites-enabled/*.conf;
 }

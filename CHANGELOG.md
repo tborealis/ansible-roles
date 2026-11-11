@@ -56,6 +56,27 @@ flagged with **BREAKING** and require a MAJOR version bump.
   such as the coming fix for CVE-2026-115560, install unattended. Previously only
   Debian security updates were applied and PHP stayed at the installed version until
   upgraded by hand. Set `php_unattended_upgrades: false` to opt out.
+- **nginx:** **BREAKING** the role pins nginx to a stable branch, `nginx_version`
+  (default `1.30`), installs `unattended-upgrades` and adds the nginx.org repository
+  to its allowed origins. The branch's patch releases, six of them security releases
+  in 2026 so far, now install unattended, while a new branch, which changes
+  behaviour, only arrives when `nginx_version` changes. Previously nginx stayed at
+  the installed version until upgraded by hand. A host on another branch moves to
+  `nginx_version` on the next run. Set `nginx_unattended_upgrades: false` to opt out.
+- **nginx:** **BREAKING** `nginx.conf` now sets TLS defaults for every server,
+  following tlsref's intermediate profile: TLS 1.2 and 1.3, forward-secret AEAD
+  ciphers only (nginx's own default also allows CBC and non-forward-secret suites),
+  X25519MLKEM768 hybrid post-quantum key exchange on trixie, and a shared session
+  cache. Remove `ssl_protocols`, `ssl_ecdh_curve`, `ssl_ciphers`,
+  `ssl_session_timeout` and `ssl_session_cache` from `http`-level config such as
+  `conf.d` files, or nginx refuses the duplicates; set the new `nginx_ssl_*`
+  variables to change the values.
+- **nginx:** **BREAKING** `nginx.conf` now declares a `default_server` on 443 and
+  `[::]:443` that rejects TLS handshakes for unknown or missing SNI and closes
+  connections whose `Host` matches no `server_name`, so unknown hostnames no longer
+  reach the first vhost (and its application) on 443. Vhosts that declare their own
+  443 `default_server` now fail `nginx -t`, and clients connecting by IP address or
+  without SNI are refused. Set `nginx_reject_unknown_hosts: false` to turn it off.
 
 ### Removed
 
