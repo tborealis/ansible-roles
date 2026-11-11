@@ -11,4 +11,10 @@ mysql_innodb_flush_log_at_trx_commit: 1
 mysql_slow_query_log: 0
 mysql_login_unix_socket: /var/run/mysqld/mysqld.sock
 
+# Address(es) MySQL accepts TCP connections on (comma-separated); "*" listens on
+# every interface, for clients on other hosts.
+mysql_bind_address: 127.0.0.1
+# The X Protocol listener (port 33060), used by MySQL Shell and the X DevAPI.
+mysql_mysqlx: false
+
 mysql_version: 8.4-lts

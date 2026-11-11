@@ -11,6 +11,15 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Security
+
+- **mysql:** **BREAKING** MySQL now accepts TCP connections on 127.0.0.1 only and
+  turns off its X Protocol listener. Before, Oracle's packages listened on every
+  interface on ports 3306 and 33060, so users with a `%` host could be reached from
+  any network the host was on. Clients on other hosts need
+  `mysql_bind_address: "*"` (or specific addresses); set `mysql_mysqlx: true` to
+  turn the X Protocol listener back on.
+
 ## [8.0.0] - 2026-11-11
 
 ### Security

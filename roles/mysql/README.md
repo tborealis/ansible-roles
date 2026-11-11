@@ -2,6 +2,11 @@
 
 Installs and configures MySQL server.
 
+MySQL accepts TCP connections on 127.0.0.1 only, and its X Protocol listener (port
+33060) is off. Clients on the same host connect over the socket or 127.0.0.1. For
+clients on other hosts, set `mysql_bind_address: "*"` (every interface) or a list of
+addresses, and give their users a matching `host`.
+
 ## Role Variables
 
 | Variable | Default | Description |
@@ -15,3 +20,5 @@ Installs and configures MySQL server.
 | `mysql_innodb_flush_log_at_trx_commit` | `1` | Flush log at commit (0 for VM performance) |
 | `mysql_slow_query_log` | `0` | Enable slow query logging |
 | `mysql_login_unix_socket` | `/var/run/mysqld/mysqld.sock` | Socket used for role logins (always matches `root@localhost`) |
+| `mysql_bind_address` | `127.0.0.1` | Address(es) for TCP connections, comma-separated; `*` for every interface |
+| `mysql_mysqlx` | `false` | Enable the X Protocol listener (MySQL Shell, X DevAPI) on `mysql_bind_address` |
