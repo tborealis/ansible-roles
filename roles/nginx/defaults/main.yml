@@ -1,4 +1,13 @@
 ---
+# Stable branch to install and stay on; upgrades only take its patch releases.
+# Only the newest stable branch gets fixes, so bump this when nginx.org releases
+# a new one each April.
+nginx_version: "1.30"
+
+# Let unattended-upgrades install updates from the nginx.org repository;
+# false removes that opt-in.
+nginx_unattended_upgrades: true
+
 nginx_user: nginx
 nginx_basic_auth: []
 nginx_conf: []

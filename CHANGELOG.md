@@ -56,6 +56,13 @@ flagged with **BREAKING** and require a MAJOR version bump.
   such as the coming fix for CVE-2026-115560, install unattended. Previously only
   Debian security updates were applied and PHP stayed at the installed version until
   upgraded by hand. Set `php_unattended_upgrades: false` to opt out.
+- **nginx:** **BREAKING** the role pins nginx to a stable branch, `nginx_version`
+  (default `1.30`), installs `unattended-upgrades` and adds the nginx.org repository
+  to its allowed origins. The branch's patch releases, six of them security releases
+  in 2026 so far, now install unattended, while a new branch, which changes
+  behaviour, only arrives when `nginx_version` changes. Previously nginx stayed at
+  the installed version until upgraded by hand. A host on another branch moves to
+  `nginx_version` on the next run. Set `nginx_unattended_upgrades: false` to opt out.
 
 ### Removed
 
