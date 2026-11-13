@@ -70,6 +70,23 @@
         that:
           - "'molecule vhost ok' in apache2_verify_tls_root.stdout"
 
+    - name: Request unknown hostnames over HTTPS # noqa: command-instead-of-module (uri cannot set the SNI name apart from the URL)
+      ansible.builtin.command: >-
+        curl -sS -k -o /dev/null -w '%{http_code}' {{ item }}
+      loop:
+        - --resolve unknown.test:443:127.0.0.1 https://unknown.test/
+        - https://127.0.0.1/
+      register: apache2_verify_unknown_hosts
+      changed_when: false
+
+    - name: Assert unknown hostnames are refused
+      ansible.builtin.assert:
+        that:
+          - item.stdout == '403'
+      loop: "{{ apache2_verify_unknown_hosts.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
     # Each probe offers the client one option; the server must refuse the ones
     # outside the tlsref intermediate profile that Debian's defaults accepted.
     - name: Probe TLS handshakes

@@ -6,6 +6,12 @@
     update_cache: true
     cache_valid_time: 3600
 
+- name: Install the self-signed certificate for unknown hosts
+  ansible.builtin.apt:
+    pkg: ssl-cert
+    state: present
+  when: apache2_reject_unknown_hosts
+
 - name: Enable MPM
   community.general.apache2_module:
     name: mpm_event

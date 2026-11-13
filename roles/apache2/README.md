@@ -18,6 +18,7 @@ Installs and configures Apache2 web server with virtual hosts and modules.
 | `apache2_ssl_protocols` | `-all +TLSv1.2 +TLSv1.3` | `SSLProtocol` for every vhost (tlsref intermediate) |
 | `apache2_ssl_curves` | `X25519MLKEM768:X25519:prime256v1:secp384r1` (bookworm: without `X25519MLKEM768`) | Key exchange groups (`SSLOpenSSLConfCmd Curves`) |
 | `apache2_ssl_ciphers` | tlsref intermediate TLS 1.2 ciphers (ECDHE with AES-GCM or ChaCha20-Poly1305) | `SSLCipherSuite` for TLS 1.2 |
+| `apache2_reject_unknown_hosts` | `true` | Answer HTTPS requests for hostnames no vhost names with `403` and Debian's self-signed certificate |
 
 ## Templates
 
@@ -30,6 +31,12 @@ Server-wide settings go in `/etc/apache2/conf-available/server-defaults.conf`, w
 is enabled after Debian's `security.conf` so its values take precedence. That
 includes the TLS settings, which follow tlsref's intermediate profile; a vhost can
 still set its own.
+
+It also adds the first vhost on port 443, which answers requests for hostnames that
+no other vhost names (including requests by IP address or without SNI) with `403`
+and Debian's self-signed snakeoil certificate. Without it, Apache passes them to
+whichever vhost sorts first. Port 80 is left alone, so a playbook's catch-all
+HTTP-to-HTTPS redirect keeps working.
 
 Vhosts and `/etc/apache2/envvars` are installed `0640 root:root`, as they can hold
 secrets such as `OIDCClientSecret`; Apache reads them as root before dropping

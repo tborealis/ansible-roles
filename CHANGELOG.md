@@ -59,6 +59,13 @@ flagged with **BREAKING** and require a MAJOR version bump.
   `AES256-SHA256`. Clients that support only those can no longer connect. Override
   `apache2_ssl_protocols`, `apache2_ssl_curves` and `apache2_ssl_ciphers`, or set
   them in a vhost. Playbooks that install their own server-wide TLS file can drop it.
+- **apache2:** **BREAKING** the role now adds a first vhost on port 443 that answers
+  hostnames no other vhost names, including requests by IP address or without SNI,
+  with `403` and Debian's self-signed certificate (`ssl-cert` is installed for it).
+  Before, Apache passed them to whichever vhost sorted first, so an application
+  could be reached under any `Host` header. Health checks that request the bare IP
+  over HTTPS now fail. Set `apache2_reject_unknown_hosts: false` to keep the old
+  behaviour.
 
 ## [8.0.0] - 2026-11-11
 

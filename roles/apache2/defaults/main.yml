@@ -33,3 +33,7 @@ apache2_ssl_curves: >-
   else 'X25519MLKEM768:X25519:prime256v1:secp384r1' }}
 apache2_ssl_ciphers: >-
   ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305
+
+# Refuse HTTPS requests for hostnames that no vhost names (with Debian's
+# self-signed certificate), instead of passing them to the first vhost on 443.
+apache2_reject_unknown_hosts: true

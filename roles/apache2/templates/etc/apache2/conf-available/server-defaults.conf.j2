@@ -12,3 +12,19 @@ ServerSignature {{ apache2_server_signature }}
     SSLHonorCipherOrder     off
     SSLSessionTickets       off
 </IfModule>
+{% if apache2_reject_unknown_hosts %}
+
+# conf-enabled loads before sites-enabled, so this is the first vhost on 443 and
+# answers hostnames no other vhost names, instead of whichever vhost sorts first.
+<IfModule ssl_module>
+    <VirtualHost *:443>
+        SSLEngine on
+        SSLCertificateFile      /etc/ssl/certs/ssl-cert-snakeoil.pem
+        SSLCertificateKeyFile   /etc/ssl/private/ssl-cert-snakeoil.key
+
+        <Location "/">
+            Require all denied
+        </Location>
+    </VirtualHost>
+</IfModule>
+{% endif %}
