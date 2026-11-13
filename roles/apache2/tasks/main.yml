@@ -42,6 +42,9 @@
     group: www-data
     mode: "0640"
     state: present
+  no_log: true
+  loop_control:
+    label: "{{ item.name }}"
   with_items: "{{ apache2_basic_auth }}"
   notify: Restart apache2
 

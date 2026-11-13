@@ -45,6 +45,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
   instead of `0644`, so other local users can no longer read secrets kept in them,
   such as an `OIDCClientSecret`. The **certbot** role's `apache` mode installs its
   SSL vhosts the same way.
+- **apache2:** the "Create password" task now sets `no_log: true`. It printed each
+  `apache2_basic_auth` password in the Ansible output on every run, and in full
+  when an item failed.
 
 ## [8.0.0] - 2026-11-11
 
