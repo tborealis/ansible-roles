@@ -7,10 +7,10 @@ Installs and configures Apache2 web server with virtual hosts and modules.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `apache2_user` | `www-data` | User that Apache runs as |
-| `apache2_vhosts` | `[]` | List of virtual host configurations |
+| `apache2_vhosts` | `[]` | List of virtual host configurations; one removed from the list is disabled and deleted on the next run |
 | `apache2_basic_auth` | `[]` | List of basic auth configurations |
 | `apache2_packages` | `[apache2, apache2-utils, python3-passlib]` | Packages to install |
-| `apache2_modules` | `[proxy_fcgi, setenvif, rewrite, headers, ssl]` | Modules to enable |
+| `apache2_modules` | `[proxy_fcgi, setenvif, rewrite, headers, ssl]` | Modules to enable; one removed from the list is disabled on the next run |
 | `apache2_disable_modules` | `[mpm_prefork]` | Modules to disable |
 | `apache2_env_vars` | `{}` | Environment variables to set |
 | `apache2_server_tokens` | `Prod` | `ServerTokens`: how much of the version and OS the `Server` header shows |
@@ -37,6 +37,12 @@ no other vhost names (including requests by IP address or without SNI) with `403
 and Debian's self-signed snakeoil certificate. Without it, Apache passes them to
 whichever vhost sorts first. Port 80 is left alone, so a playbook's catch-all
 HTTP-to-HTTPS redirect keeps working.
+
+The role records the modules and vhosts it enabled in
+`/var/lib/apache2/ansible-managed.json`, and disables any that have left
+`apache2_modules` or `apache2_vhosts` since the previous run. Modules and vhosts
+enabled by Debian or by hand are never touched, and nothing is disabled on the first
+run of this version, which only writes the record.
 
 Vhosts and `/etc/apache2/envvars` are installed `0640 root:root`, as they can hold
 secrets such as `OIDCClientSecret`; Apache reads them as root before dropping

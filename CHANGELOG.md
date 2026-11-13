@@ -66,6 +66,12 @@ flagged with **BREAKING** and require a MAJOR version bump.
   could be reached under any `Host` header. Health checks that request the bare IP
   over HTTPS now fail. Set `apache2_reject_unknown_hosts: false` to keep the old
   behaviour.
+- **apache2:** a module or vhost removed from `apache2_modules` or `apache2_vhosts`
+  is now disabled (and the vhost file deleted) on the next run. Before, it stayed
+  enabled, so dropping `http2` from the list to turn off HTTP/2 left it running.
+  The role tracks what it enabled in `/var/lib/apache2/ansible-managed.json`, so
+  modules and vhosts enabled by Debian or by hand are left alone; the first run of
+  this version only writes the record.
 
 ## [8.0.0] - 2026-11-11
 

@@ -31,6 +31,8 @@
           - "'rewrite_module' in apache2_verify_modules.stdout"
           - "'ssl_module' in apache2_verify_modules.stdout"
           - "'proxy_fcgi_module' in apache2_verify_modules.stdout"
+          - "'info_module' not in apache2_verify_modules.stdout"
+          - "'status_module' in apache2_verify_modules.stdout"
 
     - name: Request the vhost root
       ansible.builtin.uri:
@@ -189,6 +191,34 @@
         that:
           - "'export APACHE_RUN_USER=www-data' in apache2_verify_envvars.content | b64decode"
           - "'export APACHE_RUN_GROUP=www-data' in apache2_verify_envvars.content | b64decode"
+
+    - name: Stat the vhost dropped from the list and the hand-made one
+      ansible.builtin.stat:
+        path: "/etc/apache2/{{ item }}"
+      loop:
+        - sites-enabled/stale.conf
+        - sites-available/stale.conf
+        - sites-enabled/other.conf
+      register: apache2_verify_dropped_vhosts
+
+    - name: Assert only the dropped vhost was removed
+      ansible.builtin.assert:
+        that:
+          - not apache2_verify_dropped_vhosts.results[0].stat.exists
+          - not apache2_verify_dropped_vhosts.results[1].stat.exists
+          - apache2_verify_dropped_vhosts.results[2].stat.islnk
+
+    - name: Read the record of managed modules and vhosts
+      ansible.builtin.slurp:
+        src: /var/lib/apache2/ansible-managed.json
+      register: apache2_verify_managed
+
+    - name: Assert the record matches the converge lists
+      ansible.builtin.assert:
+        that:
+          - >-
+            apache2_verify_managed.content | b64decode | from_json ==
+            {'modules': ['proxy_fcgi', 'setenvif', 'rewrite', 'headers', 'ssl'], 'vhosts': ['molecule.conf']}
 
     - name: Check default site was disabled
       ansible.builtin.stat:
