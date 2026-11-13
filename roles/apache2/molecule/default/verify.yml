@@ -84,6 +84,26 @@
           - apache2_verify_vhost_link.stat.islnk
           - apache2_verify_vhost_link.stat.lnk_source == '/etc/apache2/sites-available/molecule.conf'
 
+    # Vhosts and envvars can carry secrets (e.g. OIDCClientSecret); Apache reads
+    # them as root before dropping privileges.
+    - name: Stat the vhost and environment config
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - /etc/apache2/sites-available/molecule.conf
+        - /etc/apache2/envvars
+      register: apache2_verify_private_files
+
+    - name: Assert the vhost and environment config are private to root
+      ansible.builtin.assert:
+        that:
+          - item.stat.mode == '0640'
+          - item.stat.pw_name == 'root'
+          - item.stat.gr_name == 'root'
+      loop: "{{ apache2_verify_private_files.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
     - name: Read the environment config
       ansible.builtin.slurp:
         src: /etc/apache2/envvars

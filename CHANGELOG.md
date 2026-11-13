@@ -41,6 +41,10 @@ flagged with **BREAKING** and require a MAJOR version bump.
 - **mysql:** the "Create users" task now sets `no_log: true`. With `no_log: false`,
   a failing user, or any run with `-v`, printed every user's password and salt in
   the Ansible output.
+- **apache2:** vhosts and `/etc/apache2/envvars` are now installed `0640 root:root`
+  instead of `0644`, so other local users can no longer read secrets kept in them,
+  such as an `OIDCClientSecret`. The **certbot** role's `apache` mode installs its
+  SSL vhosts the same way.
 
 ## [8.0.0] - 2026-11-11
 

@@ -51,14 +51,16 @@
     dest: "/etc/apache2/envvars"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
   notify: Restart apache2
 
 - name: Install vhosts
   ansible.builtin.template:
     src: "templates/apache2/vhosts/{{ item.src }}"
     dest: "/etc/apache2/sites-available/{{ item.dest }}"
-    mode: "0644"
+    owner: root
+    group: root
+    mode: "0640"
   with_items: "{{ apache2_vhosts }}"
   notify: Restart apache2
 

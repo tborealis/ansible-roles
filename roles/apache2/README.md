@@ -20,3 +20,7 @@ The `src` of each `apache2_vhosts` entry is resolved relative to the consuming
 playbook, so the vhost templates must live next to it in
 `templates/apache2/vhosts/`. See this role's molecule scenario
 (`molecule/default/templates/`) for a working example.
+
+Vhosts and `/etc/apache2/envvars` are installed `0640 root:root`, as they can hold
+secrets such as `OIDCClientSecret`; Apache reads them as root before dropping
+privileges.

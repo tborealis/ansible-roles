@@ -100,6 +100,18 @@
           - certbot_verify_vhost_link.stat.islnk | default(false)
           - certbot_verify_vhost_link.stat.lnk_source == '/etc/apache2/sites-available/molecule-ssl.conf'
 
+    - name: Stat the SSL vhost
+      ansible.builtin.stat:
+        path: /etc/apache2/sites-available/molecule-ssl.conf
+      register: certbot_verify_vhost_file
+
+    - name: Assert the SSL vhost is private to root
+      ansible.builtin.assert:
+        that:
+          - certbot_verify_vhost_file.stat.mode == '0640'
+          - certbot_verify_vhost_file.stat.pw_name == 'root'
+          - certbot_verify_vhost_file.stat.gr_name == 'root'
+
     - name: Probe the SSL vhost over HTTP
       ansible.builtin.uri:
         url: http://127.0.0.1/
