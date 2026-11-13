@@ -59,6 +59,44 @@
           - "'Apache/' not in apache2_verify_missing.content"
           - "'<address>' not in apache2_verify_missing.content"
 
+    - name: Request the TLS vhost # noqa: command-instead-of-module (uri cannot set the SNI name apart from the URL)
+      ansible.builtin.command: >-
+        curl -sS --fail -k --resolve molecule.test:443:127.0.0.1 https://molecule.test/
+      register: apache2_verify_tls_root
+      changed_when: false
+
+    - name: Assert the TLS vhost serves the fixture content
+      ansible.builtin.assert:
+        that:
+          - "'molecule vhost ok' in apache2_verify_tls_root.stdout"
+
+    # Each probe offers the client one option; the server must refuse the ones
+    # outside the tlsref intermediate profile that Debian's defaults accepted.
+    - name: Probe TLS handshakes
+      ansible.builtin.command:
+        argv: >-
+          {{ ['openssl', 's_client', '-connect', '127.0.0.1:443', '-servername', 'molecule.test']
+          + item.args }}
+        stdin: ""
+      loop:
+        - name: forward-secret AEAD cipher
+          args: [-tls1_2, -cipher, ECDHE-RSA-AES128-GCM-SHA256]
+          accepted: true
+        - name: cipher without forward secrecy
+          args: [-tls1_2, -cipher, "AES256-SHA256:@SECLEVEL=0"]
+          accepted: false
+        - name: CBC cipher
+          args: [-tls1_2, -cipher, "ECDHE-RSA-AES128-SHA:@SECLEVEL=0"]
+          accepted: false
+        - name: group outside the curve list
+          args: [-tls1_3, -groups, secp521r1]
+          accepted: false
+      loop_control:
+        label: "{{ item.name }}"
+      register: apache2_verify_tls_probes
+      changed_when: false
+      failed_when: (apache2_verify_tls_probes.rc == 0) != item.accepted
+
     - name: Request the protected location without credentials
       ansible.builtin.uri:
         url: http://127.0.0.1/secure/

@@ -24,3 +24,12 @@ apache2_env_vars: {}
 # version and OS ("OS" and "On"), which scanners use to find vulnerable hosts.
 apache2_server_tokens: Prod
 apache2_server_signature: "Off"
+
+# TLS settings for every vhost (tlsref intermediate profile); a vhost can override
+# them. X25519MLKEM768 (hybrid post-quantum) needs OpenSSL 3.5, which bookworm lacks.
+apache2_ssl_protocols: "-all +TLSv1.2 +TLSv1.3"
+apache2_ssl_curves: >-
+  {{ 'X25519:prime256v1:secp384r1' if ansible_facts['distribution_release'] == 'bookworm'
+  else 'X25519MLKEM768:X25519:prime256v1:secp384r1' }}
+apache2_ssl_ciphers: >-
+  ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305

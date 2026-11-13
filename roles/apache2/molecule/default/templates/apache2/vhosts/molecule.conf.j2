@@ -13,3 +13,16 @@
         Require valid-user
     </Location>
 </VirtualHost>
+
+<VirtualHost *:443>
+    ServerName molecule.test
+    DocumentRoot /var/www/molecule
+
+    SSLEngine on
+    SSLCertificateFile /etc/ssl/certs/ssl-cert-snakeoil.pem
+    SSLCertificateKeyFile /etc/ssl/private/ssl-cert-snakeoil.key
+
+    <Directory /var/www/molecule>
+        Require all granted
+    </Directory>
+</VirtualHost>

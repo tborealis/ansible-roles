@@ -15,6 +15,9 @@ Installs and configures Apache2 web server with virtual hosts and modules.
 | `apache2_env_vars` | `{}` | Environment variables to set |
 | `apache2_server_tokens` | `Prod` | `ServerTokens`: how much of the version and OS the `Server` header shows |
 | `apache2_server_signature` | `Off` | `ServerSignature`: the version footer on Apache's own error and index pages |
+| `apache2_ssl_protocols` | `-all +TLSv1.2 +TLSv1.3` | `SSLProtocol` for every vhost (tlsref intermediate) |
+| `apache2_ssl_curves` | `X25519MLKEM768:X25519:prime256v1:secp384r1` (bookworm: without `X25519MLKEM768`) | Key exchange groups (`SSLOpenSSLConfCmd Curves`) |
+| `apache2_ssl_ciphers` | tlsref intermediate TLS 1.2 ciphers (ECDHE with AES-GCM or ChaCha20-Poly1305) | `SSLCipherSuite` for TLS 1.2 |
 
 ## Templates
 
@@ -24,7 +27,9 @@ playbook, so the vhost templates must live next to it in
 (`molecule/default/templates/`) for a working example.
 
 Server-wide settings go in `/etc/apache2/conf-available/server-defaults.conf`, which
-is enabled after Debian's `security.conf` so its values take precedence.
+is enabled after Debian's `security.conf` so its values take precedence. That
+includes the TLS settings, which follow tlsref's intermediate profile; a vhost can
+still set its own.
 
 Vhosts and `/etc/apache2/envvars` are installed `0640 root:root`, as they can hold
 secrets such as `OIDCClientSecret`; Apache reads them as root before dropping

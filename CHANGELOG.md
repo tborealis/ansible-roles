@@ -52,6 +52,13 @@ flagged with **BREAKING** and require a MAJOR version bump.
   `Apache/2.4.x (Debian)` and Apache's error pages carried the same footer, which
   is how scanners pick out hosts running a vulnerable release. Set
   `apache2_server_tokens` and `apache2_server_signature` to change this.
+- **apache2:** **BREAKING** the role now sets TLS defaults for every vhost, from the
+  tlsref intermediate profile: TLS 1.2 and 1.3 only, forward-secret AEAD ciphers
+  only, and the X25519MLKEM768 hybrid post-quantum key exchange on trixie. Debian's
+  defaults also accepted TLS 1.2 ciphers without forward secrecy, such as
+  `AES256-SHA256`. Clients that support only those can no longer connect. Override
+  `apache2_ssl_protocols`, `apache2_ssl_curves` and `apache2_ssl_ciphers`, or set
+  them in a vhost. Playbooks that install their own server-wide TLS file can drop it.
 
 ## [8.0.0] - 2026-11-11
 
