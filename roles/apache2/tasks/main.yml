@@ -27,6 +27,22 @@
   with_items: "{{ apache2_modules }}"
   notify: Restart apache2
 
+- name: Configure server defaults
+  ansible.builtin.template:
+    src: etc/apache2/conf-available/server-defaults.conf.j2
+    dest: /etc/apache2/conf-available/server-defaults.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart apache2
+
+- name: Enable server defaults
+  ansible.builtin.file:
+    src: /etc/apache2/conf-available/server-defaults.conf
+    path: /etc/apache2/conf-enabled/server-defaults.conf
+    state: link
+  notify: Restart apache2
+
 - name: Disable default Apache2 site
   ansible.builtin.file:
     path: /etc/apache2/sites-enabled/000-default.conf

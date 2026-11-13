@@ -44,6 +44,21 @@
           - apache2_verify_root.status == 200
           - "'molecule vhost ok' in apache2_verify_root.content"
 
+    - name: Request a missing page
+      ansible.builtin.uri:
+        url: http://127.0.0.1/missing
+        status_code: 404
+        return_content: true
+      register: apache2_verify_missing
+
+    - name: Assert Apache does not advertise its version
+      ansible.builtin.assert:
+        that:
+          - apache2_verify_root.server == 'Apache'
+          - apache2_verify_missing.server == 'Apache'
+          - "'Apache/' not in apache2_verify_missing.content"
+          - "'<address>' not in apache2_verify_missing.content"
+
     - name: Request the protected location without credentials
       ansible.builtin.uri:
         url: http://127.0.0.1/secure/

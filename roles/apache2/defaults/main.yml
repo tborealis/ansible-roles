@@ -19,3 +19,8 @@ apache2_disable_modules:
   - mpm_prefork
 
 apache2_env_vars: {}
+
+# The Server header and error-page footer; Debian's security.conf sends the exact
+# version and OS ("OS" and "On"), which scanners use to find vulnerable hosts.
+apache2_server_tokens: Prod
+apache2_server_signature: "Off"

@@ -48,6 +48,10 @@ flagged with **BREAKING** and require a MAJOR version bump.
 - **apache2:** the "Create password" task now sets `no_log: true`. It printed each
   `apache2_basic_auth` password in the Ansible output on every run, and in full
   when an item failed.
+- **apache2:** Apache no longer advertises its version. The `Server` header was
+  `Apache/2.4.x (Debian)` and Apache's error pages carried the same footer, which
+  is how scanners pick out hosts running a vulnerable release. Set
+  `apache2_server_tokens` and `apache2_server_signature` to change this.
 
 ## [8.0.0] - 2026-11-11
 

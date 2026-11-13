@@ -1,0 +1,5 @@
+# {{ ansible_managed }}
+# Sorts after Debian's security.conf in conf-enabled, so these values win.
+
+ServerTokens {{ apache2_server_tokens }}
+ServerSignature {{ apache2_server_signature }}
