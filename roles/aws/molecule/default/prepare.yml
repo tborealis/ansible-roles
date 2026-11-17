@@ -12,3 +12,15 @@
         name: "{{ aws_molecule_user }}"
         shell: /bin/bash
         create_home: true
+
+    # Older role versions downloaded to, verified in and ran the installer from
+    # these fixed paths, where any local user can plant files first.
+    - name: Plant files at the old download paths as an unprivileged user
+      ansible.builtin.copy:
+        content: "planted\n"
+        dest: "{{ item }}"
+        owner: "{{ aws_molecule_user }}"
+        mode: "0644"
+      loop:
+        - /var/tmp/awscli.zip
+        - /var/tmp/aws-cli-keyring.kbx

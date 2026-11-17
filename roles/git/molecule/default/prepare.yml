@@ -4,7 +4,16 @@
 - name: Prepare
   hosts: all
   become: true
+  vars_files:
+    - ../../vars/main.yml
   tasks:
+    - name: Trust GitHub's exposed RSA host key, as role versions before August 2023 did
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/ssh_known_hosts
+        line: "github.com {{ git_github_exposed_rsa_key }}"
+        create: true
+        mode: "0644"
+
     - name: Configure backports repo
       when: ansible_facts['distribution_release'] == 'bookworm'
       block:

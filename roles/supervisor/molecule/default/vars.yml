@@ -1,0 +1,11 @@
+---
+# Shared by converge.yml and verify.yml. Nothing listens on the SMTP host; the
+# listeners only connect when they have mail to send.
+supervisor_crashmail_enable: true
+supervisor_crashmail_to: ops@example.com
+supervisor_crashmail_from: supervisor@example.com
+supervisor_crashmail_subject: Crash
+supervisor_crashmail_subject_fatal: Fatal
+supervisor_crashmail_smtp_host: 127.0.0.1:2525
+supervisor_crashmail_smtp_user: molecule
+supervisor_crashmail_smtp_password: molecule-smtp-secret

@@ -1,0 +1,30 @@
+# {{ ansible_managed }}
+# Sorts after Debian's security.conf in conf-enabled, so these values win.
+
+ServerTokens {{ apache2_server_tokens }}
+ServerSignature {{ apache2_server_signature }}
+
+<IfModule ssl_module>
+    SSLProtocol             {{ apache2_ssl_protocols }}
+    SSLOpenSSLConfCmd       Curves {{ apache2_ssl_curves }}
+    SSLCipherSuite          {{ apache2_ssl_ciphers }}
+    SSLCipherSuite          TLSv1.3 TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+    SSLHonorCipherOrder     off
+    SSLSessionTickets       off
+</IfModule>
+{% if apache2_reject_unknown_hosts %}
+
+# conf-enabled loads before sites-enabled, so this is the first vhost on 443 and
+# answers hostnames no other vhost names, instead of whichever vhost sorts first.
+<IfModule ssl_module>
+    <VirtualHost *:443>
+        SSLEngine on
+        SSLCertificateFile      /etc/ssl/certs/ssl-cert-snakeoil.pem
+        SSLCertificateKeyFile   /etc/ssl/private/ssl-cert-snakeoil.key
+
+        <Location "/">
+            Require all denied
+        </Location>
+    </VirtualHost>
+</IfModule>
+{% endif %}

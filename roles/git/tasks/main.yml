@@ -17,6 +17,22 @@
     mode: "0644"
   with_items: "{{ git_known_hosts }}"
 
+- name: Remove GitHub's exposed RSA host key from the system known hosts
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/ssh_known_hosts
+    regexp: "^(?!@revoked ).*{{ git_github_exposed_rsa_key | regex_escape }}"
+    state: absent
+
+# A revoked key is refused even where a user's own known_hosts still trusts it.
+- name: Revoke GitHub's exposed RSA host key
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/ssh_known_hosts
+    line: "@revoked * {{ git_github_exposed_rsa_key }}"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+
 - name: Rewrite deprecated git protocol
   ansible.builtin.blockinfile:
     path: /etc/gitconfig

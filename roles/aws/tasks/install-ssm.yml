@@ -10,19 +10,28 @@
   vars:
     aws_cli_ssm_architecture: "{{ aws_cli_ssm_architecture_map[ansible_facts['architecture']] }}"
   block:
+    - name: Create a private working directory for the plugin
+      ansible.builtin.tempfile:
+        state: directory
+        path: "{{ aws_cli_download_path }}"
+        prefix: aws-ssm.
+      register: aws_cli_ssm_workdir
+
     - name: Download the Session Manager plugin
       ansible.builtin.get_url:
         url: "https://s3.amazonaws.com/session-manager-downloads/plugin/{{ aws_cli_ssm_version }}/{{ aws_cli_ssm_architecture }}/session-manager-plugin.deb"
-        dest: "{{ aws_cli_download_path }}/session-manager-plugin.deb"
+        dest: "{{ aws_cli_ssm_workdir.path }}/session-manager-plugin.deb"
         checksum: "{{ aws_cli_ssm_checksums[aws_cli_ssm_architecture] }}"
         mode: "0644"
 
     - name: Install the Session Manager plugin package
       ansible.builtin.apt:
-        deb: "{{ aws_cli_download_path }}/session-manager-plugin.deb"
+        deb: "{{ aws_cli_ssm_workdir.path }}/session-manager-plugin.deb"
         state: present
 
-    - name: Clean up the plugin download
+  always:
+    - name: Remove the plugin working directory
       ansible.builtin.file:
-        path: "{{ aws_cli_download_path }}/session-manager-plugin.deb"
+        path: "{{ aws_cli_ssm_workdir.path }}"
         state: absent
+      when: aws_cli_ssm_workdir.path is defined

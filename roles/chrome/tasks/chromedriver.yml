@@ -5,34 +5,48 @@
   changed_when: false
   failed_when: false
 
-- name: Resolve the chromedriver channel version
+- name: Resolve the chromedriver channel or milestone version
   ansible.builtin.uri:
-    url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json
+    url: "{{ chrome_versions_url }}/{{ chrome_chromedriver_versions_list }}.json"
     return_content: true
+  vars:
+    chrome_chromedriver_versions_list: >-
+      {{ 'last-known-good-versions' if chrome_chromedriver_version | string in chrome_release_channels
+         else 'latest-versions-per-milestone' }}
   register: chrome_chromedriver_channel_versions
-  when: chrome_chromedriver_version | string in chrome_release_channels
+  when: chrome_chromedriver_version | string in chrome_release_channels or chrome_chromedriver_version | string is match('[0-9]+$')
 
 - name: Set the chromedriver target version
   ansible.builtin.set_fact:
     chrome_chromedriver_target_version: >-
       {{ chrome_chromedriver_channel_versions.json.channels[chrome_chromedriver_version | capitalize].version
-         if chrome_chromedriver_version | string in chrome_release_channels else chrome_chromedriver_version | string }}
+         if chrome_chromedriver_version | string in chrome_release_channels
+         else chrome_chromedriver_channel_versions.json.milestones[chrome_chromedriver_version | string].version
+         if chrome_chromedriver_version | string is match('[0-9]+$')
+         else chrome_chromedriver_version | string }}
 
 - name: Install chromedriver
-  ansible.builtin.command: "npx --yes @puppeteer/browsers install chromedriver@{{ chrome_chromedriver_target_version }} --path /opt"
-  register: chrome_chromedriver_install_result
-  changed_when: true
-  when: chrome_chromedriver_current_version.rc != 0 or chrome_chromedriver_target_version not in chrome_chromedriver_current_version.stdout
+  when: >-
+    chrome_chromedriver_current_version.rc != 0
+    or chrome_chromedriver_target_version not in chrome_chromedriver_current_version.stdout
+  block:
+    - name: Create the chromedriver install directory
+      ansible.builtin.file:
+        path: /opt/chromedriver/linux-{{ chrome_chromedriver_target_version }}
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
 
-- name: Process chromedriver path
-  ansible.builtin.set_fact:
-    chrome_chromedriver_path: "{{ chrome_chromedriver_install_result.stdout | regex_search('chromedriver@[\\d.]+ (.+)', '\\1') | first }}"
-  when: chrome_chromedriver_install_result is not skipped
+    - name: Download and unpack chromedriver
+      ansible.builtin.unarchive:
+        src: "{{ chrome_download_url }}/{{ chrome_chromedriver_target_version }}/linux64/chromedriver-linux64.zip"
+        dest: /opt/chromedriver/linux-{{ chrome_chromedriver_target_version }}
+        remote_src: true
 
 - name: Link chromedriver
   ansible.builtin.file:
-    src: "{{ chrome_chromedriver_path }}"
+    src: /opt/chromedriver/linux-{{ chrome_chromedriver_target_version }}/chromedriver-linux64/chromedriver
     dest: /usr/local/bin/chromedriver
     state: link
     force: true
-  when: chrome_chromedriver_install_result is not skipped

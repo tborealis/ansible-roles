@@ -31,6 +31,8 @@
           - "'rewrite_module' in apache2_verify_modules.stdout"
           - "'ssl_module' in apache2_verify_modules.stdout"
           - "'proxy_fcgi_module' in apache2_verify_modules.stdout"
+          - "'info_module' not in apache2_verify_modules.stdout"
+          - "'status_module' in apache2_verify_modules.stdout"
 
     - name: Request the vhost root
       ansible.builtin.uri:
@@ -43,6 +45,76 @@
         that:
           - apache2_verify_root.status == 200
           - "'molecule vhost ok' in apache2_verify_root.content"
+
+    - name: Request a missing page
+      ansible.builtin.uri:
+        url: http://127.0.0.1/missing
+        status_code: 404
+        return_content: true
+      register: apache2_verify_missing
+
+    - name: Assert Apache does not advertise its version
+      ansible.builtin.assert:
+        that:
+          - apache2_verify_root.server == 'Apache'
+          - apache2_verify_missing.server == 'Apache'
+          - "'Apache/' not in apache2_verify_missing.content"
+          - "'<address>' not in apache2_verify_missing.content"
+
+    - name: Request the TLS vhost # noqa: command-instead-of-module (uri cannot set the SNI name apart from the URL)
+      ansible.builtin.command: >-
+        curl -sS --fail -k --resolve molecule.test:443:127.0.0.1 https://molecule.test/
+      register: apache2_verify_tls_root
+      changed_when: false
+
+    - name: Assert the TLS vhost serves the fixture content
+      ansible.builtin.assert:
+        that:
+          - "'molecule vhost ok' in apache2_verify_tls_root.stdout"
+
+    - name: Request unknown hostnames over HTTPS # noqa: command-instead-of-module (uri cannot set the SNI name apart from the URL)
+      ansible.builtin.command: >-
+        curl -sS -k -o /dev/null -w '%{http_code}' {{ item }}
+      loop:
+        - --resolve unknown.test:443:127.0.0.1 https://unknown.test/
+        - https://127.0.0.1/
+      register: apache2_verify_unknown_hosts
+      changed_when: false
+
+    - name: Assert unknown hostnames are refused
+      ansible.builtin.assert:
+        that:
+          - item.stdout == '403'
+      loop: "{{ apache2_verify_unknown_hosts.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    # Each probe offers the client one option; the server must refuse the ones
+    # outside the tlsref intermediate profile that Debian's defaults accepted.
+    - name: Probe TLS handshakes
+      ansible.builtin.command:
+        argv: >-
+          {{ ['openssl', 's_client', '-connect', '127.0.0.1:443', '-servername', 'molecule.test']
+          + item.args }}
+        stdin: ""
+      loop:
+        - name: forward-secret AEAD cipher
+          args: [-tls1_2, -cipher, ECDHE-RSA-AES128-GCM-SHA256]
+          accepted: true
+        - name: cipher without forward secrecy
+          args: [-tls1_2, -cipher, "AES256-SHA256:@SECLEVEL=0"]
+          accepted: false
+        - name: CBC cipher
+          args: [-tls1_2, -cipher, "ECDHE-RSA-AES128-SHA:@SECLEVEL=0"]
+          accepted: false
+        - name: group outside the curve list
+          args: [-tls1_3, -groups, secp521r1]
+          accepted: false
+      loop_control:
+        label: "{{ item.name }}"
+      register: apache2_verify_tls_probes
+      changed_when: false
+      failed_when: (apache2_verify_tls_probes.rc == 0) != item.accepted
 
     - name: Request the protected location without credentials
       ansible.builtin.uri:
@@ -84,6 +156,26 @@
           - apache2_verify_vhost_link.stat.islnk
           - apache2_verify_vhost_link.stat.lnk_source == '/etc/apache2/sites-available/molecule.conf'
 
+    # Vhosts and envvars can carry secrets (e.g. OIDCClientSecret); Apache reads
+    # them as root before dropping privileges.
+    - name: Stat the vhost and environment config
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - /etc/apache2/sites-available/molecule.conf
+        - /etc/apache2/envvars
+      register: apache2_verify_private_files
+
+    - name: Assert the vhost and environment config are private to root
+      ansible.builtin.assert:
+        that:
+          - item.stat.mode == '0640'
+          - item.stat.pw_name == 'root'
+          - item.stat.gr_name == 'root'
+      loop: "{{ apache2_verify_private_files.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
     - name: Read the environment config
       ansible.builtin.slurp:
         src: /etc/apache2/envvars
@@ -99,6 +191,34 @@
         that:
           - "'export APACHE_RUN_USER=www-data' in apache2_verify_envvars.content | b64decode"
           - "'export APACHE_RUN_GROUP=www-data' in apache2_verify_envvars.content | b64decode"
+
+    - name: Stat the vhost dropped from the list and the hand-made one
+      ansible.builtin.stat:
+        path: "/etc/apache2/{{ item }}"
+      loop:
+        - sites-enabled/stale.conf
+        - sites-available/stale.conf
+        - sites-enabled/other.conf
+      register: apache2_verify_dropped_vhosts
+
+    - name: Assert only the dropped vhost was removed
+      ansible.builtin.assert:
+        that:
+          - not apache2_verify_dropped_vhosts.results[0].stat.exists
+          - not apache2_verify_dropped_vhosts.results[1].stat.exists
+          - apache2_verify_dropped_vhosts.results[2].stat.islnk
+
+    - name: Read the record of managed modules and vhosts
+      ansible.builtin.slurp:
+        src: /var/lib/apache2/ansible-managed.json
+      register: apache2_verify_managed
+
+    - name: Assert the record matches the converge lists
+      ansible.builtin.assert:
+        that:
+          - >-
+            apache2_verify_managed.content | b64decode | from_json ==
+            {'modules': ['proxy_fcgi', 'setenvif', 'rewrite', 'headers', 'ssl'], 'vhosts': ['molecule.conf']}
 
     - name: Check default site was disabled
       ansible.builtin.stat:

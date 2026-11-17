@@ -27,6 +27,28 @@
         that:
           - aws_verify_ssm_version.stdout == aws_cli_ssm_version | string
 
+    - name: Stat the files planted at the old download paths
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - /var/tmp/awscli.zip
+        - /var/tmp/aws-cli-keyring.kbx
+      register: aws_verify_planted
+
+    - name: Find leftover working directories
+      ansible.builtin.find:
+        paths: /var/tmp
+        patterns: ["awscli.*", "aws-ssm.*"]
+        file_type: directory
+      register: aws_verify_workdirs
+
+    - name: Assert the installs ignored the planted files and removed their working directories
+      ansible.builtin.assert:
+        that:
+          - aws_verify_planted.results | map(attribute='stat.pw_name') | unique == [aws_molecule_user]
+          - aws_verify_planted.results | map(attribute='stat.size') | unique == [8]
+          - aws_verify_workdirs.matched == 0
+
     - name: Read the bash completion file
       ansible.builtin.slurp:
         src: /etc/bash_completion.d/aws-cli

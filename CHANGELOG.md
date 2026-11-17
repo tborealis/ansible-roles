@@ -19,6 +19,59 @@ flagged with **BREAKING** and require a MAJOR version bump.
   any network the host was on. Clients on other hosts need
   `mysql_bind_address: "*"` (or specific addresses); set `mysql_mysqlx: true` to
   turn the X Protocol listener back on.
+- **aws:** the AWS CLI and Session Manager plugin are now downloaded, verified and
+  installed from a private (`0700`) directory created for each install, instead of
+  fixed paths in `/var/tmp`. Any local user could plant files there first, such as
+  a keyring that makes the signature check accept their own archive, and have root
+  run their installer.
+- **chrome:** Chrome and ChromeDriver are now downloaded straight from Chrome for
+  Testing instead of through `npx @puppeteer/browsers`, which ran the latest npm
+  release of that package and its dependency tree as root on every install. The
+  versions, `/opt` install paths and links are unchanged, and Node.js is no longer
+  required.
+- **git:** GitHub's RSA host key from before March 2023, replaced after its private
+  key was exposed, is now marked `@revoked` in `/etc/ssh/ssh_known_hosts`, and
+  system entries that trust it are removed. Role versions before August 2023 added
+  it, so older hosts still accepted it for git-over-SSH, letting anyone holding the
+  exposed key impersonate GitHub from a network position.
+- **supervisor:** the crash and fatal mail listeners now run as `nobody` instead of
+  root, and get the SMTP password from their environment through a small wrapper
+  instead of on their command line, where any local user could read it with `ps`.
+  superlance is pinned to 2.0.0.
+- **mysql:** the "Create users" task now sets `no_log: true`. With `no_log: false`,
+  a failing user, or any run with `-v`, printed every user's password and salt in
+  the Ansible output.
+- **apache2:** vhosts and `/etc/apache2/envvars` are now installed `0640 root:root`
+  instead of `0644`, so other local users can no longer read secrets kept in them,
+  such as an `OIDCClientSecret`. The **certbot** role's `apache` mode installs its
+  SSL vhosts the same way.
+- **apache2:** the "Create password" task now sets `no_log: true`. It printed each
+  `apache2_basic_auth` password in the Ansible output on every run, and in full
+  when an item failed.
+- **apache2:** Apache no longer advertises its version. The `Server` header was
+  `Apache/2.4.x (Debian)` and Apache's error pages carried the same footer, which
+  is how scanners pick out hosts running a vulnerable release. Set
+  `apache2_server_tokens` and `apache2_server_signature` to change this.
+- **apache2:** **BREAKING** the role now sets TLS defaults for every vhost, from the
+  tlsref intermediate profile: TLS 1.2 and 1.3 only, forward-secret AEAD ciphers
+  only, and the X25519MLKEM768 hybrid post-quantum key exchange on trixie. Debian's
+  defaults also accepted TLS 1.2 ciphers without forward secrecy, such as
+  `AES256-SHA256`. Clients that support only those can no longer connect. Override
+  `apache2_ssl_protocols`, `apache2_ssl_curves` and `apache2_ssl_ciphers`, or set
+  them in a vhost. Playbooks that install their own server-wide TLS file can drop it.
+- **apache2:** **BREAKING** the role now adds a first vhost on port 443 that answers
+  hostnames no other vhost names, including requests by IP address or without SNI,
+  with `403` and Debian's self-signed certificate (`ssl-cert` is installed for it).
+  Before, Apache passed them to whichever vhost sorted first, so an application
+  could be reached under any `Host` header. Health checks that request the bare IP
+  over HTTPS now fail. Set `apache2_reject_unknown_hosts: false` to keep the old
+  behaviour.
+- **apache2:** a module or vhost removed from `apache2_modules` or `apache2_vhosts`
+  is now disabled (and the vhost file deleted) on the next run. Before, it stayed
+  enabled, so dropping `http2` from the list to turn off HTTP/2 left it running.
+  The role tracks what it enabled in `/var/lib/apache2/ansible-managed.json`, so
+  modules and vhosts enabled by Debian or by hand are left alone; the first run of
+  this version only writes the record.
 
 ## [8.0.0] - 2026-11-11
 

@@ -26,3 +26,37 @@
           content: molecule secure ok
       loop_control:
         label: "{{ item.dest }}"
+
+    # An earlier run that also managed the info module and stale.conf, which have
+    # since left the role's lists, plus a vhost enabled by hand that must be kept.
+    - name: Install apache2
+      ansible.builtin.apt:
+        pkg: apache2
+        update_cache: true
+
+    - name: Enable the info module
+      community.general.apache2_module:
+        name: info
+        state: present
+
+    - name: Write the stale and hand-made vhosts
+      ansible.builtin.copy:
+        content: "<VirtualHost *:80>\n    ServerName {{ item }}.test\n</VirtualHost>\n"
+        dest: "/etc/apache2/sites-available/{{ item }}.conf"
+        mode: "0644"
+      loop: [stale, other]
+
+    - name: Enable the stale and hand-made vhosts
+      ansible.builtin.file:
+        src: "/etc/apache2/sites-available/{{ item }}.conf"
+        path: "/etc/apache2/sites-enabled/{{ item }}.conf"
+        state: link
+      loop: [stale, other]
+
+    - name: Record the earlier run's modules and vhosts
+      ansible.builtin.copy:
+        content: >-
+          {"modules": ["proxy_fcgi", "setenvif", "rewrite", "headers", "ssl", "info"],
+          "vhosts": ["molecule.conf", "stale.conf"]}
+        dest: /var/lib/apache2/ansible-managed.json
+        mode: "0644"

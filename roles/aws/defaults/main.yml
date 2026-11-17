@@ -2,7 +2,8 @@
 aws_config: []
 aws_cli_install: true
 aws_cli_version: 2.35.22
-# Must be on an exec-mounted filesystem: the AWS installer runs from here.
+# A private directory is created here for each install. It must be on an
+# exec-mounted filesystem: the AWS installer runs from it.
 aws_cli_download_path: /var/tmp
 
 # Optional Session Manager plugin, installed only alongside the CLI. When

@@ -6,6 +6,12 @@
     update_cache: true
     cache_valid_time: 3600
 
+- name: Install the self-signed certificate for unknown hosts
+  ansible.builtin.apt:
+    pkg: ssl-cert
+    state: present
+  when: apache2_reject_unknown_hosts
+
 - name: Enable MPM
   community.general.apache2_module:
     name: mpm_event
@@ -27,6 +33,43 @@
   with_items: "{{ apache2_modules }}"
   notify: Restart apache2
 
+# The record lets the role undo what it enabled once an item leaves its list,
+# without touching modules and vhosts enabled by Debian or by hand.
+- name: Read the modules and vhosts managed by the previous run
+  ansible.builtin.slurp:
+    src: /var/lib/apache2/ansible-managed.json
+  register: apache2_managed_state
+  failed_when: false
+
+- name: Register the modules and vhosts managed by the previous run
+  ansible.builtin.set_fact:
+    apache2_managed_previous: >-
+      {{ apache2_managed_state.content | b64decode | from_json
+      if apache2_managed_state.content is defined else {} }}
+
+- name: Disable modules removed from apache2_modules
+  community.general.apache2_module:
+    name: "{{ item }}"
+    state: absent
+  loop: "{{ apache2_managed_previous.modules | default([]) | difference(apache2_modules) }}"
+  notify: Restart apache2
+
+- name: Configure server defaults
+  ansible.builtin.template:
+    src: etc/apache2/conf-available/server-defaults.conf.j2
+    dest: /etc/apache2/conf-available/server-defaults.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart apache2
+
+- name: Enable server defaults
+  ansible.builtin.file:
+    src: /etc/apache2/conf-available/server-defaults.conf
+    path: /etc/apache2/conf-enabled/server-defaults.conf
+    state: link
+  notify: Restart apache2
+
 - name: Disable default Apache2 site
   ansible.builtin.file:
     path: /etc/apache2/sites-enabled/000-default.conf
@@ -42,6 +85,9 @@
     group: www-data
     mode: "0640"
     state: present
+  no_log: true
+  loop_control:
+    label: "{{ item.name }}"
   with_items: "{{ apache2_basic_auth }}"
   notify: Restart apache2
 
@@ -51,14 +97,16 @@
     dest: "/etc/apache2/envvars"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0640"
   notify: Restart apache2
 
 - name: Install vhosts
   ansible.builtin.template:
     src: "templates/apache2/vhosts/{{ item.src }}"
     dest: "/etc/apache2/sites-available/{{ item.dest }}"
-    mode: "0644"
+    owner: root
+    group: root
+    mode: "0640"
   with_items: "{{ apache2_vhosts }}"
   notify: Restart apache2
 
@@ -69,6 +117,24 @@
     state: link
   with_items: "{{ apache2_vhosts }}"
   notify: Restart apache2
+
+- name: Remove vhosts removed from apache2_vhosts
+  ansible.builtin.file:
+    path: "/etc/apache2/{{ item.0 }}/{{ item.1 }}"
+    state: absent
+  loop: >-
+    {{ ['sites-enabled', 'sites-available']
+    | product(apache2_managed_previous.vhosts | default([])
+    | difference(apache2_vhosts | map(attribute='dest'))) | list }}
+  notify: Restart apache2
+
+- name: Record the modules and vhosts managed by the role
+  ansible.builtin.copy:
+    content: "{{ {'modules': apache2_modules, 'vhosts': apache2_vhosts | map(attribute='dest') | list} | to_nice_json }}\n"
+    dest: /var/lib/apache2/ansible-managed.json
+    owner: root
+    group: root
+    mode: "0644"
 
 - name: Enable and start Apache2
   ansible.builtin.systemd:

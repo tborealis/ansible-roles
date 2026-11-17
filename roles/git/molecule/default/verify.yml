@@ -2,6 +2,8 @@
 - name: Verify
   hosts: all
   become: true
+  vars_files:
+    - ../../vars/main.yml
   tasks:
     - name: Run git # noqa: command-instead-of-module (functional check that the binary works)
       ansible.builtin.command: git --version
@@ -22,7 +24,11 @@
         src: /etc/ssh/ssh_known_hosts
       register: git_verify_known_hosts
 
-    - name: Assert GitHub host keys are present
+    - name: Assert GitHub host keys are present and the exposed RSA key is only listed as revoked
       ansible.builtin.assert:
         that:
           - "'ecdsa-sha2-nistp256' in git_verify_known_hosts.content | b64decode"
+          - >-
+            (git_verify_known_hosts.content | b64decode).splitlines()
+            | select('search', git_github_exposed_rsa_key | regex_escape)
+            | list == ['@revoked * ' ~ git_github_exposed_rsa_key]

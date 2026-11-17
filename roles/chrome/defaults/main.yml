@@ -8,7 +8,7 @@ chrome_remove_system_chrome: false
 # Packages whose name differs per Debian release live in
 # chrome_release_dependencies (vars/main.yml) and are appended to this list.
 chrome_system_dependencies:
-  - unzip # @puppeteer/browsers needs it to extract the chrome archive
+  - unzip # unpacks the Chrome for Testing archives
   - libc6
   - libcairo2
   - libdbus-1-3

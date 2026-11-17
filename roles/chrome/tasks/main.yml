@@ -1,14 +1,8 @@
 ---
-- name: Check for npx
-  ansible.builtin.command: npx --version
-  register: chrome_npx_check
-  changed_when: false
-  failed_when: false
-
-- name: Assert Node.js is available
+- name: Assert the architecture is supported
   ansible.builtin.assert:
-    that: chrome_npx_check.rc == 0
-    fail_msg: chrome requires Node.js (npx); apply the node role before this role
+    that: ansible_facts['architecture'] == 'x86_64'
+    fail_msg: The chrome role installs the x86_64 (linux64) build only.
 
 - name: Remove system chrome
   ansible.builtin.include_tasks: remove-system-chrome.yml
@@ -27,37 +21,49 @@
   changed_when: false
   failed_when: false
 
-- name: Resolve the chrome channel version
+- name: Resolve the chrome channel or milestone version
   ansible.builtin.uri:
-    url: https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json
+    url: "{{ chrome_versions_url }}/{{ chrome_versions_list }}.json"
     return_content: true
+  vars:
+    chrome_versions_list: >-
+      {{ 'last-known-good-versions' if chrome_version | string in chrome_release_channels
+         else 'latest-versions-per-milestone' }}
   register: chrome_channel_versions
-  when: chrome_version | string in chrome_release_channels
+  when: chrome_version | string in chrome_release_channels or chrome_version | string is match('[0-9]+$')
 
 - name: Set the chrome target version
   ansible.builtin.set_fact:
     chrome_target_version: >-
       {{ chrome_channel_versions.json.channels[chrome_version | capitalize].version
-         if chrome_version | string in chrome_release_channels else chrome_version | string }}
+         if chrome_version | string in chrome_release_channels
+         else chrome_channel_versions.json.milestones[chrome_version | string].version
+         if chrome_version | string is match('[0-9]+$')
+         else chrome_version | string }}
 
 - name: Install chrome
-  ansible.builtin.command: "npx --yes @puppeteer/browsers install chrome@{{ chrome_target_version }} --path /opt"
-  register: chrome_install_result
-  changed_when: true
   when: chrome_current_version.rc != 0 or chrome_target_version not in chrome_current_version.stdout
+  block:
+    - name: Create the chrome install directory
+      ansible.builtin.file:
+        path: /opt/chrome/linux-{{ chrome_target_version }}
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
 
-- name: Process chrome path
-  ansible.builtin.set_fact:
-    chrome_path: "{{ chrome_install_result.stdout | regex_search('chrome@[\\d.]+ (.+)', '\\1') | first }}"
-  when: chrome_install_result is not skipped
+    - name: Download and unpack chrome
+      ansible.builtin.unarchive:
+        src: "{{ chrome_download_url }}/{{ chrome_target_version }}/linux64/chrome-linux64.zip"
+        dest: /opt/chrome/linux-{{ chrome_target_version }}
+        remote_src: true
 
 - name: Link chrome
   ansible.builtin.file:
-    src: "{{ chrome_path }}"
+    src: /opt/chrome/linux-{{ chrome_target_version }}/chrome-linux64/chrome
     dest: /usr/local/bin/google-chrome
     state: link
     force: true
-  when: chrome_install_result is not skipped
 
 - name: Chromedriver tasks
   ansible.builtin.import_tasks: chromedriver.yml
