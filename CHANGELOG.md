@@ -11,6 +11,13 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Changed
+
+- **meta:** pull requests now wait for every Molecule job before they can merge. A
+  `molecule` job sums up the per-role results and is a required check on `main`, so
+  auto-merge no longer merges once only `lint` and `changelog` have passed. The
+  workflow now runs on every PR, and skips the tests when no role is affected.
+
 ### Security
 
 - **mysql:** **BREAKING** MySQL now accepts TCP connections on 127.0.0.1 only and
