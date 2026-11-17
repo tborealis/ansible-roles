@@ -1,15 +1,9 @@
 name: molecule
 
 on:
+  # No paths filter: the required `molecule` check must report on every PR, and
+  # detect skips the tests when no role is affected.
   pull_request:
-    paths:
-      - roles/**
-      - docker/**
-      - .config/molecule/**
-      - requirements.yml
-      - requirements-dev.txt
-      - scripts/molecule_matrix.py
-      - .github/workflows/molecule.yml
   schedule:
     - cron: "0 5 * * 1" # Mondays 05:00 UTC (images rebuilt Sundays)
   workflow_dispatch:
@@ -87,6 +81,19 @@ jobs:
           PY_COLORS: "1"
           ANSIBLE_FORCE_COLOR: "1"
         run: molecule test --all --platform-name "${{ matrix.distro }}"
+
+  # The single required status check, since the matrix job names vary per PR.
+  molecule:
+    needs: [detect, test]
+    if: always()
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Require every Molecule job to pass
+        run: |
+          case "${{ needs.detect.result }}/${{ needs.test.result }}" in
+            success/success | success/skipped) ;;
+            *) echo "::error::detect: ${{ needs.detect.result }}, test: ${{ needs.test.result }}"; exit 1 ;;
+          esac
 
   notify:
     needs: [detect, test]
