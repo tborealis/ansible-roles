@@ -34,6 +34,7 @@ Reference the roles using the collection namespace:
 | [cron](roles/cron/README.md) | Cron job management |
 | [dbcd](roles/dbcd/README.md) | Database Copy Down |
 | [do_agent](roles/do_agent/README.md) | DigitalOcean monitoring agent; removes the Droplet Console agent |
+| [docker](roles/docker/README.md) | Docker Engine from Docker's repository, with hardened daemon defaults |
 | [env_file](roles/env_file/README.md) | Environment (.env / profile.d) file management |
 | [exim4](roles/exim4/README.md) | Exim4 mail transfer agent |
 | [git](roles/git/README.md) | Git installation and configuration |

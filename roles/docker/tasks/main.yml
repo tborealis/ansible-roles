@@ -1,0 +1,65 @@
+---
+- name: Install deb822 dependency
+  ansible.builtin.apt:
+    pkg: python3-debian
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Add repository
+  ansible.builtin.deb822_repository:
+    name: docker
+    types: [deb]
+    uris: https://download.docker.com/linux/debian
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: stable
+    signed_by: /etc/apt/keyrings/docker.gpg
+  register: docker_repo
+
+- name: Update apt cache after adding repository # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: docker_repo is changed
+
+# Written before the packages are installed, so dockerd's first start uses it
+- name: Create the Docker config directory
+  ansible.builtin.file:
+    path: /etc/docker
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Configure the Docker daemon
+  ansible.builtin.copy:
+    content: |
+      {{ {'log-driver': 'local', 'no-new-privileges': docker_no_new_privileges}
+         | combine(docker_daemon_config) | to_nice_json }}
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart docker
+
+- name: Install Docker
+  ansible.builtin.apt:
+    pkg:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Configure unattended Docker updates
+  ansible.builtin.import_tasks: unattended-upgrades.yml
+
+- name: Ensure Docker is started and enabled
+  ansible.builtin.systemd_service:
+    name: docker
+    enabled: true
+    state: started
+
+# Roles that use Docker next (docker_swarm, stacks) need the new config now
+- name: Apply daemon config changes
+  ansible.builtin.meta: flush_handlers

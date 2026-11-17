@@ -1,0 +1,12 @@
+---
+# Set no-new-privileges on every container, so setuid binaries in an image
+# can't raise a process's privileges; false leaves Docker's default (off).
+docker_no_new_privileges: true
+
+# Let unattended-upgrades install updates from Docker's repository; false
+# removes that opt-in. An upgrade restarts dockerd and every container.
+docker_unattended_upgrades: true
+
+# Further daemon.json settings, merged over the role's own, e.g.
+# {"log-opts": {"max-size": "50m"}}
+docker_daemon_config: {}

@@ -11,6 +11,15 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Added
+
+- **docker:** new role installing Docker Engine from Docker's apt repository. It sets
+  `no-new-privileges` on every container (`docker_no_new_privileges`) and the `local`
+  log driver, which rotates logs, daemon-wide; `docker_daemon_config` adds further
+  `daemon.json` settings. Docker's repository is added to unattended-upgrades
+  (`docker_unattended_upgrades`); an upgrade restarts every container.
+- **apt_keys:** Docker's repository signing key, for the `docker` role.
+
 ### Changed
 
 - **meta:** pull requests now wait for every Molecule job before they can merge. A

@@ -1,0 +1,70 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert Docker is running and enabled
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['docker.service'].state == 'running'
+          - ansible_facts.services['docker.service'].status == 'enabled'
+
+    - name: Read apt repository source
+      ansible.builtin.slurp:
+        src: /etc/apt/sources.list.d/docker.sources
+      register: docker_verify_source
+
+    - name: Assert repository points at Docker and is pinned to the managed keyring
+      vars:
+        docker_verify_source_content: "{{ docker_verify_source.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - "'URIs: https://download.docker.com/linux/debian' in docker_verify_source_content"
+          - "'Signed-By: /etc/apt/keyrings/docker.gpg' in docker_verify_source_content"
+
+    - name: Read daemon.json
+      ansible.builtin.slurp:
+        src: /etc/docker/daemon.json
+      register: docker_verify_daemon_json
+
+    - name: Assert daemon.json merges converge's settings over the role's
+      vars:
+        docker_verify_daemon: "{{ docker_verify_daemon_json.content | b64decode | from_json }}"
+      ansible.builtin.assert:
+        that:
+          - docker_verify_daemon['log-driver'] == 'local'
+          - docker_verify_daemon['no-new-privileges'] is true
+          - docker_verify_daemon['log-opts']['max-size'] == '5m'
+
+    - name: Query the running daemon # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker info --format json
+      register: docker_verify_info
+      changed_when: false
+
+    - name: Assert the daemon loaded the config
+      ansible.builtin.assert:
+        that:
+          - (docker_verify_info.stdout | from_json).LoggingDriver == 'local'
+
+    - name: Run a container that reports its no_new_privs flag # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker run --rm busybox:1.37 grep NoNewPrivs /proc/self/status
+      register: docker_verify_nnp
+      changed_when: false
+
+    - name: Assert containers get no-new-privileges by default
+      ansible.builtin.assert:
+        that:
+          - docker_verify_nnp.stdout is search('NoNewPrivs:\s+1')
+
+    - name: Read the unattended-upgrades opt-in
+      ansible.builtin.slurp:
+        src: /etc/apt/apt.conf.d/53unattended-upgrades-docker
+      register: docker_verify_unattended
+
+    - name: Assert unattended-upgrades allows the Docker repository
+      ansible.builtin.assert:
+        that:
+          - "'\"origin=Docker,archive=${distro_codename}\";' in docker_verify_unattended.content | b64decode"

@@ -1,0 +1,23 @@
+---
+- name: Install unattended-upgrades
+  ansible.builtin.apt:
+    pkg: unattended-upgrades
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: docker_unattended_upgrades
+
+- name: Allow unattended-upgrades to install updates from the Docker repository
+  ansible.builtin.template:
+    src: unattended-upgrades-docker.j2
+    dest: /etc/apt/apt.conf.d/53unattended-upgrades-docker
+    owner: root
+    group: root
+    mode: "0644"
+  when: docker_unattended_upgrades
+
+- name: Remove the Docker repository from unattended-upgrades
+  ansible.builtin.file:
+    path: /etc/apt/apt.conf.d/53unattended-upgrades-docker
+    state: absent
+  when: not docker_unattended_upgrades
