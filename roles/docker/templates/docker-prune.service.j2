@@ -3,7 +3,8 @@
 #
 [Unit]
 Description=Remove Docker images no container uses, and old build cache
-Requires=docker.service
+# Requisite, not Requires: a Docker stopped on purpose stays stopped
+Requisite=docker.service
 After=docker.service
 
 [Service]
