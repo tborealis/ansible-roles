@@ -36,7 +36,8 @@ DIR="{{ docker_compose_dir }}/$PROJECT"
 DEPLOYED="$DIR/deploy.env"
 
 log() {
-    logger --tag docker-compose --stderr -- "$PROJECT: $*"
+    printf '%s: %s\n' "$PROJECT" "$*" >&2
+    logger --tag docker-compose -- "$PROJECT: $*"
 }
 
 # Records the outcome in the project's history; a logging failure doesn't fail
@@ -89,8 +90,10 @@ if up; then
     exit 0
 fi
 
-log "$IMAGE@$DIGEST did not start healthy"
-compose ps --all >&2 || true
+# The rollback removes the failed containers, and their logs with them
+log "$IMAGE@$DIGEST did not start healthy; its containers and their last output:"
+{ compose ps --all; compose logs --no-color --timestamps --tail 200; } 2>&1 \
+    | sed "s/^/$PROJECT: /" | tee >(logger --tag docker-compose) >&2 || true
 if [[ -n "$PREVIOUS" ]]; then
     record "$PREVIOUS"
     if up; then

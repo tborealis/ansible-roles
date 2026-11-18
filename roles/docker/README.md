@@ -105,8 +105,9 @@ recreates, starts or removes containers:
 `revision` is the image's `org.opencontainers.image.revision` label, `user` the user who ran
 the deploy through sudo, and `seconds` how long the deploy took. Each line is also a journal
 entry with its values as fields, e.g. `journalctl COMPOSE_PROJECT=<project> COMPOSE_EVENT=deployed`;
-`journalctl -t docker-compose` adds the deploy script's progress. The script prints all of it
-to stderr too, for CI's log.
+`journalctl -t docker-compose` adds the deploy script's progress and, when an image doesn't
+start healthy, the containers' last 200 lines of output, which the rollback deletes along with
+them. The script prints all of it to stderr too, for CI's log.
 
 | Key | Description |
 |-----|-------------|

@@ -25,7 +25,7 @@ docker_verify_compose_projects:
       services:
         app:
           image: ${APP_IMAGE}
-          command: sleep 86400
+          command: [sh, -c, "echo app started; exec sleep 86400"]
           restart: unless-stopped
           stop_grace_period: 1s
           healthcheck:

@@ -637,6 +637,20 @@
       register: docker_verify_app_journal
       changed_when: false
 
+    - name: Read the deploy script's journal # noqa: command-instead-of-module (no module reads the journal)
+      ansible.builtin.command: journalctl --identifier docker-compose --output cat
+      register: docker_verify_deploy_journal
+      changed_when: false
+
+    - name: Assert the failed deploy logged its container's output before the rollback removed it
+      ansible.builtin.assert:
+        that:
+          - >-
+            docker_verify_bad_deploy.stderr is search('app: app-1 +[|] [^ ]+ app started')
+          - >-
+            docker_verify_deploy_journal.stdout is search('app: app-1 +[|] [^ ]+ app started')
+        fail_msg: "{{ docker_verify_bad_deploy.stderr }}"
+
     - name: Assert the history and journal record each deploy, and provisioning recorded nothing
       vars:
         docker_verify_previous: previous={{ docker_verify_app_digests[0] }}

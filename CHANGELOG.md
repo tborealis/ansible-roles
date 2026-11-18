@@ -40,6 +40,7 @@ flagged with **BREAKING** and require a MAJOR version bump.
     image when the new one doesn't start healthy. Each deploy, and each container the
     role creates, recreates, starts or removes, is recorded in the project's history,
     `/var/log/docker-compose/<project>.log`, and in the journal with searchable fields.
+    A failed deploy logs its containers' last output before the rollback removes them.
 - **apt_keys:** Docker's repository signing key, for the `docker` role.
 
 ### Changed
