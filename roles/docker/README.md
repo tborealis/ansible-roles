@@ -3,6 +3,10 @@
 Installs Docker Engine (`docker-ce`, `docker-ce-cli` and `containerd.io`) from Docker's apt
 repository and writes `/etc/docker/daemon.json`.
 
+## Requirements
+
+Debian 13 (trixie); the role fails on any other release.
+
 The daemon logs with the `local` driver, which rotates logs (the default `json-file` driver
 keeps them forever), and by default sets `no-new-privileges` on every container: setuid and
 setgid binaries in an image can't raise a process's privileges. This also covers Swarm services,

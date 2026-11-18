@@ -1,4 +1,11 @@
 ---
+- name: Assert the host runs Debian 13
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['distribution'] == 'Debian'
+      - ansible_facts['distribution_release'] == 'trixie'
+    fail_msg: The docker role supports Debian 13 (trixie) only.
+
 - name: Install deb822 dependency
   ansible.builtin.apt:
     pkg: python3-debian
