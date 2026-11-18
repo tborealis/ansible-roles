@@ -12,6 +12,10 @@ docker_compose_version: "5"
 # can't raise a process's privileges; false leaves Docker's default (off).
 docker_no_new_privileges: true
 
+# Host address that published ports bind to when `-p` or Compose `ports:` names
+# none, e.g. "8080:80"; publish publicly with an explicit "0.0.0.0:443:443".
+docker_default_bind_address: 127.0.0.1
+
 # Let unattended-upgrades install updates from Docker's repository; false
 # removes that opt-in. An upgrade restarts dockerd and every container.
 docker_unattended_upgrades: true

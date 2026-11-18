@@ -14,13 +14,16 @@ flagged with **BREAKING** and require a MAJOR version bump.
 ### Added
 
 - **docker:** new role installing Docker Engine, with the Compose and Buildx plugins,
-  from Docker's apt repository, for Debian 13 (trixie) only. It sets `no-new-privileges` on every container
-  (`docker_no_new_privileges`) and the `local` log driver, which rotates logs,
-  daemon-wide; `docker_daemon_config` adds further `daemon.json` settings, which
-  `dockerd --validate` checks before they are written. Docker's repository is added to
-  unattended-upgrades (`docker_unattended_upgrades`); an upgrade restarts every
-  container. Engine, containerd and Compose are pinned to a major release
-  (`docker_version: "29"`, `docker_containerd_version: "2"`,
+  from Docker's apt repository, for Debian 13 (trixie) only. It sets
+  `no-new-privileges` on every container (`docker_no_new_privileges`) and the `local`
+  log driver, which rotates logs, daemon-wide. Published ports bind to 127.0.0.1
+  unless they name an address (`docker_default_bind_address`), with no userland proxy;
+  `icc` is off on the default bridge, and `apparmor` is installed so containers get the
+  `docker-default` profile. `docker_daemon_config` adds further `daemon.json`
+  settings, which `dockerd --validate` checks before they are written. Docker's
+  repository is added to unattended-upgrades (`docker_unattended_upgrades`); an upgrade
+  restarts every container. Engine, containerd and Compose are pinned to a major
+  release (`docker_version: "29"`, `docker_containerd_version: "2"`,
   `docker_compose_version: "5"`), and pre-releases are pinned out.
 - **apt_keys:** Docker's repository signing key, for the `docker` role.
 

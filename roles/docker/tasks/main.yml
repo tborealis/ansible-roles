@@ -45,6 +45,9 @@
       - containerd.io
       - docker-buildx-plugin
       - docker-compose-plugin
+      # Only recommended by docker-ce, but without apparmor_parser containers
+      # silently run without the docker-default profile
+      - apparmor
     # A changed pin, such as a raised docker_version, upgrades in this run
     # rather than at the next unattended one
     state: "{{ 'latest' if docker_pin is changed else 'present' }}"
@@ -60,10 +63,21 @@
     mode: "0755"
 
 - name: Configure the Docker daemon
+  vars:
+    docker_daemon_base_config:
+      log-driver: local
+      no-new-privileges: "{{ docker_no_new_privileges }}"
+      icc: false
+      # Published ports are reached through NAT, never a docker-proxy process,
+      # so the DOCKER-USER chain sees every connection to them.
+      userland-proxy: false
+      ip: "{{ docker_default_bind_address }}"
+      default-network-opts:
+        bridge:
+          com.docker.network.bridge.host_binding_ipv4: "{{ docker_default_bind_address }}"
   ansible.builtin.copy:
     content: |
-      {{ {'log-driver': 'local', 'no-new-privileges': docker_no_new_privileges}
-         | combine(docker_daemon_config) | to_nice_json }}
+      {{ docker_daemon_base_config | combine(docker_daemon_config) | to_nice_json }}
     dest: /etc/docker/daemon.json
     owner: root
     group: root

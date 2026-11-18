@@ -86,7 +86,14 @@
         that:
           - docker_verify_daemon['log-driver'] == 'local'
           - docker_verify_daemon['no-new-privileges'] is true
+          - docker_verify_daemon['icc'] is false
+          - docker_verify_daemon['userland-proxy'] is false
+          - docker_verify_daemon['ip'] == '127.0.0.1'
+          - >-
+            docker_verify_daemon['default-network-opts']['bridge']['com.docker.network.bridge.host_binding_ipv4']
+            == '127.0.0.1'
           - docker_verify_daemon['log-opts']['max-size'] == '5m'
+          - "'apparmor' in ansible_facts.packages"
 
     - name: Query the running daemon # noqa: command-instead-of-module (exercising the binary)
       ansible.builtin.command: docker info --format json
@@ -97,6 +104,19 @@
       ansible.builtin.assert:
         that:
           - (docker_verify_info.stdout | from_json).LoggingDriver == 'local'
+
+    - name: Inspect the default bridge # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker network inspect bridge --format json
+      register: docker_verify_bridge
+      changed_when: false
+
+    - name: Assert the default bridge has inter-container traffic off and binds to loopback
+      vars:
+        docker_verify_bridge_options: "{{ (docker_verify_bridge.stdout | from_json | first).Options }}"
+      ansible.builtin.assert:
+        that:
+          - docker_verify_bridge_options['com.docker.network.bridge.enable_icc'] == 'false'
+          - docker_verify_bridge_options['com.docker.network.bridge.host_binding_ipv4'] == '127.0.0.1'
 
     - name: Run a container that reports its no_new_privs flag # noqa: command-instead-of-module (exercising the binary)
       ansible.builtin.command: docker run --rm busybox:1.37 grep NoNewPrivs /proc/self/status
@@ -138,6 +158,14 @@
               image: busybox:1.37
               command: httpd -f -p 80
               restart: unless-stopped
+              ports:
+                - "8081:80"
+            setuid:
+              image: busybox:1.37
+              command: sh -c 'grep NoNewPrivs /proc/self/status; exec sleep infinity'
+              restart: unless-stopped
+              security_opt:
+                - no-new-privileges=false
 
     - name: Start the Compose project # noqa: command-instead-of-module (exercising the binary)
       ansible.builtin.command: docker compose --project-directory /srv/docker-verify up --detach --wait
@@ -148,10 +176,39 @@
       register: docker_verify_compose_ps
       changed_when: false
 
-    - name: Assert Compose started the service
+    - name: Assert Compose started the services
       ansible.builtin.assert:
         that:
-          - (docker_verify_compose_ps.stdout_lines | first | from_json).State == 'running'
+          - docker_verify_compose_ps.stdout_lines | map('from_json') | map(attribute='State') | unique == ['running']
+          - docker_verify_compose_ps.stdout_lines | length == 2
+
+    - name: Query the host address of the web service's published port # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker compose --project-directory /srv/docker-verify port web 80
+      register: docker_verify_compose_port
+      changed_when: false
+
+    - name: Fetch the web service through its published port
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8081/
+        status_code: [200, 404]
+
+    - name: List docker-proxy processes # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: pgrep -c docker-proxy
+      register: docker_verify_proxies
+      changed_when: false
+      failed_when: docker_verify_proxies.rc not in [0, 1]
+
+    - name: Read the setuid service's output # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker compose --project-directory /srv/docker-verify logs --no-log-prefix setuid
+      register: docker_verify_setuid_logs
+      changed_when: false
+
+    - name: Assert ports bind to loopback without a proxy, and a service can opt out of no-new-privileges
+      ansible.builtin.assert:
+        that:
+          - docker_verify_compose_port.stdout == '127.0.0.1:8081'
+          - docker_verify_proxies.stdout == '0'
+          - docker_verify_setuid_logs.stdout is search('NoNewPrivs:\s+0')
 
     - name: Apply the role with a setting dockerd rejects
       block:
