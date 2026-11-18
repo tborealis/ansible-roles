@@ -11,6 +11,14 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Fixed
+
+- **certbot:** the DNS modes no longer apply propagation seconds to a certificate
+  whose renewal config uses another authenticator, e.g. one issued with
+  `dns-digitalocean` after `certbot_mode` changed to `dns-cloudflare`. On trixie
+  this ran `certbot reconfigure`, whose dry run used the old plugin and failed
+  once that plugin's DNS zone was gone.
+
 ## [9.0.0] - 2026-11-18
 
 ### Added

@@ -51,6 +51,10 @@ In the DNS modes, nothing reloads the webserver after a renewal — set
 `deploy_hook` (e.g. `systemctl reload apache2`) or renewed certificates are
 never served.
 
+Changing `certbot_mode` does not move existing certificates to the new mode:
+certbot keeps renewing them with the authenticator they were issued with, and
+the role leaves their renewal config, including propagation seconds, untouched.
+
 ## Apache SSL vhosts
 
 `apache` mode installs the vhosts in `certbot_apache2_ssl_vhosts` after the
