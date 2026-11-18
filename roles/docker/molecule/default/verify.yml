@@ -166,6 +166,42 @@
         that:
           - "'\"origin=Docker,archive=${distro_codename}\";' in docker_verify_unattended.content | b64decode"
 
+    # Functional check of the origin pattern: unattended-upgrades must pick up an
+    # upgrade from Docker's repository, within the pin
+    - name: List docker-ce-cli releases on the pinned major # noqa: command-instead-of-module (no module lists candidates)
+      ansible.builtin.command: apt-cache madison docker-ce-cli
+      register: docker_verify_cli_releases
+      changed_when: false
+
+    # madison lists the newest release first
+    - name: Pick docker-ce-cli's two newest releases
+      ansible.builtin.set_fact:
+        docker_verify_cli_versions: >-
+          {{ docker_verify_cli_releases.stdout_lines | map('split', '|') | map(attribute=1)
+             | map('trim') | select('match', '5:29[.]') | list }}
+
+    # The apt module can't: its own version pin loses to the role's, which
+    # apt reads first
+    - name: Downgrade docker-ce-cli to the previous release # noqa: command-instead-of-module
+      ansible.builtin.command: >-
+        apt-get install --yes --allow-downgrades --no-install-recommends
+        docker-ce-cli={{ docker_verify_cli_versions[1] }}
+      changed_when: true
+
+    - name: Dry-run unattended-upgrades # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: unattended-upgrade --dry-run --debug
+      register: docker_verify_uu_dry_run
+      changed_when: false
+
+    - name: Restore the newest docker-ce-cli
+      ansible.builtin.apt:
+        name: docker-ce-cli={{ docker_verify_cli_versions[0] }}
+
+    - name: Assert unattended-upgrades would upgrade docker-ce-cli
+      ansible.builtin.assert:
+        that:
+          - (docker_verify_uu_dry_run.stdout ~ docker_verify_uu_dry_run.stderr) is search('Packages that will be upgraded:.*docker-ce-cli')
+
     - name: Create the Compose project directory
       ansible.builtin.file:
         path: /srv/docker-verify
