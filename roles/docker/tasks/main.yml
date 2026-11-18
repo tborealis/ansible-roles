@@ -43,7 +43,6 @@
       - docker-ce
       - docker-ce-cli
       - containerd.io
-      - docker-buildx-plugin
       - docker-compose-plugin
       # Only recommended by docker-ce, but without apparmor_parser containers
       # silently run without the docker-default profile

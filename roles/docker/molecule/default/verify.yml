@@ -143,10 +143,6 @@
         that:
           - "'\"origin=Docker,archive=${distro_codename}\";' in docker_verify_unattended.content | b64decode"
 
-    - name: Query the Buildx plugin # noqa: command-instead-of-module (exercising the binary)
-      ansible.builtin.command: docker buildx version
-      changed_when: false
-
     - name: Create the Compose project directory
       ansible.builtin.file:
         path: /srv/docker-verify

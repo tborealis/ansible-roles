@@ -13,8 +13,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Added
 
-- **docker:** new role installing Docker Engine, with the Compose and Buildx plugins,
-  from Docker's apt repository, for Debian 13 (trixie) only:
+- **docker:** new role installing Docker Engine and the Compose plugin from Docker's
+  apt repository, for Debian 13 (trixie) only:
   - Engine, containerd and Compose are pinned to a major release (`docker_version:
     "29"`, `docker_containerd_version: "2"`, `docker_compose_version: "5"`) and
     pre-releases are pinned out; Docker's repository is added to unattended-upgrades

@@ -1,8 +1,9 @@
 # docker
 
-Installs Docker Engine (`docker-ce`, `docker-ce-cli` and `containerd.io`) and the Compose and
-Buildx CLI plugins (`docker compose`, `docker buildx`) from Docker's apt repository, and writes
-`/etc/docker/daemon.json`.
+Installs Docker Engine (`docker-ce`, `docker-ce-cli` and `containerd.io`) and the Compose CLI
+plugin (`docker compose`) from Docker's apt repository, and writes `/etc/docker/daemon.json`.
+The role doesn't ask for the Buildx plugin, but apt installs it while Recommends are on:
+`docker-ce-cli` and the Compose plugin recommend it.
 
 The daemon is configured with:
 
