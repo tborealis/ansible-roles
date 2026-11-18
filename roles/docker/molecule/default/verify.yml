@@ -79,6 +79,29 @@
           - >-
             docker_verify_policy.stdout is search('Candidate: 5:29\.')
 
+    - name: Apply the role with a pin below the installed release
+      block:
+        - name: Apply the role with docker_version 28
+          ansible.builtin.include_role:
+            name: tborealis.roles.docker
+          vars:
+            docker_version: "28"
+      rescue:
+        - name: Record that the role refused the lowered pin
+          ansible.builtin.set_fact:
+            docker_verify_pin_refused: true
+
+    - name: Read the apt pin after the refused change
+      ansible.builtin.slurp:
+        src: /etc/apt/preferences.d/docker
+      register: docker_verify_pin_after
+
+    - name: Assert the lowered pin was refused before the pin file changed
+      ansible.builtin.assert:
+        that:
+          - docker_verify_pin_refused | default(false)
+          - "'Pin: version 5:29.*' in docker_verify_pin_after.content | b64decode"
+
     - name: Read daemon.json
       ansible.builtin.slurp:
         src: /etc/docker/daemon.json

@@ -58,8 +58,9 @@ Docker Engine, containerd and Compose are pinned to a major release (`docker_ver
 `docker_containerd_version`, `docker_compose_version`), so upgrades, unattended ones
 included, never cross one: Engine 29.0 raised the minimum API version and broke clients
 such as Traefik. Pre-releases are pinned out, even if one reaches the stable channel.
-Raising one of these variables upgrades the packages in that run; lowering one doesn't
-downgrade them.
+Raising one of these variables upgrades the packages in that run. Lowering one below the
+installed release fails the run, as the role doesn't downgrade, and so does a pin that no
+release matches.
 
 ## Requirements
 

@@ -28,6 +28,38 @@
     update_cache: true
   when: docker_repo is changed
 
+- name: Assert the pinned major releases are numbers
+  ansible.builtin.assert:
+    that:
+      - docker_pinned_majors.values() | map('string') | reject('match', '^[0-9]+$') | list | length == 0
+    fail_msg: docker_version, docker_containerd_version and docker_compose_version must be major release numbers, e.g. "29".
+
+- name: Read the installed Docker package versions
+  ansible.builtin.command: dpkg-query --show --showformat '${Package} ${Version}\n' {{ docker_pinned_majors.keys() | join(' ') }}
+  register: docker_installed_versions
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+# Lowering a pin below the installed release would unpin it: apt would then
+# upgrade to the newest major in this run, and unattended-upgrades after it
+- name: Assert no package is installed at a later major release than its pin
+  vars:
+    docker_installed_major: >-
+      {{ docker_installed_versions.stdout_lines | select('match', '^' ~ (item.key | regex_escape) ~ ' ')
+         | map('split', ' ') | map(attribute=1) | map('split', ':') | map('last')
+         | map('split', '.') | map('first') | first | default('0') }}
+  ansible.builtin.assert:
+    that:
+      - docker_installed_major | int <= item.value | int
+    fail_msg: >-
+      {{ item.key }} {{ docker_installed_major }}.x is installed, a later major release than its pin,
+      {{ item.value }}. The role doesn't downgrade: raise the pin, or remove the package first.
+    quiet: true
+  loop: "{{ docker_pinned_majors | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
 - name: Pin Docker to major release {{ docker_version }}
   ansible.builtin.template:
     src: apt-preferences.j2
@@ -52,6 +84,31 @@
     state: "{{ 'latest' if docker_pin is changed else 'present' }}"
     update_cache: true
     cache_valid_time: 3600
+
+- name: Read the Docker package versions after installing
+  ansible.builtin.command: dpkg-query --show --showformat '${Package} ${Version}\n' {{ docker_pinned_majors.keys() | join(' ') }}
+  register: docker_installed_versions
+  changed_when: false
+  check_mode: false
+  when: not ansible_check_mode
+
+- name: Assert each package is on its pinned major release
+  vars:
+    docker_installed_major: >-
+      {{ docker_installed_versions.stdout_lines | select('match', '^' ~ (item.key | regex_escape) ~ ' ')
+         | map('split', ' ') | map(attribute=1) | map('split', ':') | map('last')
+         | map('split', '.') | map('first') | first | default('0') }}
+  ansible.builtin.assert:
+    that:
+      - docker_installed_major | int == item.value | int
+    fail_msg: >-
+      {{ item.key }} {{ docker_installed_major }}.x is installed instead of {{ item.value }}.x:
+      no release in Docker's repository matches the pin.
+    quiet: true
+  loop: "{{ docker_pinned_majors | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when: not ansible_check_mode
 
 - name: Create the Docker config directory
   ansible.builtin.file:
