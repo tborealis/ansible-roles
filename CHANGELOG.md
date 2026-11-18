@@ -19,7 +19,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
   log driver, which rotates logs, daemon-wide. Published ports bind to 127.0.0.1
   unless they name an address (`docker_default_bind_address`), with no userland proxy;
   `icc` is off on the default bridge, and `apparmor` is installed so containers get the
-  `docker-default` profile. `docker_daemon_config` adds further `daemon.json`
+  `docker-default` profile. Connections from the public interface reach only the
+  published ports in `docker_firewall_allowed_ports`, through rules in Docker's
+  `DOCKER-USER` chain (`docker_firewall`). `docker_daemon_config` adds further `daemon.json`
   settings, which `dockerd --validate` checks before they are written. Docker's
   repository is added to unattended-upgrades (`docker_unattended_upgrades`); an upgrade
   restarts every container. Engine, containerd and Compose are pinned to a major

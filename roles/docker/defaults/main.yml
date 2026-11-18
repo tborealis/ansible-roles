@@ -16,6 +16,13 @@ docker_no_new_privileges: true
 # none, e.g. "8080:80"; publish publicly with an explicit "0.0.0.0:443:443".
 docker_default_bind_address: 127.0.0.1
 
+# Drop connections that arrive on docker_firewall_interface for published
+# container ports, except docker_firewall_allowed_ports; false removes the rules.
+docker_firewall: true
+docker_firewall_interface: "{{ ansible_facts['default_ipv4']['interface'] }}"
+# Published ports reachable through that interface: 443, "443/udp", "8000:8100"
+docker_firewall_allowed_ports: []
+
 # Let unattended-upgrades install updates from Docker's repository; false
 # removes that opt-in. An upgrade restarts dockerd and every container.
 docker_unattended_upgrades: true

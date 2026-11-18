@@ -1,0 +1,32 @@
+---
+- name: Fetch the allowed public port from outside the host
+  ansible.builtin.uri:
+    url: "http://{{ ansible_facts['default_ipv4']['address'] }}:8082/"
+    status_code: [200, 404]
+    timeout: 5
+  delegate_to: localhost
+  become: false
+
+- name: Try the unlisted public port from outside the host
+  ansible.builtin.uri:
+    url: "http://{{ ansible_facts['default_ipv4']['address'] }}:8083/"
+    timeout: 5
+  delegate_to: localhost
+  become: false
+  register: docker_verify_unlisted
+  failed_when: false
+
+- name: Try the port bound to loopback from outside the host
+  ansible.builtin.uri:
+    url: "http://{{ ansible_facts['default_ipv4']['address'] }}:8081/"
+    timeout: 5
+  delegate_to: localhost
+  become: false
+  register: docker_verify_loopback_only
+  failed_when: false
+
+- name: Assert only the allowed public port is reachable from outside
+  ansible.builtin.assert:
+    that:
+      - docker_verify_unlisted.status == -1
+      - docker_verify_loopback_only.status == -1

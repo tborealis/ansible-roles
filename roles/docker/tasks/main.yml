@@ -89,6 +89,9 @@
 - name: Configure unattended Docker updates
   ansible.builtin.import_tasks: unattended-upgrades.yml
 
+- name: Filter connections from the public interface to published ports
+  ansible.builtin.import_tasks: firewall.yml
+
 - name: Ensure Docker is started and enabled
   ansible.builtin.systemd_service:
     name: docker

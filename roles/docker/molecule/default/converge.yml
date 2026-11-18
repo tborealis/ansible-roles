@@ -8,3 +8,4 @@
         docker_daemon_config:
           log-opts:
             max-size: 5m
+        docker_firewall_allowed_ports: [8082]

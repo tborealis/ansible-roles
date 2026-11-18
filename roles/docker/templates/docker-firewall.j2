@@ -1,0 +1,44 @@
+#!/bin/sh
+#
+# {{ ansible_managed }}
+#
+# Drops connections that arrive on {{ docker_firewall_interface }} for published container
+# ports, except the allowed ones. The rules hang off DOCKER-USER, the chain
+# Docker sends forwarded traffic through before its own rules: Docker creates
+# it if it is missing and never changes its rules.
+set -eu
+
+chain=PUBLIC-CONTAINERS
+
+apply() {
+    ipt=$1
+    $ipt -w -N DOCKER-USER 2>/dev/null || true
+    $ipt -w -N "$chain" 2>/dev/null || $ipt -w -F "$chain"
+    $ipt -w -C DOCKER-USER -j "$chain" 2>/dev/null || $ipt -w -I DOCKER-USER -j "$chain"
+    $ipt -w -A "$chain" ! -i {{ docker_firewall_interface }} -j RETURN
+    $ipt -w -A "$chain" -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
+{% for entry in docker_firewall_allowed_ports %}
+{%   set port, proto = ((entry | string) ~ '/tcp').split('/')[:2] %}
+    $ipt -w -A "$chain" -m conntrack --ctproto {{ proto }} --ctorigdstport {{ port }} -j RETURN
+{% endfor %}
+    $ipt -w -A "$chain" -j DROP
+}
+
+remove() {
+    ipt=$1
+    $ipt -w -D DOCKER-USER -j "$chain" 2>/dev/null || true
+    $ipt -w -F "$chain" 2>/dev/null || true
+    $ipt -w -X "$chain" 2>/dev/null || true
+}
+
+for ipt in iptables ip6tables; do
+    # ip6tables fails when the kernel has IPv6 turned off
+    if [ "$ipt" = ip6tables ] && [ ! -e /proc/net/if_inet6 ]; then
+        continue
+    fi
+    case "${1:-start}" in
+        start) apply "$ipt" ;;
+        stop) remove "$ipt" ;;
+        *) echo "usage: $0 [start|stop]" >&2; exit 2 ;;
+    esac
+done

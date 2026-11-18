@@ -160,6 +160,18 @@
               restart: unless-stopped
               ports:
                 - "8081:80"
+            public:
+              image: busybox:1.37
+              command: httpd -f -p 80
+              restart: unless-stopped
+              ports:
+                - "0.0.0.0:8082:80"
+            unlisted:
+              image: busybox:1.37
+              command: httpd -f -p 80
+              restart: unless-stopped
+              ports:
+                - "0.0.0.0:8083:80"
             setuid:
               image: busybox:1.37
               command: sh -c 'grep NoNewPrivs /proc/self/status; exec sleep infinity'
@@ -180,7 +192,7 @@
       ansible.builtin.assert:
         that:
           - docker_verify_compose_ps.stdout_lines | map('from_json') | map(attribute='State') | unique == ['running']
-          - docker_verify_compose_ps.stdout_lines | length == 2
+          - docker_verify_compose_ps.stdout_lines | length == 4
 
     - name: Query the host address of the web service's published port # noqa: command-instead-of-module (exercising the binary)
       ansible.builtin.command: docker compose --project-directory /srv/docker-verify port web 80
@@ -210,6 +222,39 @@
           - docker_verify_proxies.stdout == '0'
           - docker_verify_setuid_logs.stdout is search('NoNewPrivs:\s+0')
 
+    # From the controller, so connections arrive on the instance's public
+    # interface as they would from the internet
+    - name: Probe the published ports from outside the host
+      ansible.builtin.include_tasks: tasks/probe-public-ports.yml
+
+    - name: Read the public-interface firewall rules # noqa: command-instead-of-module (no module lists a chain)
+      ansible.builtin.command: "{{ item }} -w -S PUBLIC-CONTAINERS"
+      loop: [iptables, ip6tables]
+      register: docker_verify_firewall_rules
+      changed_when: false
+
+    - name: Assert both address families filter the public interface
+      ansible.builtin.assert:
+        that:
+          - item.stdout is search('-A PUBLIC-CONTAINERS ! -i ' ~ ansible_facts['default_ipv4']['interface'] ~ ' -j RETURN')
+          - item.stdout is search('--ctorigdstport 8082 -j RETURN')
+          - item.stdout is search('-A PUBLIC-CONTAINERS -j DROP')
+      loop: "{{ docker_verify_firewall_rules.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Restart Docker
+      ansible.builtin.systemd_service:
+        name: docker
+        state: restarted
+
+    - name: Wait for the Compose project to come back # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker compose --project-directory /srv/docker-verify up --detach --wait
+      changed_when: false
+
+    - name: Probe the published ports again after Docker restarted
+      ansible.builtin.include_tasks: tasks/probe-public-ports.yml
+
     - name: Apply the role with a setting dockerd rejects
       block:
         - name: Apply the role with an unknown daemon.json key
@@ -237,3 +282,34 @@
           - docker_verify_rejected | default(false)
           - "'not-a-docker-option' not in docker_verify_daemon_json_after.content | b64decode"
           - ansible_facts.services['docker.service'].state == 'running'
+
+    - name: Apply the role with the firewall turned off
+      ansible.builtin.include_role:
+        name: tborealis.roles.docker
+      vars:
+        docker_firewall: false
+
+    - name: Check for the firewall unit after turning it off
+      ansible.builtin.stat:
+        path: /etc/systemd/system/docker-firewall.service
+      register: docker_verify_firewall_unit
+
+    - name: Look for the firewall chain after turning it off # noqa: command-instead-of-module (no module lists a chain)
+      ansible.builtin.command: iptables -w -S PUBLIC-CONTAINERS
+      register: docker_verify_firewall_chain
+      changed_when: false
+      failed_when: false
+
+    - name: Fetch the unlisted public port from outside the host without the firewall
+      ansible.builtin.uri:
+        url: "http://{{ ansible_facts['default_ipv4']['address'] }}:8083/"
+        status_code: [200, 404]
+        timeout: 5
+      delegate_to: localhost
+      become: false
+
+    - name: Assert turning the firewall off removed its unit and rules
+      ansible.builtin.assert:
+        that:
+          - not docker_verify_firewall_unit.stat.exists
+          - docker_verify_firewall_chain.rc != 0

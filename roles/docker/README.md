@@ -24,6 +24,17 @@ The daemon is configured with:
 `apparmor` is installed so containers get Docker's `docker-default` AppArmor profile;
 without `apparmor_parser` they run unconfined.
 
+Published ports bypass ufw and other `INPUT` rules: Docker forwards their traffic to the
+container before `INPUT` sees it. So the role filters it in Docker's `DOCKER-USER` chain:
+connections that arrive on `docker_firewall_interface` (the default route's interface,
+`eth0` on a DigitalOcean droplet) reach only the ports in `docker_firewall_allowed_ports`,
+over IPv4 and IPv6. Replies to containers' own connections, and traffic from other
+interfaces (loopback, a private VPC network) are unaffected. A public service therefore
+needs both an explicit address in Compose and an entry in the list, e.g. `ports:
+["0.0.0.0:443:443"]` and `docker_firewall_allowed_ports: [443]`. A oneshot unit,
+`docker-firewall.service`, applies the rules before dockerd starts. They need Docker's
+default iptables firewall backend.
+
 Docker's repository is added to unattended-upgrades, on the schedule `base` configures. An
 upgrade restarts dockerd, which restarts every container; give Compose services a restart
 policy (`restart: unless-stopped`) so they come back, after reboots too. `live-restore` is
@@ -50,5 +61,8 @@ Debian 13 (trixie); the role fails on any other release.
 | `docker_compose_version` | `"5"` | Compose plugin major release to stay on |
 | `docker_no_new_privileges` | `true` | Set `no-new-privileges` on every container; `false` leaves Docker's default (off) |
 | `docker_default_bind_address` | `127.0.0.1` | Host address published ports bind to when they name none |
+| `docker_firewall` | `true` | Filter connections from `docker_firewall_interface` to published ports; `false` removes the rules |
+| `docker_firewall_interface` | `ansible_facts['default_ipv4']['interface']` | Public interface to filter |
+| `docker_firewall_allowed_ports` | `[]` | Published ports reachable through it, e.g. `443`, `"443/udp"`, `"8000:8100"` |
 | `docker_unattended_upgrades` | `true` | Let unattended-upgrades install updates from Docker's repository; `false` removes that opt-in |
 | `docker_daemon_config` | `{}` | Further `daemon.json` settings, merged over (and replacing) the role's top-level keys; `dockerd --validate` must accept the result |

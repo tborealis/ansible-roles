@@ -3,3 +3,14 @@
   ansible.builtin.systemd_service:
     name: docker
     state: restarted
+
+- name: Restart docker firewall
+  ansible.builtin.systemd_service:
+    name: docker-firewall
+    state: restarted
+    daemon_reload: true
+  when: docker_firewall
+
+- name: Reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
