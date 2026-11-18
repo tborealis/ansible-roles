@@ -4,8 +4,8 @@
 #
 # Deploys an image digest to a Compose project:
 #   docker-compose-deploy <project> <sha256:digest>
-# It records the image in the project's deploy.env, which its compose file reads
-# as a variable, and waits for the containers to be running and healthy. If they
+# It pulls the image, records it in the project's deploy.env, which its compose
+# file reads as a variable, and waits for the containers to be running and healthy. If they
 # aren't, it redeploys the previous image (on a first deploy, stops the project)
 # and fails. Provisioning reapplies the recorded image, so it never reverts one.
 set -euo pipefail
@@ -57,6 +57,13 @@ flock 9
 PREVIOUS=""
 if [[ -f "$DEPLOYED" ]]; then
     PREVIOUS="$(< "$DEPLOYED")"
+fi
+
+# Pull first, so a missing or unreadable image leaves the project untouched and
+# the download isn't part of the downtime
+if ! docker pull --quiet "$IMAGE@$DIGEST" >&2; then
+    log "could not pull $IMAGE@$DIGEST; nothing changed"
+    exit 1
 fi
 
 log "deploying $IMAGE@$DIGEST"

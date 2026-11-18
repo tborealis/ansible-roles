@@ -74,8 +74,10 @@ containers when a secret changes. `state: absent` stops a project and deletes it
 named volumes are kept.
 
 A project with `deploy` takes its image from CI instead. `docker-compose-deploy <project>
-<sha256:digest>`, run as root, records `<variable>=<image>@<digest>` in the project's
-`deploy.env` and brings the project up with it. If the containers aren't running and healthy
+<sha256:digest>`, run as root, pulls the image (failing before it touches the project if it
+can't), records `<variable>=<image>@<digest>` in the project's `deploy.env` and brings the
+project up with it. Compose stops the old container before starting the new one, so the
+service is down while it starts. If the containers aren't running and healthy
 within `wait_timeout`, it redeploys the previous image (or, on a first deploy, stops the
 project) and exits non-zero. The role leaves such a project down until its first deploy, then
 brings it up with the recorded image, so provisioning never reverts a deploy. The script logs

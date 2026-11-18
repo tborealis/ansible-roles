@@ -545,7 +545,9 @@
         docker run --name app-image busybox:1.37 touch /healthy
         docker commit app-image localhost:5000/probe/app:healthy
         docker rm app-image
-        docker tag busybox:1.37 localhost:5000/probe/app:unhealthy
+        docker run --name app-image busybox:1.37 true
+        docker commit app-image localhost:5000/probe/app:unhealthy
+        docker rm app-image
         docker push --quiet localhost:5000/probe/app:healthy
         docker push --quiet localhost:5000/probe/app:unhealthy
       args:
@@ -567,6 +569,28 @@
     - name: Deploy the healthy image # noqa: command-instead-of-module (exercising the deploy script)
       ansible.builtin.command: /usr/local/sbin/docker-compose-deploy app {{ docker_verify_app_digests[0] }}
       changed_when: true
+
+    - name: Read the app container's ID # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker ps --quiet --filter label=com.docker.compose.project=app
+      register: docker_verify_app_id
+      changed_when: false
+
+    - name: Deploy an image the registry doesn't have # noqa: command-instead-of-module (exercising the deploy script)
+      ansible.builtin.command: /usr/local/sbin/docker-compose-deploy app sha256:{{ '0' * 64 }}
+      register: docker_verify_missing_deploy
+      changed_when: false
+      failed_when: docker_verify_missing_deploy.rc != 1
+
+    - name: Read the app container's ID after the failed pull # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker ps --quiet --filter label=com.docker.compose.project=app
+      register: docker_verify_app_id_after_pull
+      changed_when: false
+
+    - name: Assert the failed pull left the container running
+      ansible.builtin.assert:
+        that:
+          - docker_verify_app_id.stdout != ''
+          - docker_verify_app_id_after_pull.stdout == docker_verify_app_id.stdout
 
     - name: Deploy the unhealthy image # noqa: command-instead-of-module (exercising the deploy script)
       ansible.builtin.command: /usr/local/sbin/docker-compose-deploy app {{ docker_verify_app_digests[1] }}
