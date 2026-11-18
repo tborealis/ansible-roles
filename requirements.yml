@@ -5,4 +5,4 @@ collections:
   - name: community.general
   - name: community.postgresql
   - name: community.rabbitmq
-  - name: community.docker # dev/test only: used by the molecule docker driver
+  - name: community.docker # docker role registry logins; also the molecule docker driver

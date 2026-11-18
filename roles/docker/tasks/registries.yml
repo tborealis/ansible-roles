@@ -1,0 +1,19 @@
+---
+- name: Install the Python requests library for registry logins
+  ansible.builtin.apt:
+    pkg: python3-requests
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: docker_registries | length > 0
+
+- name: Log in to registries
+  community.docker.docker_login:
+    registry_url: "{{ item.registry }}"
+    username: "{{ item.username | default(omit) }}"
+    password: "{{ item.password | default(omit) }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ docker_registries }}"
+  loop_control:
+    label: "{{ item.registry }}"
+  no_log: true

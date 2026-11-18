@@ -101,6 +101,9 @@
     enabled: true
     state: started
 
+- name: Log in to registries
+  ansible.builtin.import_tasks: registries.yml
+
 # Tasks that use Docker next (e.g. Compose deploys) need the new config now
 - name: Apply daemon config changes
   ansible.builtin.meta: flush_handlers

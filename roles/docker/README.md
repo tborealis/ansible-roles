@@ -35,6 +35,10 @@ needs both an explicit address in Compose and an entry in the list, e.g. `ports:
 `docker-firewall.service`, applies the rules before dockerd starts. They need Docker's
 default iptables firewall backend.
 
+`docker_registries` logs root in to private registries, so `docker compose pull` run as
+root can fetch their images. The credentials are stored base64-encoded, not encrypted, in
+`/root/.docker/config.json` (mode 0600), so use read-only pull tokens.
+
 Each `docker compose pull` leaves the previous image behind, so a weekly timer,
 `docker-prune.timer`, removes images no container uses (stopped ones included) and build
 cache unused for a week. Volumes are never pruned.
@@ -54,7 +58,8 @@ downgrade them.
 
 ## Requirements
 
-Debian 13 (trixie); the role fails on any other release.
+Debian 13 (trixie); the role fails on any other release. The `community.docker`
+collection on the controller, which this collection depends on.
 
 ## Role Variables
 
@@ -71,4 +76,5 @@ Debian 13 (trixie); the role fails on any other release.
 | `docker_prune` | `true` | Prune unused images and old build cache on `docker_prune_schedule`; `false` removes the timer |
 | `docker_prune_schedule` | `Sun *-*-* 03:00` | systemd `OnCalendar` schedule for the prune, in local time |
 | `docker_unattended_upgrades` | `true` | Let unattended-upgrades install updates from Docker's repository; `false` removes that opt-in |
+| `docker_registries` | `[]` | Registries root logs in to: `{registry, username, password}`; `state: absent` logs out |
 | `docker_daemon_config` | `{}` | Further `daemon.json` settings, merged over (and replacing) the role's top-level keys; `dockerd --validate` must accept the result |

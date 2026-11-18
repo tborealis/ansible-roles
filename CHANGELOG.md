@@ -14,20 +14,25 @@ flagged with **BREAKING** and require a MAJOR version bump.
 ### Added
 
 - **docker:** new role installing Docker Engine, with the Compose and Buildx plugins,
-  from Docker's apt repository, for Debian 13 (trixie) only. It sets
-  `no-new-privileges` on every container (`docker_no_new_privileges`) and the `local`
-  log driver, which rotates logs, daemon-wide. Published ports bind to 127.0.0.1
-  unless they name an address (`docker_default_bind_address`), with no userland proxy;
-  `icc` is off on the default bridge, and `apparmor` is installed so containers get the
-  `docker-default` profile. Connections from the public interface reach only the
-  published ports in `docker_firewall_allowed_ports`, through rules in Docker's
-  `DOCKER-USER` chain (`docker_firewall`). A weekly timer prunes images no container
-  uses and old build cache (`docker_prune`). `docker_daemon_config` adds further `daemon.json`
-  settings, which `dockerd --validate` checks before they are written. Docker's
-  repository is added to unattended-upgrades (`docker_unattended_upgrades`); an upgrade
-  restarts every container. Engine, containerd and Compose are pinned to a major
-  release (`docker_version: "29"`, `docker_containerd_version: "2"`,
-  `docker_compose_version: "5"`), and pre-releases are pinned out.
+  from Docker's apt repository, for Debian 13 (trixie) only:
+  - Engine, containerd and Compose are pinned to a major release (`docker_version:
+    "29"`, `docker_containerd_version: "2"`, `docker_compose_version: "5"`) and
+    pre-releases are pinned out; Docker's repository is added to unattended-upgrades
+    (`docker_unattended_upgrades`), and an upgrade restarts every container.
+  - `daemon.json` sets the `local` log driver, which rotates logs, and
+    `no-new-privileges` on every container (`docker_no_new_privileges`). Published
+    ports bind to 127.0.0.1 unless they name an address (`docker_default_bind_address`),
+    with no userland proxy, and `icc` is off on the default bridge.
+    `docker_daemon_config` adds further settings, which `dockerd --validate` checks
+    before they are written.
+  - Connections from the public interface reach only the published ports in
+    `docker_firewall_allowed_ports`, through rules in Docker's `DOCKER-USER` chain
+    (`docker_firewall`).
+  - `apparmor` is installed so containers get the `docker-default` profile.
+  - A weekly timer prunes images no container uses and old build cache
+    (`docker_prune`).
+  - `docker_registries` logs root in to private registries for `docker compose pull`;
+    the collection now depends on `community.docker`.
 - **apt_keys:** Docker's repository signing key, for the `docker` role.
 
 ### Changed

@@ -2,6 +2,11 @@
 - name: Verify
   hosts: all
   become: true
+  vars:
+    # Throwaway values for the test registry
+    docker_verify_registry: localhost:5000
+    docker_verify_registry_username: molecule
+    docker_verify_registry_password: m0lecule-registry-pass
   tasks:
     - name: Gather service facts
       ansible.builtin.service_facts:
@@ -288,6 +293,106 @@
         that:
           - "'1.36' not in docker_verify_image_tags"
           - "'1.37' in docker_verify_image_tags"
+
+    - name: Install htpasswd
+      ansible.builtin.apt:
+        pkg: apache2-utils
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Create the registry's password file
+      ansible.builtin.command: >-
+        htpasswd -Bbc /srv/registry-htpasswd
+        {{ docker_verify_registry_username }} {{ docker_verify_registry_password }}
+      args:
+        creates: /srv/registry-htpasswd
+
+    - name: Start a registry that needs a login # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: >-
+        docker run --detach --name registry --publish 127.0.0.1:5000:5000
+        --env REGISTRY_AUTH=htpasswd --env REGISTRY_AUTH_HTPASSWD_REALM=molecule
+        --env REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd
+        --volume /srv/registry-htpasswd:/auth/htpasswd:ro registry:3
+      changed_when: false
+
+    - name: Wait for the registry
+      ansible.builtin.uri:
+        url: http://127.0.0.1:5000/v2/
+        status_code: 401
+      register: docker_verify_registry_up
+      until: docker_verify_registry_up is succeeded
+      retries: 15
+      delay: 2
+
+    - name: Apply the role with a registry login
+      ansible.builtin.include_role:
+        name: tborealis.roles.docker
+      vars:
+        docker_daemon_config:
+          log-opts:
+            max-size: 5m
+        docker_firewall_allowed_ports: [8082]
+        docker_registries:
+          - registry: "{{ docker_verify_registry }}"
+            username: "{{ docker_verify_registry_username }}"
+            password: "{{ docker_verify_registry_password }}"
+
+    - name: Check root's Docker config
+      ansible.builtin.stat:
+        path: /root/.docker/config.json
+      register: docker_verify_config_stat
+
+    - name: Read root's Docker config
+      ansible.builtin.slurp:
+        src: /root/.docker/config.json
+      register: docker_verify_config
+
+    - name: Assert the login is stored privately
+      vars:
+        docker_verify_auths: "{{ (docker_verify_config.content | b64decode | from_json).auths }}"
+      ansible.builtin.assert:
+        that:
+          - docker_verify_config_stat.stat.mode == '0600'
+          - >-
+            docker_verify_auths[docker_verify_registry].auth
+            == (docker_verify_registry_username ~ ':' ~ docker_verify_registry_password) | b64encode
+
+    # The registry refuses pushes and pulls without a login
+    - name: Push to and pull from the private registry # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.shell: |
+        set -e
+        docker tag busybox:1.37 {{ docker_verify_registry }}/probe/busybox:1
+        docker push --quiet {{ docker_verify_registry }}/probe/busybox:1
+        docker image rm {{ docker_verify_registry }}/probe/busybox:1
+        docker pull --quiet {{ docker_verify_registry }}/probe/busybox:1
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Apply the role logging out of the registry
+      ansible.builtin.include_role:
+        name: tborealis.roles.docker
+      vars:
+        docker_daemon_config:
+          log-opts:
+            max-size: 5m
+        docker_firewall_allowed_ports: [8082]
+        docker_registries:
+          - registry: "{{ docker_verify_registry }}"
+            state: absent
+
+    - name: Read root's Docker config after logging out
+      ansible.builtin.slurp:
+        src: /root/.docker/config.json
+      register: docker_verify_config_after
+
+    - name: Assert the login was removed
+      ansible.builtin.assert:
+        that:
+          - >-
+            docker_verify_registry not in
+            (docker_verify_config_after.content | b64decode | from_json).get('auths', {})
 
     - name: Apply the role with a setting dockerd rejects
       block:

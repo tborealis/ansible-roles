@@ -32,6 +32,10 @@ docker_prune_schedule: "Sun *-*-* 03:00"
 # removes that opt-in. An upgrade restarts dockerd and every container.
 docker_unattended_upgrades: true
 
+# Registries root logs in to, so `docker compose pull` can fetch private
+# images: [{registry, username, password}]; `state: absent` logs out.
+docker_registries: []
+
 # Further daemon.json settings, merged over the role's own, e.g.
 # {"log-opts": {"max-size": "50m"}}
 docker_daemon_config: {}
