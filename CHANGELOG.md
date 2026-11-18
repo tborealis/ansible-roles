@@ -11,6 +11,38 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Added
+
+- **docker:** new role installing Docker Engine and the Compose plugin from Docker's
+  apt repository, for Debian 13 (trixie) only:
+  - Engine, containerd and Compose are pinned to a major release (`docker_version:
+    "29"`, `docker_containerd_version: "2"`, `docker_compose_version: "5"`) and
+    pre-releases are pinned out; Docker's repository is added to unattended-upgrades
+    (`docker_unattended_upgrades`), and an upgrade restarts every container.
+  - `daemon.json` sets the `local` log driver, which rotates logs, and
+    `no-new-privileges` on every container (`docker_no_new_privileges`). Published
+    ports bind to 127.0.0.1 unless they name an address (`docker_default_bind_address`),
+    with no userland proxy, and `icc` is off on the default bridge.
+    `docker_daemon_config` adds further settings, which `dockerd --validate` checks
+    before they are written.
+  - Connections from the public interface reach only the published ports in
+    `docker_firewall_allowed_ports`, through rules in Docker's `DOCKER-USER` chain
+    (`docker_firewall`).
+  - `apparmor` is installed so containers get the `docker-default` profile.
+  - A weekly timer prunes images no container uses and old build cache
+    (`docker_prune`).
+  - `docker_registries` logs root in to private registries for `docker compose pull`;
+    the collection now depends on `community.docker`.
+  - `docker_compose_projects` runs Compose projects, from a template or definition,
+    with an environment file and secret files, and waits for them to be healthy.
+    Projects with `deploy` take image digests from CI through `docker-compose-deploy`,
+    which pulls the image before touching the project and rolls back to the previous
+    image when the new one doesn't start healthy. Each deploy, and each container the
+    role creates, recreates, starts or removes, is recorded in the project's history,
+    `/var/log/docker-compose/<project>.log`, and in the journal with searchable fields.
+    A failed deploy logs its containers' last output before the rollback removes them.
+- **apt_keys:** Docker's repository signing key, for the `docker` role.
+
 ### Changed
 
 - **meta:** pull requests now wait for every Molecule job before they can merge. A

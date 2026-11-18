@@ -1,0 +1,827 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  vars:
+    # Throwaway values for the test registry
+    docker_verify_registry: localhost:5000
+    docker_verify_registry_username: molecule
+    docker_verify_registry_password: m0lecule-registry-pass
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Assert Docker is running and enabled
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['docker.service'].state == 'running'
+          - ansible_facts.services['docker.service'].status == 'enabled'
+
+    - name: Read apt repository source
+      ansible.builtin.slurp:
+        src: /etc/apt/sources.list.d/docker.sources
+      register: docker_verify_source
+
+    - name: Assert repository points at Docker and is pinned to the managed keyring
+      vars:
+        docker_verify_source_content: "{{ docker_verify_source.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - "'URIs: https://download.docker.com/linux/debian' in docker_verify_source_content"
+          - "'Signed-By: /etc/apt/keyrings/docker.gpg' in docker_verify_source_content"
+
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+
+    - name: Assert the installed packages are on the pinned major releases
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.packages['docker-ce'][0].version is match('5:29\.')
+          - ansible_facts.packages['containerd.io'][0].version is match('2\.')
+          - ansible_facts.packages['docker-compose-plugin'][0].version is match('5\.')
+
+    # Docker's test channel carries its release candidates
+    - name: Add Docker's pre-release channel
+      ansible.builtin.deb822_repository:
+        name: docker-test
+        types: [deb]
+        uris: https://download.docker.com/linux/debian
+        suites: trixie
+        components: test
+        signed_by: /etc/apt/keyrings/docker.gpg
+
+    - name: Update apt cache with the pre-release channel
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Read docker-ce's apt policy # noqa: command-instead-of-module (no module reports pin priorities)
+      ansible.builtin.command: apt-cache policy docker-ce
+      register: docker_verify_policy
+      changed_when: false
+
+    - name: Remove the pre-release channel
+      ansible.builtin.deb822_repository:
+        name: docker-test
+        state: absent
+
+    - name: Update apt cache without the pre-release channel
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Assert pre-releases are pinned out and the candidate stays on the pinned major
+      vars:
+        docker_verify_prereleases: >-
+          {{ docker_verify_policy.stdout_lines | select('search', '~(alpha|beta|rc)') | list }}
+      ansible.builtin.assert:
+        that:
+          - docker_verify_prereleases | length > 0
+          - docker_verify_prereleases | reject('search', ' -1$') | list | length == 0
+          - >-
+            docker_verify_policy.stdout is search('Candidate: 5:29\.')
+
+    - name: Apply the role with a pin below the installed release
+      block:
+        - name: Apply the role with docker_version 28
+          ansible.builtin.include_role:
+            name: tborealis.roles.docker
+          vars:
+            docker_version: "28"
+      rescue:
+        - name: Record that the role refused the lowered pin
+          ansible.builtin.set_fact:
+            docker_verify_pin_refused: true
+
+    - name: Read the apt pin after the refused change
+      ansible.builtin.slurp:
+        src: /etc/apt/preferences.d/docker
+      register: docker_verify_pin_after
+
+    - name: Assert the lowered pin was refused before the pin file changed
+      ansible.builtin.assert:
+        that:
+          - docker_verify_pin_refused | default(false)
+          - "'Pin: version 5:29.*' in docker_verify_pin_after.content | b64decode"
+
+    - name: Read daemon.json
+      ansible.builtin.slurp:
+        src: /etc/docker/daemon.json
+      register: docker_verify_daemon_json
+
+    - name: Assert daemon.json merges converge's settings over the role's
+      vars:
+        docker_verify_daemon: "{{ docker_verify_daemon_json.content | b64decode | from_json }}"
+      ansible.builtin.assert:
+        that:
+          - docker_verify_daemon['log-driver'] == 'local'
+          - docker_verify_daemon['no-new-privileges'] is true
+          - docker_verify_daemon['icc'] is false
+          - docker_verify_daemon['userland-proxy'] is false
+          - docker_verify_daemon['ip'] == '127.0.0.1'
+          - >-
+            docker_verify_daemon['default-network-opts']['bridge']['com.docker.network.bridge.host_binding_ipv4']
+            == '127.0.0.1'
+          - docker_verify_daemon['log-opts']['max-size'] == '5m'
+          - "'apparmor' in ansible_facts.packages"
+
+    - name: Query the running daemon # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker info --format json
+      register: docker_verify_info
+      changed_when: false
+
+    - name: Assert the daemon loaded the config
+      ansible.builtin.assert:
+        that:
+          - (docker_verify_info.stdout | from_json).LoggingDriver == 'local'
+
+    - name: Inspect the default bridge # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker network inspect bridge --format json
+      register: docker_verify_bridge
+      changed_when: false
+
+    - name: Assert the default bridge has inter-container traffic off and binds to loopback
+      vars:
+        docker_verify_bridge_options: "{{ (docker_verify_bridge.stdout | from_json | first).Options }}"
+      ansible.builtin.assert:
+        that:
+          - docker_verify_bridge_options['com.docker.network.bridge.enable_icc'] == 'false'
+          - docker_verify_bridge_options['com.docker.network.bridge.host_binding_ipv4'] == '127.0.0.1'
+
+    - name: Run a container that reports its no_new_privs flag # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker run --rm busybox:1.37 grep NoNewPrivs /proc/self/status
+      register: docker_verify_nnp
+      changed_when: false
+
+    - name: Assert containers get no-new-privileges by default
+      ansible.builtin.assert:
+        that:
+          - docker_verify_nnp.stdout is search('NoNewPrivs:\s+1')
+
+    - name: Read the unattended-upgrades opt-in
+      ansible.builtin.slurp:
+        src: /etc/apt/apt.conf.d/53unattended-upgrades-docker
+      register: docker_verify_unattended
+
+    - name: Assert unattended-upgrades allows the Docker repository
+      ansible.builtin.assert:
+        that:
+          - "'\"origin=Docker,archive=${distro_codename}\";' in docker_verify_unattended.content | b64decode"
+
+    # Functional check of the origin pattern: unattended-upgrades must pick up an
+    # upgrade from Docker's repository, within the pin
+    - name: List docker-ce-cli releases on the pinned major # noqa: command-instead-of-module (no module lists candidates)
+      ansible.builtin.command: apt-cache madison docker-ce-cli
+      register: docker_verify_cli_releases
+      changed_when: false
+
+    # madison lists the newest release first
+    - name: Pick docker-ce-cli's two newest releases
+      ansible.builtin.set_fact:
+        docker_verify_cli_versions: >-
+          {{ docker_verify_cli_releases.stdout_lines | map('split', '|') | map(attribute=1)
+             | map('trim') | select('match', '5:29[.]') | list }}
+
+    # The apt module can't: its own version pin loses to the role's, which
+    # apt reads first
+    - name: Downgrade docker-ce-cli to the previous release # noqa: command-instead-of-module
+      ansible.builtin.command: >-
+        apt-get install --yes --allow-downgrades --no-install-recommends
+        docker-ce-cli={{ docker_verify_cli_versions[1] }}
+      changed_when: true
+
+    - name: Dry-run unattended-upgrades # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: unattended-upgrade --dry-run --debug
+      register: docker_verify_uu_dry_run
+      changed_when: false
+
+    - name: Restore the newest docker-ce-cli
+      ansible.builtin.apt:
+        name: docker-ce-cli={{ docker_verify_cli_versions[0] }}
+
+    - name: Assert unattended-upgrades would upgrade docker-ce-cli
+      ansible.builtin.assert:
+        that:
+          - (docker_verify_uu_dry_run.stdout ~ docker_verify_uu_dry_run.stderr) is search('Packages that will be upgraded:.*docker-ce-cli')
+
+    - name: Create the Compose project directory
+      ansible.builtin.file:
+        path: /srv/docker-verify
+        state: directory
+        mode: "0755"
+
+    - name: Write a Compose project
+      ansible.builtin.copy:
+        dest: /srv/docker-verify/compose.yaml
+        mode: "0644"
+        content: |
+          services:
+            web:
+              image: busybox:1.37
+              command: httpd -f -p 80
+              restart: unless-stopped
+              ports:
+                - "8081:80"
+            public:
+              image: busybox:1.37
+              command: httpd -f -p 80
+              restart: unless-stopped
+              ports:
+                - "0.0.0.0:8082:80"
+            unlisted:
+              image: busybox:1.37
+              command: httpd -f -p 80
+              restart: unless-stopped
+              ports:
+                - "0.0.0.0:8083:80"
+            setuid:
+              image: busybox:1.37
+              command: sh -c 'grep NoNewPrivs /proc/self/status; exec sleep infinity'
+              restart: unless-stopped
+              security_opt:
+                - no-new-privileges=false
+
+    - name: Start the Compose project # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker compose --project-directory /srv/docker-verify up --detach --wait
+      changed_when: false
+
+    - name: List the Compose project's containers # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker compose --project-directory /srv/docker-verify ps --format json
+      register: docker_verify_compose_ps
+      changed_when: false
+
+    - name: Assert Compose started the services
+      ansible.builtin.assert:
+        that:
+          - docker_verify_compose_ps.stdout_lines | map('from_json') | map(attribute='State') | unique == ['running']
+          - docker_verify_compose_ps.stdout_lines | length == 4
+
+    - name: Query the host address of the web service's published port # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker compose --project-directory /srv/docker-verify port web 80
+      register: docker_verify_compose_port
+      changed_when: false
+
+    - name: Fetch the web service through its published port
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8081/
+        status_code: [200, 404]
+
+    - name: List docker-proxy processes # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: pgrep -c docker-proxy
+      register: docker_verify_proxies
+      changed_when: false
+      failed_when: docker_verify_proxies.rc not in [0, 1]
+
+    - name: Read the setuid service's output # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker compose --project-directory /srv/docker-verify logs --no-log-prefix setuid
+      register: docker_verify_setuid_logs
+      changed_when: false
+
+    - name: Assert ports bind to loopback without a proxy, and a service can opt out of no-new-privileges
+      ansible.builtin.assert:
+        that:
+          - docker_verify_compose_port.stdout == '127.0.0.1:8081'
+          - docker_verify_proxies.stdout == '0'
+          - docker_verify_setuid_logs.stdout is search('NoNewPrivs:\s+0')
+
+    # From the controller, so connections arrive on the instance's public
+    # interface as they would from the internet
+    - name: Probe the published ports from outside the host
+      ansible.builtin.include_tasks: tasks/probe-public-ports.yml
+
+    - name: Read the public-interface firewall rules # noqa: command-instead-of-module (no module lists a chain)
+      ansible.builtin.command: "{{ item }} -w -S PUBLIC-CONTAINERS"
+      loop: [iptables, ip6tables]
+      register: docker_verify_firewall_rules
+      changed_when: false
+
+    - name: Assert both address families filter the public interface
+      ansible.builtin.assert:
+        that:
+          - item.stdout is search('-A PUBLIC-CONTAINERS ! -i ' ~ ansible_facts['default_ipv4']['interface'] ~ ' -j RETURN')
+          - item.stdout is search('--ctorigdstport 8082 -j RETURN')
+          - item.stdout is search('-A PUBLIC-CONTAINERS -j DROP')
+      loop: "{{ docker_verify_firewall_rules.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Restart Docker
+      ansible.builtin.systemd_service:
+        name: docker
+        state: restarted
+
+    - name: Wait for the Compose project to come back # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker compose --project-directory /srv/docker-verify up --detach --wait
+      changed_when: false
+
+    - name: Probe the published ports again after Docker restarted
+      ansible.builtin.include_tasks: tasks/probe-public-ports.yml
+
+    # As at boot: nothing running and no rules, then only Docker is started
+    - name: Stop Docker and the firewall
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+      loop: [docker.socket, docker.service, docker-firewall.service]
+
+    - name: Look for the firewall chain with everything stopped # noqa: command-instead-of-module (no module lists a chain)
+      ansible.builtin.command: iptables -w -S PUBLIC-CONTAINERS
+      register: docker_verify_chain_stopped
+      changed_when: false
+      failed_when: false
+
+    - name: Start Docker alone
+      ansible.builtin.systemd_service:
+        name: docker
+        state: started
+
+    - name: Query the firewall unit after Docker started # noqa: command-instead-of-module (exercising the unit)
+      ansible.builtin.command: systemctl is-active docker-firewall.service
+      register: docker_verify_firewall_active
+      changed_when: false
+
+    - name: Assert starting Docker brought the firewall up with it
+      ansible.builtin.assert:
+        that:
+          - docker_verify_chain_stopped.rc != 0
+          - docker_verify_firewall_active.stdout == 'active'
+
+    - name: Wait for the Compose project after the cold start # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker compose --project-directory /srv/docker-verify up --detach --wait
+      changed_when: false
+
+    - name: Probe the published ports after the cold start
+      ansible.builtin.include_tasks: tasks/probe-public-ports.yml
+
+    - name: Apply the role with an allowed port range iptables would reject
+      block:
+        - name: Apply the role with a descending port range
+          ansible.builtin.include_role:
+            name: tborealis.roles.docker
+          vars:
+            docker_firewall_allowed_ports: [8082, "8100:8000"]
+      rescue:
+        - name: Record that the role refused the port range
+          ansible.builtin.set_fact:
+            docker_verify_range_rejected: true
+
+    - name: Read the firewall rules after the refused range # noqa: command-instead-of-module (no module lists a chain)
+      ansible.builtin.command: iptables -w -S PUBLIC-CONTAINERS
+      register: docker_verify_rules_after_refusal
+      changed_when: false
+
+    - name: Assert the refused range left the rules in place
+      ansible.builtin.assert:
+        that:
+          - docker_verify_range_rejected | default(false)
+          - docker_verify_rules_after_refusal.stdout is search('--ctorigdstport 8082 -j RETURN')
+          - docker_verify_rules_after_refusal.stdout is search('-A PUBLIC-CONTAINERS -j DROP')
+
+    - name: Read the web project's secret file
+      ansible.builtin.stat:
+        path: /etc/compose/web/secrets/token
+      register: docker_verify_web_secret
+
+    - name: Read the web service's secret, uid and environment # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: >-
+        docker compose --project-directory /etc/compose/web exec web
+        sh -c 'cat /run/secrets/token; echo; id -u; echo "$GREETING"'
+      register: docker_verify_web_exec
+      changed_when: false
+
+    - name: List the app project's containers before its first deploy # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker ps --all --quiet --filter label=com.docker.compose.project=app
+      register: docker_verify_app_before
+      changed_when: false
+
+    - name: Assert the web project runs with its secret and environment, and the app project waits for a deploy
+      ansible.builtin.assert:
+        that:
+          - docker_verify_web_secret.stat.uid == 10001
+          - docker_verify_web_secret.stat.mode == '0400'
+          - docker_verify_web_exec.stdout_lines == ['s3cret-token', '10001', 'hello']
+          - docker_verify_app_before.stdout == ''
+
+    - name: Read the web container's ID # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker compose --project-directory /etc/compose/web ps --quiet web
+      register: docker_verify_web_id
+      changed_when: false
+
+    - name: Apply the role with a new secret
+      ansible.builtin.include_role:
+        name: tborealis.roles.docker
+      vars:
+        docker_compose_projects:
+          - "{{ docker_verify_compose_projects[0] | combine({'secrets': [{'name': 'token', 'content': 'rotated-token', 'owner': '10001'}]}) }}"
+          - "{{ docker_verify_compose_projects[1] }}"
+
+    - name: Read the web service's secret and container ID after the change # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.shell: |
+        set -e
+        docker compose --project-directory /etc/compose/web exec web cat /run/secrets/token
+        echo
+        docker compose --project-directory /etc/compose/web ps --quiet web
+      args:
+        executable: /bin/bash
+      register: docker_verify_web_rotated
+      changed_when: false
+
+    - name: Assert the new secret recreated the container
+      ansible.builtin.assert:
+        that:
+          - docker_verify_web_rotated.stdout_lines[0] == 'rotated-token'
+          - docker_verify_web_rotated.stdout_lines[1] != docker_verify_web_id.stdout
+
+    - name: Query the prune timer # noqa: command-instead-of-module (service_facts omits timers)
+      ansible.builtin.command: systemctl is-enabled docker-prune.timer
+      register: docker_verify_prune_timer
+      changed_when: false
+
+    - name: Assert the prune timer is enabled
+      ansible.builtin.assert:
+        that:
+          - docker_verify_prune_timer.stdout == 'enabled'
+
+    - name: Pull an image no container uses # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker pull --quiet busybox:1.36
+      changed_when: false
+
+    - name: Run the prune service
+      ansible.builtin.systemd_service:
+        name: docker-prune.service
+        state: started
+
+    - name: List images after the prune # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker image ls --format json
+      register: docker_verify_images
+      changed_when: false
+
+    - name: Assert the prune removed the unused image and kept the one in use
+      vars:
+        docker_verify_image_tags: >-
+          {{ docker_verify_images.stdout_lines | map('from_json')
+             | map(attribute='Tag') | list }}
+      ansible.builtin.assert:
+        that:
+          - "'1.36' not in docker_verify_image_tags"
+          - "'1.37' in docker_verify_image_tags"
+
+    - name: Install htpasswd
+      ansible.builtin.apt:
+        pkg: apache2-utils
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Create the registry's password file
+      ansible.builtin.command: >-
+        htpasswd -Bbc /srv/registry-htpasswd
+        {{ docker_verify_registry_username }} {{ docker_verify_registry_password }}
+      args:
+        creates: /srv/registry-htpasswd
+
+    - name: Start a registry that needs a login # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: >-
+        docker run --detach --name registry --publish 127.0.0.1:5000:5000
+        --env REGISTRY_AUTH=htpasswd --env REGISTRY_AUTH_HTPASSWD_REALM=molecule
+        --env REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd
+        --volume /srv/registry-htpasswd:/auth/htpasswd:ro registry:3
+      changed_when: false
+
+    - name: Wait for the registry
+      ansible.builtin.uri:
+        url: http://127.0.0.1:5000/v2/
+        status_code: 401
+      register: docker_verify_registry_up
+      until: docker_verify_registry_up is succeeded
+      retries: 15
+      delay: 2
+
+    - name: Apply the role with a registry login
+      ansible.builtin.include_role:
+        name: tborealis.roles.docker
+      vars:
+        docker_registries:
+          - registry: "{{ docker_verify_registry }}"
+            username: "{{ docker_verify_registry_username }}"
+            password: "{{ docker_verify_registry_password }}"
+
+    - name: Check root's Docker config
+      ansible.builtin.stat:
+        path: /root/.docker/config.json
+      register: docker_verify_config_stat
+
+    - name: Read root's Docker config
+      ansible.builtin.slurp:
+        src: /root/.docker/config.json
+      register: docker_verify_config
+
+    - name: Assert the login is stored privately
+      vars:
+        docker_verify_auths: "{{ (docker_verify_config.content | b64decode | from_json).auths }}"
+      ansible.builtin.assert:
+        that:
+          - docker_verify_config_stat.stat.mode == '0600'
+          - >-
+            docker_verify_auths[docker_verify_registry].auth
+            == (docker_verify_registry_username ~ ':' ~ docker_verify_registry_password) | b64encode
+
+    # The registry refuses pushes and pulls without a login
+    - name: Push to and pull from the private registry # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.shell: |
+        set -e
+        docker tag busybox:1.37 {{ docker_verify_registry }}/probe/busybox:1
+        docker push --quiet {{ docker_verify_registry }}/probe/busybox:1
+        docker image rm {{ docker_verify_registry }}/probe/busybox:1
+        docker pull --quiet {{ docker_verify_registry }}/probe/busybox:1
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Build a healthy and an unhealthy app image, and push them # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.shell: |
+        set -e
+        docker rm --force app-image > /dev/null 2>&1 || true
+        docker run --name app-image busybox:1.37 touch /healthy
+        docker commit --change 'LABEL org.opencontainers.image.revision=0123abc' app-image localhost:5000/probe/app:healthy
+        docker rm app-image
+        docker run --name app-image busybox:1.37 true
+        docker commit app-image localhost:5000/probe/app:unhealthy
+        docker rm app-image
+        docker push --quiet localhost:5000/probe/app:healthy
+        docker push --quiet localhost:5000/probe/app:unhealthy
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Inspect the app images # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker image inspect localhost:5000/probe/app:healthy localhost:5000/probe/app:unhealthy
+      register: docker_verify_app_images
+      changed_when: false
+
+    - name: Record the app images' digests
+      ansible.builtin.set_fact:
+        docker_verify_app_digests: >-
+          {{ docker_verify_app_images.stdout | from_json | map(attribute='RepoDigests')
+             | map('select', 'match', '^localhost:5000/probe/app@') | map('first')
+             | map('split', '@') | map('last') | list }}
+
+    - name: Deploy the healthy image # noqa: command-instead-of-module (exercising the deploy script)
+      ansible.builtin.command: /usr/local/sbin/docker-compose-deploy app {{ docker_verify_app_digests[0] }}
+      changed_when: true
+
+    - name: Read the app container's ID # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker ps --quiet --filter label=com.docker.compose.project=app
+      register: docker_verify_app_id
+      changed_when: false
+
+    - name: Deploy an image the registry doesn't have # noqa: command-instead-of-module (exercising the deploy script)
+      ansible.builtin.command: /usr/local/sbin/docker-compose-deploy app sha256:{{ '0' * 64 }}
+      register: docker_verify_missing_deploy
+      changed_when: false
+      failed_when: docker_verify_missing_deploy.rc != 1
+
+    - name: Read the app container's ID after the failed pull # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker ps --quiet --filter label=com.docker.compose.project=app
+      register: docker_verify_app_id_after_pull
+      changed_when: false
+
+    - name: Assert the failed pull left the container running
+      ansible.builtin.assert:
+        that:
+          - docker_verify_app_id.stdout != ''
+          - docker_verify_app_id_after_pull.stdout == docker_verify_app_id.stdout
+
+    - name: Deploy the unhealthy image # noqa: command-instead-of-module (exercising the deploy script)
+      ansible.builtin.command: /usr/local/sbin/docker-compose-deploy app {{ docker_verify_app_digests[1] }}
+      register: docker_verify_bad_deploy
+      changed_when: true
+      failed_when: docker_verify_bad_deploy.rc != 1
+
+    - name: Apply the role again after the deploys
+      ansible.builtin.include_role:
+        name: tborealis.roles.docker
+
+    - name: Read the app project's recorded image
+      ansible.builtin.slurp:
+        src: /etc/compose/app/deploy.env
+      register: docker_verify_app_deployed
+
+    - name: Inspect the app project's containers after the deploys # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.shell: docker inspect $(docker ps --quiet --filter label=com.docker.compose.project=app)
+      args:
+        executable: /bin/bash
+      register: docker_verify_app_after
+      changed_when: false
+
+    - name: Assert the failed deploy rolled back and provisioning kept the deployed image
+      vars:
+        docker_verify_app_image: localhost:5000/probe/app@{{ docker_verify_app_digests[0] }}
+        docker_verify_app_containers: "{{ docker_verify_app_after.stdout | from_json }}"
+      ansible.builtin.assert:
+        that:
+          - docker_verify_app_deployed.content | b64decode == 'APP_IMAGE=' ~ docker_verify_app_image ~ '\n'
+          - docker_verify_app_containers | length == 1
+          - docker_verify_app_containers[0].Config.Image == docker_verify_app_image
+          - docker_verify_app_containers[0].State.Health.Status == 'healthy'
+
+    - name: Read the app project's history
+      ansible.builtin.slurp:
+        src: /var/log/docker-compose/app.log
+      register: docker_verify_app_history
+
+    - name: Read the app project's deploy in the journal # noqa: command-instead-of-module (no module reads the journal)
+      ansible.builtin.command: >-
+        journalctl --identifier docker-compose --output json
+        COMPOSE_PROJECT=app COMPOSE_EVENT=deployed
+      register: docker_verify_app_journal
+      changed_when: false
+
+    - name: Read the deploy script's journal # noqa: command-instead-of-module (no module reads the journal)
+      ansible.builtin.command: journalctl --identifier docker-compose --output cat
+      register: docker_verify_deploy_journal
+      changed_when: false
+
+    - name: Assert the failed deploy logged its container's output before the rollback removed it
+      ansible.builtin.assert:
+        that:
+          - >-
+            docker_verify_bad_deploy.stderr is search('app: app-1 +[|] [^ ]+ app started')
+          - >-
+            docker_verify_deploy_journal.stdout is search('app: app-1 +[|] [^ ]+ app started')
+        fail_msg: "{{ docker_verify_bad_deploy.stderr }}"
+
+    - name: Assert the history and journal record each deploy, and provisioning recorded nothing
+      vars:
+        docker_verify_previous: previous={{ docker_verify_app_digests[0] }}
+        docker_verify_app_events: >-
+          {{ (docker_verify_app_history.content | b64decode).splitlines()
+             | map('regex_replace', '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:]{8}Z ', '')
+             | map('regex_replace', ' seconds=[0-9]+$', '') | list }}
+        docker_verify_app_entry: "{{ docker_verify_app_journal.stdout_lines | map('from_json') | first }}"
+      ansible.builtin.assert:
+        that:
+          - >-
+            docker_verify_app_events == [
+              'deployed digest=' ~ docker_verify_app_digests[0] ~ ' previous=none revision=0123abc user=root',
+              'pull-failed digest=sha256:' ~ '0' * 64 ~ ' ' ~ docker_verify_previous ~ ' revision=unknown user=root',
+              'rolled-back digest=' ~ docker_verify_app_digests[1] ~ ' ' ~ docker_verify_previous ~ ' revision=unknown user=root']
+          - docker_verify_app_journal.stdout_lines | length == 1
+          - docker_verify_app_entry.COMPOSE_DIGEST == docker_verify_app_digests[0]
+          - docker_verify_app_entry.COMPOSE_REVISION == '0123abc'
+          - >-
+            docker_verify_app_entry.MESSAGE is match('app: deployed digest=')
+          - >-
+            docker_verify_bad_deploy.stderr is search('app: rolled-back digest=' ~ docker_verify_app_digests[1])
+
+    - name: Apply the role logging out of the registry
+      ansible.builtin.include_role:
+        name: tborealis.roles.docker
+      vars:
+        docker_registries:
+          - registry: "{{ docker_verify_registry }}"
+            state: absent
+
+    - name: Read root's Docker config after logging out
+      ansible.builtin.slurp:
+        src: /root/.docker/config.json
+      register: docker_verify_config_after
+
+    - name: Assert the login was removed
+      ansible.builtin.assert:
+        that:
+          - >-
+            docker_verify_registry not in
+            (docker_verify_config_after.content | b64decode | from_json).get('auths', {})
+
+    - name: Apply the role with a setting dockerd rejects
+      block:
+        - name: Apply the role with an unknown daemon.json key
+          ansible.builtin.include_role:
+            name: tborealis.roles.docker
+          vars:
+            docker_daemon_config:
+              not-a-docker-option: true
+      rescue:
+        - name: Record that the role refused the config
+          ansible.builtin.set_fact:
+            docker_verify_rejected: true
+
+    # The packaged unit already passes -H, which a `hosts` setting clashes with
+    - name: Apply the role with a setting that clashes with dockerd's flags
+      block:
+        - name: Apply the role with a hosts setting
+          ansible.builtin.include_role:
+            name: tborealis.roles.docker
+          vars:
+            docker_daemon_config:
+              hosts: [unix:///run/docker-extra.sock]
+      rescue:
+        - name: Record that the role refused the clashing config
+          ansible.builtin.set_fact:
+            docker_verify_clash_rejected: true
+
+    - name: Read daemon.json after the rejected config
+      ansible.builtin.slurp:
+        src: /etc/docker/daemon.json
+      register: docker_verify_daemon_json_after
+
+    - name: Gather service facts after the rejected config
+      ansible.builtin.service_facts:
+
+    - name: Assert the rejected config was not written and Docker kept running
+      ansible.builtin.assert:
+        that:
+          - docker_verify_rejected | default(false)
+          - docker_verify_clash_rejected | default(false)
+          - "'not-a-docker-option' not in docker_verify_daemon_json_after.content | b64decode"
+          - "'docker-extra.sock' not in docker_verify_daemon_json_after.content | b64decode"
+          - ansible_facts.services['docker.service'].state == 'running'
+
+    - name: Apply the role with the firewall, prune timer and unattended upgrades turned off
+      ansible.builtin.include_role:
+        name: tborealis.roles.docker
+      vars:
+        docker_firewall: false
+        docker_prune: false
+        docker_unattended_upgrades: false
+
+    - name: Check for the prune timer and unattended-upgrades opt-in after turning them off
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - /etc/systemd/system/docker-prune.timer
+        - /etc/systemd/system/docker-prune.service
+        - /etc/apt/apt.conf.d/53unattended-upgrades-docker
+      register: docker_verify_toggled_files
+
+    - name: Assert turning them off removed their files
+      ansible.builtin.assert:
+        that:
+          - docker_verify_toggled_files.results | selectattr('stat.exists') | list | length == 0
+
+    - name: Check for the firewall unit after turning it off
+      ansible.builtin.stat:
+        path: /etc/systemd/system/docker-firewall.service
+      register: docker_verify_firewall_unit
+
+    - name: Look for the firewall chain after turning it off # noqa: command-instead-of-module (no module lists a chain)
+      ansible.builtin.command: iptables -w -S PUBLIC-CONTAINERS
+      register: docker_verify_firewall_chain
+      changed_when: false
+      failed_when: false
+
+    - name: Fetch the unlisted public port from outside the host without the firewall
+      ansible.builtin.uri:
+        url: "http://{{ ansible_facts['default_ipv4']['address'] }}:8083/"
+        status_code: [200, 404]
+        timeout: 5
+      delegate_to: localhost
+      become: false
+
+    - name: Assert turning the firewall off removed its unit and rules
+      ansible.builtin.assert:
+        that:
+          - not docker_verify_firewall_unit.stat.exists
+          - docker_verify_firewall_chain.rc != 0
+
+    - name: Apply the role with the web project absent
+      ansible.builtin.include_role:
+        name: tborealis.roles.docker
+      vars:
+        docker_compose_projects:
+          - name: web
+            state: absent
+          - "{{ docker_verify_compose_projects[1] }}"
+
+    - name: List the web project's containers after its removal # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker ps --all --quiet --filter label=com.docker.compose.project=web
+      register: docker_verify_web_removed
+      changed_when: false
+
+    - name: Check for the web project's directory after its removal
+      ansible.builtin.stat:
+        path: /etc/compose/web
+      register: docker_verify_web_dir
+
+    - name: Assert removing the web project stopped it and deleted its files
+      ansible.builtin.assert:
+        that:
+          - docker_verify_web_removed.stdout == ''
+          - not docker_verify_web_dir.stat.exists
+
+    - name: Read the web project's history
+      ansible.builtin.slurp:
+        src: /var/log/docker-compose/web.log
+      register: docker_verify_web_history
+
+    - name: Assert the history records the role creating, recreating and removing the web container
+      vars:
+        docker_verify_web_events: >-
+          {{ (docker_verify_web_history.content | b64decode).splitlines()
+             | map('regex_replace', '^[^ ]+ ', '') | list }}
+      ansible.builtin.assert:
+        that:
+          - docker_verify_web_events[0] == 'provisioned created=web-web-1 changed=compose.yaml,.env,secrets'
+          - "'provisioned recreated=web-web-1 changed=secrets' in docker_verify_web_events"
+          - docker_verify_web_events[-1] == 'provisioned removed=web-web-1'

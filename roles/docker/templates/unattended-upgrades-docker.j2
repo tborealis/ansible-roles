@@ -1,0 +1,11 @@
+//
+// {{ ansible_managed }}
+//
+
+// Install updates from the Docker repository unattended. This file sorts
+// after base's 52unattended-upgrades-local (which clears the list), so it
+// adds to the allowed origins. Docker's Release files have no Codename, so
+// the suite (archive) is matched instead.
+Unattended-Upgrade::Origins-Pattern {
+        "origin=Docker,archive=${distro_codename}";
+};

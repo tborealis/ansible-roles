@@ -1,0 +1,109 @@
+#!/bin/bash
+#
+# {{ ansible_managed }}
+#
+# Deploys an image digest to a Compose project:
+#   docker-compose-deploy <project> <sha256:digest>
+# It pulls the image, records it in the project's deploy.env, which its compose
+# file reads as a variable, and waits for the containers to be running and
+# healthy. If they aren't, it redeploys the previous image (on a first deploy,
+# stops the project) and fails. Provisioning reapplies the recorded image, so it
+# never reverts one. Each outcome goes to the project's history, through
+# docker-compose-log.
+set -euo pipefail
+
+usage() {
+    echo "Usage: docker-compose-deploy <{{ docker_compose_deployable | map(attribute='name') | join('|') }}> <sha256:digest>" >&2
+    exit 2
+}
+
+[[ $# -eq 2 ]] || usage
+PROJECT="$1"
+DIGEST="$2"
+case "$PROJECT" in
+{% for project in docker_compose_deployable %}
+    {{ project.name }})
+        IMAGE="{{ project.deploy.image }}"
+        VARIABLE="{{ project.deploy.variable }}"
+        TIMEOUT="{{ project.wait_timeout | default(600) }}"
+        ;;
+{% endfor %}
+    *) usage ;;
+esac
+[[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || usage
+
+DIR="{{ docker_compose_dir }}/$PROJECT"
+DEPLOYED="$DIR/deploy.env"
+
+log() {
+    printf '%s: %s\n' "$PROJECT" "$*" >&2
+    logger --tag docker-compose -- "$PROJECT: $*"
+}
+
+# Records the outcome in the project's history; a logging failure doesn't fail
+# the deploy
+event() {
+    /usr/local/sbin/docker-compose-log "$PROJECT" "$1" "digest=$DIGEST" \
+        "previous=${PREVIOUS_DIGEST:-none}" "revision=${REVISION:-unknown}" \
+        "user=${SUDO_USER:-root}" "seconds=$SECONDS" || true
+}
+
+compose() {
+    docker compose --project-directory "$DIR" --project-name "$PROJECT" \
+        --env-file "$DIR/.env" --env-file "$DEPLOYED" "$@"
+}
+
+up() {
+    compose up --detach --wait --wait-timeout "$TIMEOUT" --remove-orphans --quiet-pull
+}
+
+record() {
+    printf '%s\n' "$1" > "$DEPLOYED.new"
+    mv "$DEPLOYED.new" "$DEPLOYED"
+}
+
+exec 9> "/run/lock/docker-compose-deploy-$PROJECT.lock"
+flock 9
+SECONDS=0
+
+PREVIOUS=""
+if [[ -f "$DEPLOYED" ]]; then
+    PREVIOUS="$(< "$DEPLOYED")"
+fi
+PREVIOUS_DIGEST="${PREVIOUS##*@}"
+REVISION=""
+
+# Pull first, so a missing or unreadable image leaves the project untouched and
+# the download isn't part of the downtime
+if ! docker pull --quiet "$IMAGE@$DIGEST" >&2; then
+    event pull-failed
+    exit 1
+fi
+REVISION="$(docker image inspect --format \
+    '{% raw %}{{ with .Config.Labels }}{{ index . "org.opencontainers.image.revision" }}{{ end }}{% endraw %}' \
+    "$IMAGE@$DIGEST" | tr -cd '[:alnum:]._-' || true)"
+
+log "deploying $IMAGE@$DIGEST"
+record "$VARIABLE=$IMAGE@$DIGEST"
+if up; then
+    event deployed
+    exit 0
+fi
+
+# The rollback removes the failed containers, and their logs with them
+log "$IMAGE@$DIGEST did not start healthy; its containers and their last output:"
+{ compose ps --all; compose logs --no-color --timestamps --tail 200; } 2>&1 \
+    | sed "s/^/$PROJECT: /" | tee >(logger --tag docker-compose) >&2 || true
+if [[ -n "$PREVIOUS" ]]; then
+    record "$PREVIOUS"
+    if up; then
+        event rolled-back
+    else
+        event rollback-failed
+    fi
+else
+    compose down --remove-orphans || true
+    rm -f "$DEPLOYED"
+    event failed
+fi
+exit 1

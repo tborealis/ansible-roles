@@ -117,3 +117,14 @@ apt_keys_keyrings:
       uris: https://apt.postgresql.org/pub/repos/apt/
       suites: "{release}-pgdg"
       components: main
+
+  # Used by the docker role, which supports trixie only.
+  - name: docker
+    src: docker.gpg
+    dest: /etc/apt/keyrings/docker.gpg
+    url: https://download.docker.com/linux/debian/gpg
+    releases: [trixie]
+    repo:
+      uris: https://download.docker.com/linux/debian
+      suites: "{release}"
+      components: stable

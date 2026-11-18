@@ -1,0 +1,21 @@
+# {{ ansible_managed }}
+# Never install pre-releases, even one published to the stable channel (as
+# 5:29.2.0~rc.2 was in January 2026).
+Package: docker-ce docker-ce-cli docker-ce-rootless-extras containerd.io docker-buildx-plugin docker-compose-plugin
+Pin: version /~(alpha|beta|rc)/
+Pin-Priority: -1
+
+# Keep Docker Engine on {{ docker_version }}.x, containerd on {{ docker_containerd_version }}.x and Compose on
+# {{ docker_compose_version }}.x, so upgrades, unattended ones included, stay within those major
+# releases.
+Package: docker-ce docker-ce-cli docker-ce-rootless-extras
+Pin: version 5:{{ docker_version }}.*
+Pin-Priority: 990
+
+Package: containerd.io
+Pin: version {{ docker_containerd_version }}.*
+Pin-Priority: 990
+
+Package: docker-compose-plugin
+Pin: version {{ docker_compose_version }}.*
+Pin-Priority: 990

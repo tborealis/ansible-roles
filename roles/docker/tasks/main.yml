@@ -1,0 +1,170 @@
+---
+- name: Assert the host runs Debian 13
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['distribution'] == 'Debian'
+      - ansible_facts['distribution_release'] == 'trixie'
+    fail_msg: The docker role supports Debian 13 (trixie) only.
+
+- name: Install deb822 dependency
+  ansible.builtin.apt:
+    pkg: python3-debian
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Add repository
+  ansible.builtin.deb822_repository:
+    name: docker
+    types: [deb]
+    uris: https://download.docker.com/linux/debian
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: stable
+    signed_by: /etc/apt/keyrings/docker.gpg
+  register: docker_repo
+
+- name: Update apt cache after adding repository # noqa: no-handler
+  ansible.builtin.apt:
+    update_cache: true
+  when: docker_repo is changed
+
+- name: Assert the pinned major releases are numbers
+  ansible.builtin.assert:
+    that:
+      - docker_pinned_majors.values() | map('string') | reject('match', '^[0-9]+$') | list | length == 0
+    fail_msg: docker_version, docker_containerd_version and docker_compose_version must be major release numbers, e.g. "29".
+
+- name: Read the installed Docker package versions
+  ansible.builtin.command: dpkg-query --show --showformat '${Package} ${Version}\n' {{ docker_pinned_majors.keys() | join(' ') }}
+  register: docker_installed_versions
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+# Lowering a pin below the installed release would unpin it: apt would then
+# upgrade to the newest major in this run, and unattended-upgrades after it
+- name: Assert no package is installed at a later major release than its pin
+  vars:
+    docker_installed_major: >-
+      {{ docker_installed_versions.stdout_lines | select('match', '^' ~ (item.key | regex_escape) ~ ' ')
+         | map('split', ' ') | map(attribute=1) | map('split', ':') | map('last')
+         | map('split', '.') | map('first') | first | default('0') }}
+  ansible.builtin.assert:
+    that:
+      - docker_installed_major | int <= item.value | int
+    fail_msg: >-
+      {{ item.key }} {{ docker_installed_major }}.x is installed, a later major release than its pin,
+      {{ item.value }}. The role doesn't downgrade: raise the pin, or remove the package first.
+    quiet: true
+  loop: "{{ docker_pinned_majors | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Pin Docker to major release {{ docker_version }}
+  ansible.builtin.template:
+    src: apt-preferences.j2
+    dest: /etc/apt/preferences.d/docker
+    owner: root
+    group: root
+    mode: "0644"
+  register: docker_pin
+
+- name: Install Docker
+  ansible.builtin.apt:
+    pkg:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+      # Only recommended by docker-ce, but without apparmor_parser containers
+      # silently run without the docker-default profile
+      - apparmor
+    # A changed pin, such as a raised docker_version, upgrades in this run
+    # rather than at the next unattended one
+    state: "{{ 'latest' if docker_pin is changed else 'present' }}"
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Read the Docker package versions after installing
+  ansible.builtin.command: dpkg-query --show --showformat '${Package} ${Version}\n' {{ docker_pinned_majors.keys() | join(' ') }}
+  register: docker_installed_versions
+  changed_when: false
+  check_mode: false
+  when: not ansible_check_mode
+
+- name: Assert each package is on its pinned major release
+  vars:
+    docker_installed_major: >-
+      {{ docker_installed_versions.stdout_lines | select('match', '^' ~ (item.key | regex_escape) ~ ' ')
+         | map('split', ' ') | map(attribute=1) | map('split', ':') | map('last')
+         | map('split', '.') | map('first') | first | default('0') }}
+  ansible.builtin.assert:
+    that:
+      - docker_installed_major | int == item.value | int
+    fail_msg: >-
+      {{ item.key }} {{ docker_installed_major }}.x is installed instead of {{ item.value }}.x:
+      no release in Docker's repository matches the pin.
+    quiet: true
+  loop: "{{ docker_pinned_majors | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when: not ansible_check_mode
+
+- name: Create the Docker config directory
+  ansible.builtin.file:
+    path: /etc/docker
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Configure the Docker daemon
+  vars:
+    docker_daemon_base_config:
+      log-driver: local
+      no-new-privileges: "{{ docker_no_new_privileges }}"
+      icc: false
+      # Published ports are reached through NAT, never a docker-proxy process,
+      # so the DOCKER-USER chain sees every connection to them.
+      userland-proxy: false
+      ip: "{{ docker_default_bind_address }}"
+      default-network-opts:
+        bridge:
+          com.docker.network.bridge.host_binding_ipv4: "{{ docker_default_bind_address }}"
+  ansible.builtin.copy:
+    content: |
+      {{ docker_daemon_base_config | combine(docker_daemon_config) | to_nice_json }}
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: "0644"
+    # A config dockerd rejects would stop Docker, and every container, on restart.
+    # The flags are the packaged unit's, which settings such as `hosts` clash with.
+    validate: dockerd --validate --config-file %s -H fd:// --containerd=/run/containerd/containerd.sock
+  notify: Restart docker
+
+- name: Configure unattended Docker updates
+  ansible.builtin.import_tasks: unattended-upgrades.yml
+
+- name: Filter connections from the public interface to published ports
+  ansible.builtin.import_tasks: firewall.yml
+
+- name: Prune unused images weekly
+  ansible.builtin.import_tasks: prune.yml
+
+- name: Ensure Docker is started and enabled
+  ansible.builtin.systemd_service:
+    name: docker
+    enabled: true
+    state: started
+
+# Registry logins, and tasks that use Docker next, need the new config now:
+# e.g. an insecure-registries entry for a registry logged in to below
+- name: Apply daemon config changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Log in to registries
+  ansible.builtin.import_tasks: registries.yml
+
+- name: Run the Compose projects
+  ansible.builtin.import_tasks: compose.yml

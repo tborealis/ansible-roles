@@ -1,0 +1,18 @@
+#
+# {{ ansible_managed }}
+#
+# Started before dockerd, which keeps the rules it finds in DOCKER-USER, so
+# no published port is reachable before they are in place.
+[Unit]
+Description=Filter connections from {{ docker_firewall_interface }} to published container ports
+Before=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/docker-firewall start
+ExecReload=/usr/local/sbin/docker-firewall start
+ExecStop=/usr/local/sbin/docker-firewall stop
+
+[Install]
+WantedBy=docker.service

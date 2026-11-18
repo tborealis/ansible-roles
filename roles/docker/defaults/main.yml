@@ -1,0 +1,46 @@
+---
+# Docker Engine major release to stay on: upgrades, unattended ones included,
+# install only its minor and patch releases. Raise it deliberately, after
+# reading the release notes; a major release can drop old API versions.
+docker_version: "29"
+
+# containerd.io and Compose major releases, held the same way
+docker_containerd_version: "2"
+docker_compose_version: "5"
+
+# Set no-new-privileges on every container, so setuid binaries in an image
+# can't raise a process's privileges; false leaves Docker's default (off).
+docker_no_new_privileges: true
+
+# Host address that published ports bind to when `-p` or Compose `ports:` names
+# none, e.g. "8080:80"; publish publicly with an explicit "0.0.0.0:443:443".
+docker_default_bind_address: 127.0.0.1
+
+# Drop connections that arrive on docker_firewall_interface for published
+# container ports, except docker_firewall_allowed_ports; false removes the rules.
+docker_firewall: true
+docker_firewall_interface: "{{ ansible_facts['default_ipv4']['interface'] }}"
+# Published ports reachable through that interface: 443, "443/udp", "8000:8100"
+docker_firewall_allowed_ports: []
+
+# Remove images no container uses, and build cache unused for a week, on this
+# systemd OnCalendar schedule (local time); false removes the timer.
+docker_prune: true
+docker_prune_schedule: "Sun *-*-* 03:00"
+
+# Let unattended-upgrades install updates from Docker's repository; false
+# removes that opt-in. An upgrade restarts dockerd and every container.
+docker_unattended_upgrades: true
+
+# Registries root logs in to, so `docker compose pull` can fetch private
+# images: [{registry, username, password}]; `state: absent` logs out.
+docker_registries: []
+
+# Compose projects, each in docker_compose_dir/<name>: [{name, template or
+# definition, env, secrets, deploy, wait_timeout, state}]; see the README
+docker_compose_projects: []
+docker_compose_dir: /etc/compose
+
+# Further daemon.json settings, merged over the role's own, e.g.
+# {"log-opts": {"max-size": "50m"}}
+docker_daemon_config: {}

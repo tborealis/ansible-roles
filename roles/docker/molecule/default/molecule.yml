@@ -1,0 +1,19 @@
+---
+# Inherits from .config/molecule/config.yml, except `platforms:` (lists
+# replace on merge): the role supports trixie only. Running Docker inside the
+# container needs it privileged, with its own cgroup namespace, and Docker's
+# and containerd's stores on tmpfs: overlayfs can't use the container's own
+# overlay root as its upper layer.
+platforms:
+  - name: trixie
+    image: ${MOLECULE_IMAGE_REPO:-ghcr.io/tborealis/ansible-roles}/molecule-debian:trixie
+    pre_build_image: true
+    command: /lib/systemd/systemd
+    cgroupns_mode: private
+    privileged: true
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp
+      - /var/lib/docker
+      - /var/lib/containerd

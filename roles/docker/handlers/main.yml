@@ -1,0 +1,24 @@
+---
+- name: Restart docker
+  ansible.builtin.systemd_service:
+    name: docker
+    state: restarted
+
+# A reload replaces the rules in place; a restart would remove them first
+- name: Reload docker firewall
+  ansible.builtin.systemd_service:
+    name: docker-firewall
+    state: reloaded
+    daemon_reload: true
+  when: docker_firewall
+
+- name: Restart docker prune timer
+  ansible.builtin.systemd_service:
+    name: docker-prune.timer
+    state: restarted
+    daemon_reload: true
+  when: docker_prune
+
+- name: Reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true

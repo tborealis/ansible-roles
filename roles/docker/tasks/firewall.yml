@@ -1,0 +1,79 @@
+---
+- name: Assert the allowed public ports are a list
+  ansible.builtin.assert:
+    that:
+      - docker_firewall_allowed_ports is sequence
+      - docker_firewall_allowed_ports is not string
+      - docker_firewall_allowed_ports is not mapping
+    fail_msg: docker_firewall_allowed_ports must be a list, e.g. [443, "443/udp"].
+  when: docker_firewall
+
+- name: Assert each allowed public port is valid
+  vars:
+    docker_firewall_range: "{{ (item | string).split('/') | first | split(':') | map('int') | list }}"
+  ansible.builtin.assert:
+    that:
+      - item | string is match('^[0-9]+(:[0-9]+)?(/(tcp|udp))?$')
+      - docker_firewall_range | min >= 1
+      - docker_firewall_range | max <= 65535
+      - docker_firewall_range | first <= docker_firewall_range | last
+    fail_msg: >-
+      docker_firewall_allowed_ports entries must be ports or ascending ranges from 1 to
+      65535, optionally with /tcp or /udp, e.g. 443, "443/udp" or "8000:8100"; got {{ item }}.
+    quiet: true
+  loop: "{{ docker_firewall_allowed_ports }}"
+  when: docker_firewall
+
+- name: Install the public-interface firewall script
+  ansible.builtin.template:
+    src: docker-firewall.j2
+    dest: /usr/local/sbin/docker-firewall
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Reload docker firewall
+  when: docker_firewall
+
+- name: Install the public-interface firewall unit
+  ansible.builtin.template:
+    src: docker-firewall.service.j2
+    dest: /etc/systemd/system/docker-firewall.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload docker firewall
+  when: docker_firewall
+
+- name: Ensure the public-interface firewall is started and enabled
+  ansible.builtin.systemd_service:
+    name: docker-firewall
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: docker_firewall
+
+- name: Check for the public-interface firewall unit
+  ansible.builtin.stat:
+    path: /etc/systemd/system/docker-firewall.service
+  register: docker_firewall_unit
+  when: not docker_firewall
+
+# Stopping the unit removes its rules
+- name: Stop the public-interface firewall
+  ansible.builtin.systemd_service:
+    name: docker-firewall
+    enabled: false
+    state: stopped
+  when:
+    - not docker_firewall
+    - docker_firewall_unit.stat.exists
+
+- name: Remove the public-interface firewall
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/systemd/system/docker-firewall.service
+    - /usr/local/sbin/docker-firewall
+  when: not docker_firewall
+  notify: Reload systemd

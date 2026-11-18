@@ -1,0 +1,18 @@
+---
+# Each pinned package and the major release it is held to
+docker_pinned_majors:
+  docker-ce: "{{ docker_version }}"
+  containerd.io: "{{ docker_containerd_version }}"
+  docker-compose-plugin: "{{ docker_compose_version }}"
+
+# docker_compose_projects with each project's state defaulted to present
+docker_compose_projects_with_state: >-
+  {{ [{'state': 'present'}] | product(docker_compose_projects) | map('list') | map('combine') | list }}
+
+# Present projects that CI deploys with docker-compose-deploy
+docker_compose_deployable: >-
+  {{ docker_compose_projects_with_state | selectattr('state', 'eq', 'present')
+     | selectattr('deploy', 'defined') | list }}
+
+# Holds each Compose project's history, <project>.log
+docker_compose_log_dir: /var/log/docker-compose
