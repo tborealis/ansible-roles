@@ -1,4 +1,13 @@
 ---
+# Docker Engine major release to stay on: upgrades, unattended ones included,
+# install only its minor and patch releases. Raise it deliberately, after
+# reading the release notes; a major release can drop old API versions.
+docker_version: "29"
+
+# containerd.io and Compose major releases, held the same way
+docker_containerd_version: "2"
+docker_compose_version: "5"
+
 # Set no-new-privileges on every container, so setuid binaries in an image
 # can't raise a process's privileges; false leaves Docker's default (off).
 docker_no_new_privileges: true

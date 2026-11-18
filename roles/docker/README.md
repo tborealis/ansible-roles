@@ -13,6 +13,13 @@ container, for example) has to run on a host with `docker_no_new_privileges: fal
 Docker's repository is added to unattended-upgrades, on the schedule `base` configures. An
 upgrade restarts dockerd, which restarts every container, including Swarm services.
 
+Docker Engine, containerd and Compose are pinned to a major release (`docker_version`,
+`docker_containerd_version`, `docker_compose_version`), so upgrades, unattended ones
+included, never cross one: Engine 29.0 raised the minimum API version and broke clients
+such as Traefik. Pre-releases are pinned out, even if one reaches the stable channel.
+Raising one of these variables upgrades the packages in that run; lowering one doesn't
+downgrade them.
+
 ## Requirements
 
 Debian 13 (trixie); the role fails on any other release.
@@ -21,6 +28,9 @@ Debian 13 (trixie); the role fails on any other release.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `docker_version` | `"29"` | Docker Engine major release to stay on |
+| `docker_containerd_version` | `"2"` | containerd.io major release to stay on |
+| `docker_compose_version` | `"5"` | Compose plugin major release to stay on |
 | `docker_no_new_privileges` | `true` | Set `no-new-privileges` on every container; `false` leaves Docker's default (off) |
 | `docker_unattended_upgrades` | `true` | Let unattended-upgrades install updates from Docker's repository; `false` removes that opt-in |
 | `docker_daemon_config` | `{}` | Further `daemon.json` settings, merged over the role's `log-driver` and `no-new-privileges`; `dockerd --validate` must accept the result |

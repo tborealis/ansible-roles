@@ -25,6 +25,55 @@
           - "'URIs: https://download.docker.com/linux/debian' in docker_verify_source_content"
           - "'Signed-By: /etc/apt/keyrings/docker.gpg' in docker_verify_source_content"
 
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+
+    - name: Assert the installed packages are on the pinned major releases
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.packages['docker-ce'][0].version is match('5:29\.')
+          - ansible_facts.packages['containerd.io'][0].version is match('2\.')
+          - ansible_facts.packages['docker-compose-plugin'][0].version is match('5\.')
+
+    # Docker's test channel carries its release candidates
+    - name: Add Docker's pre-release channel
+      ansible.builtin.deb822_repository:
+        name: docker-test
+        types: [deb]
+        uris: https://download.docker.com/linux/debian
+        suites: trixie
+        components: test
+        signed_by: /etc/apt/keyrings/docker.gpg
+
+    - name: Update apt cache with the pre-release channel
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Read docker-ce's apt policy # noqa: command-instead-of-module (no module reports pin priorities)
+      ansible.builtin.command: apt-cache policy docker-ce
+      register: docker_verify_policy
+      changed_when: false
+
+    - name: Remove the pre-release channel
+      ansible.builtin.deb822_repository:
+        name: docker-test
+        state: absent
+
+    - name: Update apt cache without the pre-release channel
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Assert pre-releases are pinned out and the candidate stays on the pinned major
+      vars:
+        docker_verify_prereleases: >-
+          {{ docker_verify_policy.stdout_lines | select('search', '~(alpha|beta|rc)') | list }}
+      ansible.builtin.assert:
+        that:
+          - docker_verify_prereleases | length > 0
+          - docker_verify_prereleases | reject('search', ' -1$') | list | length == 0
+          - >-
+            docker_verify_policy.stdout is search('Candidate: 5:29\.')
+
     - name: Read daemon.json
       ansible.builtin.slurp:
         src: /etc/docker/daemon.json

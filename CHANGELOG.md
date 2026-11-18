@@ -19,7 +19,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
   daemon-wide; `docker_daemon_config` adds further `daemon.json` settings, which
   `dockerd --validate` checks before they are written. Docker's repository is added to
   unattended-upgrades (`docker_unattended_upgrades`); an upgrade restarts every
-  container.
+  container. Engine, containerd and Compose are pinned to a major release
+  (`docker_version: "29"`, `docker_containerd_version: "2"`,
+  `docker_compose_version: "5"`), and pre-releases are pinned out.
 - **apt_keys:** Docker's repository signing key, for the `docker` role.
 
 ### Changed

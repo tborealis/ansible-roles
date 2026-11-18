@@ -28,6 +28,15 @@
     update_cache: true
   when: docker_repo is changed
 
+- name: Pin Docker to major release {{ docker_version }}
+  ansible.builtin.template:
+    src: apt-preferences.j2
+    dest: /etc/apt/preferences.d/docker
+    owner: root
+    group: root
+    mode: "0644"
+  register: docker_pin
+
 - name: Install Docker
   ansible.builtin.apt:
     pkg:
@@ -36,7 +45,9 @@
       - containerd.io
       - docker-buildx-plugin
       - docker-compose-plugin
-    state: present
+    # A changed pin, such as a raised docker_version, upgrades in this run
+    # rather than at the next unattended one
+    state: "{{ 'latest' if docker_pin is changed else 'present' }}"
     update_cache: true
     cache_valid_time: 3600
 
