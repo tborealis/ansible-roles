@@ -11,6 +11,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+## [9.0.0] - 2026-11-18
+
 ### Added
 
 - **docker:** new role installing Docker Engine and the Compose plugin from Docker's
