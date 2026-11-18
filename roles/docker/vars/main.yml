@@ -13,3 +13,6 @@ docker_compose_projects_with_state: >-
 docker_compose_deployable: >-
   {{ docker_compose_projects_with_state | selectattr('state', 'eq', 'present')
      | selectattr('deploy', 'defined') | list }}
+
+# Holds each Compose project's history, <project>.log
+docker_compose_log_dir: /var/log/docker-compose

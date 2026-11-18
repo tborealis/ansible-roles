@@ -37,7 +37,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
     with an environment file and secret files, and waits for them to be healthy.
     Projects with `deploy` take image digests from CI through `docker-compose-deploy`,
     which pulls the image before touching the project and rolls back to the previous
-    image when the new one doesn't start healthy.
+    image when the new one doesn't start healthy. Each deploy, and each container the
+    role creates, recreates, starts or removes, is recorded in the project's history,
+    `/var/log/docker-compose/<project>.log`, and in the journal with searchable fields.
 - **apt_keys:** Docker's repository signing key, for the `docker` role.
 
 ### Changed

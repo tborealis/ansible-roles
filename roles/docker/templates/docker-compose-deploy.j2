@@ -5,9 +5,11 @@
 # Deploys an image digest to a Compose project:
 #   docker-compose-deploy <project> <sha256:digest>
 # It pulls the image, records it in the project's deploy.env, which its compose
-# file reads as a variable, and waits for the containers to be running and healthy. If they
-# aren't, it redeploys the previous image (on a first deploy, stops the project)
-# and fails. Provisioning reapplies the recorded image, so it never reverts one.
+# file reads as a variable, and waits for the containers to be running and
+# healthy. If they aren't, it redeploys the previous image (on a first deploy,
+# stops the project) and fails. Provisioning reapplies the recorded image, so it
+# never reverts one. Each outcome goes to the project's history, through
+# docker-compose-log.
 set -euo pipefail
 
 usage() {
@@ -34,7 +36,15 @@ DIR="{{ docker_compose_dir }}/$PROJECT"
 DEPLOYED="$DIR/deploy.env"
 
 log() {
-    logger --tag docker-compose-deploy --stderr -- "$PROJECT: $*"
+    logger --tag docker-compose --stderr -- "$PROJECT: $*"
+}
+
+# Records the outcome in the project's history; a logging failure doesn't fail
+# the deploy
+event() {
+    /usr/local/sbin/docker-compose-log "$PROJECT" "$1" "digest=$DIGEST" \
+        "previous=${PREVIOUS_DIGEST:-none}" "revision=${REVISION:-unknown}" \
+        "user=${SUDO_USER:-root}" "seconds=$SECONDS" || true
 }
 
 compose() {
@@ -53,23 +63,29 @@ record() {
 
 exec 9> "/run/lock/docker-compose-deploy-$PROJECT.lock"
 flock 9
+SECONDS=0
 
 PREVIOUS=""
 if [[ -f "$DEPLOYED" ]]; then
     PREVIOUS="$(< "$DEPLOYED")"
 fi
+PREVIOUS_DIGEST="${PREVIOUS##*@}"
+REVISION=""
 
 # Pull first, so a missing or unreadable image leaves the project untouched and
 # the download isn't part of the downtime
 if ! docker pull --quiet "$IMAGE@$DIGEST" >&2; then
-    log "could not pull $IMAGE@$DIGEST; nothing changed"
+    event pull-failed
     exit 1
 fi
+REVISION="$(docker image inspect --format \
+    '{% raw %}{{ with .Config.Labels }}{{ index . "org.opencontainers.image.revision" }}{{ end }}{% endraw %}' \
+    "$IMAGE@$DIGEST" | tr -cd '[:alnum:]._-' || true)"
 
 log "deploying $IMAGE@$DIGEST"
 record "$VARIABLE=$IMAGE@$DIGEST"
 if up; then
-    log "deployed $IMAGE@$DIGEST"
+    event deployed
     exit 0
 fi
 
@@ -78,13 +94,13 @@ compose ps --all >&2 || true
 if [[ -n "$PREVIOUS" ]]; then
     record "$PREVIOUS"
     if up; then
-        log "rolled back to ${PREVIOUS#*=}"
+        event rolled-back
     else
-        log "rolling back to ${PREVIOUS#*=} failed too"
+        event rollback-failed
     fi
 else
     compose down --remove-orphans || true
     rm -f "$DEPLOYED"
-    log "stopped the project, as nothing was deployed before"
+    event failed
 fi
 exit 1

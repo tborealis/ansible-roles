@@ -36,6 +36,31 @@
     mode: "0755"
   when: docker_compose_projects | length > 0
 
+- name: Create the Compose history directory
+  ansible.builtin.file:
+    path: "{{ docker_compose_log_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: docker_compose_projects | length > 0
+
+- name: Install the Compose history script
+  ansible.builtin.template:
+    src: docker-compose-log.j2
+    dest: /usr/local/sbin/docker-compose-log
+    owner: root
+    group: root
+    mode: "0755"
+    validate: bash -n %s
+  when: docker_compose_projects | length > 0
+
+- name: Remove the Compose history script
+  ansible.builtin.file:
+    path: /usr/local/sbin/docker-compose-log
+    state: absent
+  when: docker_compose_projects | length == 0
+
 - name: Install the Compose deploy script
   ansible.builtin.template:
     src: docker-compose-deploy.j2

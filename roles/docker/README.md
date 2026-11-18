@@ -80,9 +80,33 @@ project up with it. Compose stops the old container before starting the new one,
 service is down while it starts. If the containers aren't running and healthy
 within `wait_timeout`, it redeploys the previous image (or, on a first deploy, stops the
 project) and exits non-zero. The role leaves such a project down until its first deploy, then
-brings it up with the recorded image, so provisioning never reverts a deploy. The script logs
-to the journal (`journalctl -t docker-compose-deploy`). How CI runs it, e.g. through an SSH
-key whose forced command runs it with sudo, is up to the playbook.
+brings it up with the recorded image, so provisioning never reverts a deploy. How CI runs it,
+e.g. through an SSH key whose forced command runs it with sudo, is up to the playbook.
+
+Each project has a history, `/var/log/docker-compose/<project>.log`, kept when the project is
+removed. It has a line for every deploy, and for every run of the role that creates,
+recreates, starts or removes containers:
+
+```
+2026-11-18T14:02:11Z deployed digest=sha256:4f1c… previous=sha256:9ab2… revision=3e5d1f0… user=snapature-deploy seconds=48
+2026-11-18T15:30:02Z rolled-back digest=sha256:77aa… previous=sha256:4f1c… revision=a1b2c3d… user=snapature-deploy seconds=95
+2026-11-19T03:12:40Z provisioned recreated=snapature-live-app-1 changed=secrets
+```
+
+| Event | Meaning |
+|-------|---------|
+| `deployed` | The image is up and healthy |
+| `rolled-back` | The image didn't start healthy; the previous one is back up |
+| `rollback-failed` | Neither the image nor the previous one started healthy |
+| `failed` | A first deploy didn't start healthy; the project is stopped |
+| `pull-failed` | The image couldn't be pulled; nothing changed |
+| `provisioned` | The role `created`, `recreated`, `started` or `removed` the containers listed; `changed` lists which of `compose.yaml`, `.env` and `secrets` it had changed |
+
+`revision` is the image's `org.opencontainers.image.revision` label, `user` the user who ran
+the deploy through sudo, and `seconds` how long the deploy took. Each line is also a journal
+entry with its values as fields, e.g. `journalctl COMPOSE_PROJECT=<project> COMPOSE_EVENT=deployed`;
+`journalctl -t docker-compose` adds the deploy script's progress. The script prints all of it
+to stderr too, for CI's log.
 
 | Key | Description |
 |-----|-------------|

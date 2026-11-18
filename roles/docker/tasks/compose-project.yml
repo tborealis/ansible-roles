@@ -23,6 +23,7 @@
     owner: root
     group: root
     mode: "0600"
+  register: docker_compose_template
   when:
     - docker_compose_project.state == 'present'
     - docker_compose_project.template is defined
@@ -34,6 +35,7 @@
     owner: root
     group: root
     mode: "0600"
+  register: docker_compose_definition
   when:
     - docker_compose_project.state == 'present'
     - docker_compose_project.definition is defined
@@ -45,6 +47,7 @@
     owner: root
     group: root
     mode: "0600"
+  register: docker_compose_env
   when: docker_compose_project.state == 'present'
 
 - name: Write the secrets of Compose project {{ docker_compose_project.name }}
@@ -92,6 +95,7 @@
     recreate: "{{ 'always' if docker_compose_secrets is changed else 'auto' }}"
     wait: true
     wait_timeout: "{{ docker_compose_project.wait_timeout | default(600) }}"
+  register: docker_compose_up
   when:
     - docker_compose_project.state == 'present'
     - docker_compose_project.deploy is not defined or docker_compose_deployed.stat.exists
@@ -109,9 +113,39 @@
     env_files: "{{ ['.env'] + (['deploy.env'] if docker_compose_deployed.stat.exists else []) }}"
     state: absent
     remove_orphans: true
+  register: docker_compose_down
   when:
     - docker_compose_project.state == 'absent'
     - docker_compose_file.stat.exists
+
+# Recorded like a deploy, e.g. `provisioned recreated=<container> changed=secrets`
+- name: Record the container changes in the history of Compose project {{ docker_compose_project.name }}
+  vars:
+    docker_compose_result: "{{ docker_compose_up if docker_compose_project.state == 'present' else docker_compose_down }}"
+    docker_compose_containers: >-
+      {{ docker_compose_result.actions | default([]) | selectattr('what', 'eq', 'container') | list }}
+    docker_compose_created: >-
+      {{ docker_compose_containers | selectattr('status', 'in', ['Creating', 'Recreate'])
+         | map(attribute='id') | list }}
+    docker_compose_changes:
+      created: "{{ docker_compose_containers | selectattr('status', 'eq', 'Creating') | map(attribute='id') | unique | join(',') }}"
+      recreated: "{{ docker_compose_containers | selectattr('status', 'eq', 'Recreate') | map(attribute='id') | unique | join(',') }}"
+      started: >-
+        {{ docker_compose_containers | selectattr('status', 'eq', 'Starting') | map(attribute='id')
+           | reject('in', docker_compose_created) | unique | join(',') }}
+      removed: "{{ docker_compose_containers | selectattr('status', 'eq', 'Removing') | map(attribute='id') | unique | join(',') }}"
+      changed: >-
+        {{ {'compose.yaml': docker_compose_template is changed or docker_compose_definition is changed,
+            '.env': docker_compose_env is changed, 'secrets': docker_compose_secrets is changed}
+           | dict2items | selectattr('value') | map(attribute='key') | join(',') }}
+    docker_compose_fields: "{{ docker_compose_changes | dict2items | selectattr('value') }}"
+  ansible.builtin.command:
+    argv: >-
+      {{ ['/usr/local/sbin/docker-compose-log', docker_compose_project.name, 'provisioned']
+         + (docker_compose_fields | map(attribute='key') | zip(docker_compose_fields | map(attribute='value'))
+            | map('join', '=') | list) }}
+  changed_when: true
+  when: docker_compose_containers | length > 0
 
 - name: Remove the directory of Compose project {{ docker_compose_project.name }}
   ansible.builtin.file:

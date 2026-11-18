@@ -543,7 +543,7 @@
         set -e
         docker rm --force app-image > /dev/null 2>&1 || true
         docker run --name app-image busybox:1.37 touch /healthy
-        docker commit app-image localhost:5000/probe/app:healthy
+        docker commit --change 'LABEL org.opencontainers.image.revision=0123abc' app-image localhost:5000/probe/app:healthy
         docker rm app-image
         docker run --name app-image busybox:1.37 true
         docker commit app-image localhost:5000/probe/app:unhealthy
@@ -624,6 +624,41 @@
           - docker_verify_app_containers | length == 1
           - docker_verify_app_containers[0].Config.Image == docker_verify_app_image
           - docker_verify_app_containers[0].State.Health.Status == 'healthy'
+
+    - name: Read the app project's history
+      ansible.builtin.slurp:
+        src: /var/log/docker-compose/app.log
+      register: docker_verify_app_history
+
+    - name: Read the app project's deploy in the journal # noqa: command-instead-of-module (no module reads the journal)
+      ansible.builtin.command: >-
+        journalctl --identifier docker-compose --output json
+        COMPOSE_PROJECT=app COMPOSE_EVENT=deployed
+      register: docker_verify_app_journal
+      changed_when: false
+
+    - name: Assert the history and journal record each deploy, and provisioning recorded nothing
+      vars:
+        docker_verify_previous: previous={{ docker_verify_app_digests[0] }}
+        docker_verify_app_events: >-
+          {{ (docker_verify_app_history.content | b64decode).splitlines()
+             | map('regex_replace', '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:]{8}Z ', '')
+             | map('regex_replace', ' seconds=[0-9]+$', '') | list }}
+        docker_verify_app_entry: "{{ docker_verify_app_journal.stdout_lines | map('from_json') | first }}"
+      ansible.builtin.assert:
+        that:
+          - >-
+            docker_verify_app_events == [
+              'deployed digest=' ~ docker_verify_app_digests[0] ~ ' previous=none revision=0123abc user=root',
+              'pull-failed digest=sha256:' ~ '0' * 64 ~ ' ' ~ docker_verify_previous ~ ' revision=unknown user=root',
+              'rolled-back digest=' ~ docker_verify_app_digests[1] ~ ' ' ~ docker_verify_previous ~ ' revision=unknown user=root']
+          - docker_verify_app_journal.stdout_lines | length == 1
+          - docker_verify_app_entry.COMPOSE_DIGEST == docker_verify_app_digests[0]
+          - docker_verify_app_entry.COMPOSE_REVISION == '0123abc'
+          - >-
+            docker_verify_app_entry.MESSAGE is match('app: deployed digest=')
+          - >-
+            docker_verify_bad_deploy.stderr is search('app: rolled-back digest=' ~ docker_verify_app_digests[1])
 
     - name: Apply the role logging out of the registry
       ansible.builtin.include_role:
@@ -760,3 +795,19 @@
         that:
           - docker_verify_web_removed.stdout == ''
           - not docker_verify_web_dir.stat.exists
+
+    - name: Read the web project's history
+      ansible.builtin.slurp:
+        src: /var/log/docker-compose/web.log
+      register: docker_verify_web_history
+
+    - name: Assert the history records the role creating, recreating and removing the web container
+      vars:
+        docker_verify_web_events: >-
+          {{ (docker_verify_web_history.content | b64decode).splitlines()
+             | map('regex_replace', '^[^ ]+ ', '') | list }}
+      ansible.builtin.assert:
+        that:
+          - docker_verify_web_events[0] == 'provisioned created=web-web-1 changed=compose.yaml,.env,secrets'
+          - "'provisioned recreated=web-web-1 changed=secrets' in docker_verify_web_events"
+          - docker_verify_web_events[-1] == 'provisioned removed=web-web-1'
