@@ -11,6 +11,7 @@ Before=docker.service
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/local/sbin/docker-firewall start
+ExecReload=/usr/local/sbin/docker-firewall start
 ExecStop=/usr/local/sbin/docker-firewall stop
 
 [Install]

@@ -4,10 +4,11 @@
     name: docker
     state: restarted
 
-- name: Restart docker firewall
+# A reload replaces the rules in place; a restart would remove them first
+- name: Reload docker firewall
   ansible.builtin.systemd_service:
     name: docker-firewall
-    state: restarted
+    state: reloaded
     daemon_reload: true
   when: docker_firewall
 

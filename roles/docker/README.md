@@ -33,8 +33,9 @@ over IPv4 and IPv6. Replies to containers' own connections, and traffic from oth
 interfaces (loopback, a private VPC network) are unaffected. A public service therefore
 needs both an explicit address in Compose and an entry in the list, e.g. `ports:
 ["0.0.0.0:443:443"]` and `docker_firewall_allowed_ports: [443]`. A oneshot unit,
-`docker-firewall.service`, applies the rules before dockerd starts. They need Docker's
-default iptables firewall backend.
+`docker-firewall.service`, applies the rules before dockerd starts, and replaces them in one
+`iptables-restore` transaction, so a rejected rule leaves the previous ones in place. They
+need Docker's default iptables firewall backend.
 
 `docker_registries` logs root in to private registries, so `docker compose pull` run as
 root can fetch their images. The credentials are stored base64-encoded, not encrypted, in

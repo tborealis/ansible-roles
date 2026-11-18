@@ -10,18 +10,28 @@ set -eu
 
 chain=PUBLIC-CONTAINERS
 
+# The whole chain in one iptables-restore transaction: a rule iptables rejects
+# leaves the previous rules, DROP included, in place.
+rules() {
+    cat <<EOF
+*filter
+:$chain - [0:0]
+-A $chain ! -i {{ docker_firewall_interface }} -j RETURN
+-A $chain -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
+{% for entry in docker_firewall_allowed_ports %}
+{%   set port, proto = ((entry | string) ~ '/tcp').split('/')[:2] %}
+-A $chain -m conntrack --ctproto {{ proto }} --ctorigdstport {{ port }} -j RETURN
+{% endfor %}
+-A $chain -j DROP
+COMMIT
+EOF
+}
+
 apply() {
     ipt=$1
     $ipt -w -N DOCKER-USER 2>/dev/null || true
-    $ipt -w -N "$chain" 2>/dev/null || $ipt -w -F "$chain"
+    rules | "$ipt-restore" -w --noflush
     $ipt -w -C DOCKER-USER -j "$chain" 2>/dev/null || $ipt -w -I DOCKER-USER -j "$chain"
-    $ipt -w -A "$chain" ! -i {{ docker_firewall_interface }} -j RETURN
-    $ipt -w -A "$chain" -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
-{% for entry in docker_firewall_allowed_ports %}
-{%   set port, proto = ((entry | string) ~ '/tcp').split('/')[:2] %}
-    $ipt -w -A "$chain" -m conntrack --ctproto {{ proto }} --ctorigdstport {{ port }} -j RETURN
-{% endfor %}
-    $ipt -w -A "$chain" -j DROP
 }
 
 remove() {

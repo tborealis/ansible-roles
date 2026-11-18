@@ -256,6 +256,69 @@
     - name: Probe the published ports again after Docker restarted
       ansible.builtin.include_tasks: tasks/probe-public-ports.yml
 
+    # As at boot: nothing running and no rules, then only Docker is started
+    - name: Stop Docker and the firewall
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+      loop: [docker.socket, docker.service, docker-firewall.service]
+
+    - name: Look for the firewall chain with everything stopped # noqa: command-instead-of-module (no module lists a chain)
+      ansible.builtin.command: iptables -w -S PUBLIC-CONTAINERS
+      register: docker_verify_chain_stopped
+      changed_when: false
+      failed_when: false
+
+    - name: Start Docker alone
+      ansible.builtin.systemd_service:
+        name: docker
+        state: started
+
+    - name: Query the firewall unit after Docker started # noqa: command-instead-of-module (exercising the unit)
+      ansible.builtin.command: systemctl is-active docker-firewall.service
+      register: docker_verify_firewall_active
+      changed_when: false
+
+    - name: Assert starting Docker brought the firewall up with it
+      ansible.builtin.assert:
+        that:
+          - docker_verify_chain_stopped.rc != 0
+          - docker_verify_firewall_active.stdout == 'active'
+
+    - name: Wait for the Compose project after the cold start # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker compose --project-directory /srv/docker-verify up --detach --wait
+      changed_when: false
+
+    - name: Probe the published ports after the cold start
+      ansible.builtin.include_tasks: tasks/probe-public-ports.yml
+
+    - name: Apply the role with an allowed port range iptables would reject
+      block:
+        - name: Apply the role with a descending port range
+          ansible.builtin.include_role:
+            name: tborealis.roles.docker
+          vars:
+            docker_daemon_config:
+              log-opts:
+                max-size: 5m
+            docker_firewall_allowed_ports: [8082, "8100:8000"]
+      rescue:
+        - name: Record that the role refused the port range
+          ansible.builtin.set_fact:
+            docker_verify_range_rejected: true
+
+    - name: Read the firewall rules after the refused range # noqa: command-instead-of-module (no module lists a chain)
+      ansible.builtin.command: iptables -w -S PUBLIC-CONTAINERS
+      register: docker_verify_rules_after_refusal
+      changed_when: false
+
+    - name: Assert the refused range left the rules in place
+      ansible.builtin.assert:
+        that:
+          - docker_verify_range_rejected | default(false)
+          - docker_verify_rules_after_refusal.stdout is search('--ctorigdstport 8082 -j RETURN')
+          - docker_verify_rules_after_refusal.stdout is search('-A PUBLIC-CONTAINERS -j DROP')
+
     - name: Query the prune timer # noqa: command-instead-of-module (service_facts omits timers)
       ansible.builtin.command: systemctl is-enabled docker-prune.timer
       register: docker_verify_prune_timer
@@ -418,11 +481,27 @@
           - "'not-a-docker-option' not in docker_verify_daemon_json_after.content | b64decode"
           - ansible_facts.services['docker.service'].state == 'running'
 
-    - name: Apply the role with the firewall turned off
+    - name: Apply the role with the firewall, prune timer and unattended upgrades turned off
       ansible.builtin.include_role:
         name: tborealis.roles.docker
       vars:
         docker_firewall: false
+        docker_prune: false
+        docker_unattended_upgrades: false
+
+    - name: Check for the prune timer and unattended-upgrades opt-in after turning them off
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - /etc/systemd/system/docker-prune.timer
+        - /etc/systemd/system/docker-prune.service
+        - /etc/apt/apt.conf.d/53unattended-upgrades-docker
+      register: docker_verify_toggled_files
+
+    - name: Assert turning them off removed their files
+      ansible.builtin.assert:
+        that:
+          - docker_verify_toggled_files.results | selectattr('stat.exists') | list | length == 0
 
     - name: Check for the firewall unit after turning it off
       ansible.builtin.stat:
