@@ -81,8 +81,9 @@
     owner: root
     group: root
     mode: "0644"
-    # A config dockerd rejects would stop Docker, and every container, on restart
-    validate: dockerd --validate --config-file %s
+    # A config dockerd rejects would stop Docker, and every container, on restart.
+    # The flags are the packaged unit's, which settings such as `hosts` clash with.
+    validate: dockerd --validate --config-file %s -H fd:// --containerd=/run/containerd/containerd.sock
   notify: Restart docker
 
 - name: Configure unattended Docker updates

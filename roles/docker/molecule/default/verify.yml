@@ -466,6 +466,20 @@
           ansible.builtin.set_fact:
             docker_verify_rejected: true
 
+    # The packaged unit already passes -H, which a `hosts` setting clashes with
+    - name: Apply the role with a setting that clashes with dockerd's flags
+      block:
+        - name: Apply the role with a hosts setting
+          ansible.builtin.include_role:
+            name: tborealis.roles.docker
+          vars:
+            docker_daemon_config:
+              hosts: [unix:///run/docker-extra.sock]
+      rescue:
+        - name: Record that the role refused the clashing config
+          ansible.builtin.set_fact:
+            docker_verify_clash_rejected: true
+
     - name: Read daemon.json after the rejected config
       ansible.builtin.slurp:
         src: /etc/docker/daemon.json
@@ -478,7 +492,9 @@
       ansible.builtin.assert:
         that:
           - docker_verify_rejected | default(false)
+          - docker_verify_clash_rejected | default(false)
           - "'not-a-docker-option' not in docker_verify_daemon_json_after.content | b64decode"
+          - "'docker-extra.sock' not in docker_verify_daemon_json_after.content | b64decode"
           - ansible_facts.services['docker.service'].state == 'running'
 
     - name: Apply the role with the firewall, prune timer and unattended upgrades turned off
