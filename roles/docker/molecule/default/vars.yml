@@ -16,3 +16,19 @@ docker_verify_compose_projects:
       - name: token
         content: s3cret-token
         owner: "10001"
+  - name: app
+    deploy:
+      image: localhost:5000/probe/app
+      variable: APP_IMAGE
+    wait_timeout: 30
+    definition:
+      services:
+        app:
+          image: ${APP_IMAGE}
+          command: sleep 86400
+          restart: unless-stopped
+          stop_grace_period: 1s
+          healthcheck:
+            test: [CMD, test, -f, /healthy]
+            interval: 1s
+            retries: 2

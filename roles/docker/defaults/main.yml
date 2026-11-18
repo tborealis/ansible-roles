@@ -37,7 +37,7 @@ docker_unattended_upgrades: true
 docker_registries: []
 
 # Compose projects, each in docker_compose_dir/<name>: [{name, template or
-# definition, env, secrets, wait_timeout, state}]; see the README
+# definition, env, secrets, deploy, wait_timeout, state}]; see the README
 docker_compose_projects: []
 docker_compose_dir: /etc/compose
 

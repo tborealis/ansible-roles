@@ -1,0 +1,83 @@
+#!/bin/bash
+#
+# {{ ansible_managed }}
+#
+# Deploys an image digest to a Compose project:
+#   docker-compose-deploy <project> <sha256:digest>
+# It records the image in the project's deploy.env, which its compose file reads
+# as a variable, and waits for the containers to be running and healthy. If they
+# aren't, it redeploys the previous image (on a first deploy, stops the project)
+# and fails. Provisioning reapplies the recorded image, so it never reverts one.
+set -euo pipefail
+
+usage() {
+    echo "Usage: docker-compose-deploy <{{ docker_compose_deployable | map(attribute='name') | join('|') }}> <sha256:digest>" >&2
+    exit 2
+}
+
+[[ $# -eq 2 ]] || usage
+PROJECT="$1"
+DIGEST="$2"
+case "$PROJECT" in
+{% for project in docker_compose_deployable %}
+    {{ project.name }})
+        IMAGE="{{ project.deploy.image }}"
+        VARIABLE="{{ project.deploy.variable }}"
+        TIMEOUT="{{ project.wait_timeout | default(600) }}"
+        ;;
+{% endfor %}
+    *) usage ;;
+esac
+[[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || usage
+
+DIR="{{ docker_compose_dir }}/$PROJECT"
+DEPLOYED="$DIR/deploy.env"
+
+log() {
+    logger --tag docker-compose-deploy --stderr -- "$PROJECT: $*"
+}
+
+compose() {
+    docker compose --project-directory "$DIR" --project-name "$PROJECT" \
+        --env-file "$DIR/.env" --env-file "$DEPLOYED" "$@"
+}
+
+up() {
+    compose up --detach --wait --wait-timeout "$TIMEOUT" --remove-orphans --quiet-pull
+}
+
+record() {
+    printf '%s\n' "$1" > "$DEPLOYED.new"
+    mv "$DEPLOYED.new" "$DEPLOYED"
+}
+
+exec 9> "/run/lock/docker-compose-deploy-$PROJECT.lock"
+flock 9
+
+PREVIOUS=""
+if [[ -f "$DEPLOYED" ]]; then
+    PREVIOUS="$(< "$DEPLOYED")"
+fi
+
+log "deploying $IMAGE@$DIGEST"
+record "$VARIABLE=$IMAGE@$DIGEST"
+if up; then
+    log "deployed $IMAGE@$DIGEST"
+    exit 0
+fi
+
+log "$IMAGE@$DIGEST did not start healthy"
+compose ps --all >&2 || true
+if [[ -n "$PREVIOUS" ]]; then
+    record "$PREVIOUS"
+    if up; then
+        log "rolled back to ${PREVIOUS#*=}"
+    else
+        log "rolling back to ${PREVIOUS#*=} failed too"
+    fi
+else
+    compose down --remove-orphans || true
+    rm -f "$DEPLOYED"
+    log "stopped the project, as nothing was deployed before"
+fi
+exit 1

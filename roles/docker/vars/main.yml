@@ -8,3 +8,8 @@ docker_pinned_majors:
 # docker_compose_projects with each project's state defaulted to present
 docker_compose_projects_with_state: >-
   {{ [{'state': 'present'}] | product(docker_compose_projects) | map('list') | map('combine') | list }}
+
+# Present projects that CI deploys with docker-compose-deploy
+docker_compose_deployable: >-
+  {{ docker_compose_projects_with_state | selectattr('state', 'eq', 'present')
+     | selectattr('deploy', 'defined') | list }}

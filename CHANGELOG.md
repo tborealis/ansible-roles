@@ -35,6 +35,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
     the collection now depends on `community.docker`.
   - `docker_compose_projects` runs Compose projects, from a template or definition,
     with an environment file and secret files, and waits for them to be healthy.
+    Projects with `deploy` take image digests from CI through `docker-compose-deploy`,
+    which rolls back to the previous image when the new one doesn't start healthy.
 - **apt_keys:** Docker's repository signing key, for the `docker` role.
 
 ### Changed

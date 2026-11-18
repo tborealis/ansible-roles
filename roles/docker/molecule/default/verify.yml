@@ -389,12 +389,18 @@
       register: docker_verify_web_exec
       changed_when: false
 
-    - name: Assert the web project runs with its secret and environment
+    - name: List the app project's containers before its first deploy # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker ps --all --quiet --filter label=com.docker.compose.project=app
+      register: docker_verify_app_before
+      changed_when: false
+
+    - name: Assert the web project runs with its secret and environment, and the app project waits for a deploy
       ansible.builtin.assert:
         that:
           - docker_verify_web_secret.stat.uid == 10001
           - docker_verify_web_secret.stat.mode == '0400'
           - docker_verify_web_exec.stdout_lines == ['s3cret-token', '10001', 'hello']
+          - docker_verify_app_before.stdout == ''
 
     - name: Read the web container's ID # noqa: command-instead-of-module (exercising the binary)
       ansible.builtin.command: docker compose --project-directory /etc/compose/web ps --quiet web
@@ -407,6 +413,7 @@
       vars:
         docker_compose_projects:
           - "{{ docker_verify_compose_projects[0] | combine({'secrets': [{'name': 'token', 'content': 'rotated-token', 'owner': '10001'}]}) }}"
+          - "{{ docker_verify_compose_projects[1] }}"
 
     - name: Read the web service's secret and container ID after the change # noqa: command-instead-of-module (exercising the binary)
       ansible.builtin.shell: |
@@ -531,6 +538,69 @@
         executable: /bin/bash
       changed_when: false
 
+    - name: Build a healthy and an unhealthy app image, and push them # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.shell: |
+        set -e
+        docker rm --force app-image > /dev/null 2>&1 || true
+        docker run --name app-image busybox:1.37 touch /healthy
+        docker commit app-image localhost:5000/probe/app:healthy
+        docker rm app-image
+        docker tag busybox:1.37 localhost:5000/probe/app:unhealthy
+        docker push --quiet localhost:5000/probe/app:healthy
+        docker push --quiet localhost:5000/probe/app:unhealthy
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Inspect the app images # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker image inspect localhost:5000/probe/app:healthy localhost:5000/probe/app:unhealthy
+      register: docker_verify_app_images
+      changed_when: false
+
+    - name: Record the app images' digests
+      ansible.builtin.set_fact:
+        docker_verify_app_digests: >-
+          {{ docker_verify_app_images.stdout | from_json | map(attribute='RepoDigests')
+             | map('select', 'match', '^localhost:5000/probe/app@') | map('first')
+             | map('split', '@') | map('last') | list }}
+
+    - name: Deploy the healthy image # noqa: command-instead-of-module (exercising the deploy script)
+      ansible.builtin.command: /usr/local/sbin/docker-compose-deploy app {{ docker_verify_app_digests[0] }}
+      changed_when: true
+
+    - name: Deploy the unhealthy image # noqa: command-instead-of-module (exercising the deploy script)
+      ansible.builtin.command: /usr/local/sbin/docker-compose-deploy app {{ docker_verify_app_digests[1] }}
+      register: docker_verify_bad_deploy
+      changed_when: true
+      failed_when: docker_verify_bad_deploy.rc != 1
+
+    - name: Apply the role again after the deploys
+      ansible.builtin.include_role:
+        name: tborealis.roles.docker
+
+    - name: Read the app project's recorded image
+      ansible.builtin.slurp:
+        src: /etc/compose/app/deploy.env
+      register: docker_verify_app_deployed
+
+    - name: Inspect the app project's containers after the deploys # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.shell: docker inspect $(docker ps --quiet --filter label=com.docker.compose.project=app)
+      args:
+        executable: /bin/bash
+      register: docker_verify_app_after
+      changed_when: false
+
+    - name: Assert the failed deploy rolled back and provisioning kept the deployed image
+      vars:
+        docker_verify_app_image: localhost:5000/probe/app@{{ docker_verify_app_digests[0] }}
+        docker_verify_app_containers: "{{ docker_verify_app_after.stdout | from_json }}"
+      ansible.builtin.assert:
+        that:
+          - docker_verify_app_deployed.content | b64decode == 'APP_IMAGE=' ~ docker_verify_app_image ~ '\n'
+          - docker_verify_app_containers | length == 1
+          - docker_verify_app_containers[0].Config.Image == docker_verify_app_image
+          - docker_verify_app_containers[0].State.Health.Status == 'healthy'
+
     - name: Apply the role logging out of the registry
       ansible.builtin.include_role:
         name: tborealis.roles.docker
@@ -649,6 +719,7 @@
         docker_compose_projects:
           - name: web
             state: absent
+          - "{{ docker_verify_compose_projects[1] }}"
 
     - name: List the web project's containers after its removal # noqa: command-instead-of-module (exercising the binary)
       ansible.builtin.command: docker ps --all --quiet --filter label=com.docker.compose.project=web

@@ -1,4 +1,9 @@
 ---
+- name: Check for a deployed image of Compose project {{ docker_compose_project.name }}
+  ansible.builtin.stat:
+    path: "{{ docker_compose_project_dir }}/deploy.env"
+  register: docker_compose_deployed
+
 - name: Create the directories of Compose project {{ docker_compose_project.name }}
   ansible.builtin.file:
     path: "{{ item }}"
@@ -74,20 +79,22 @@
        | list }}
   when: docker_compose_project.state == 'present'
 
-# A container keeps the secret file it mounted, so new secret content needs a
-# recreate
+# A CI-deployed project starts with its first deploy. A container keeps the
+# secret file it mounted, so new secret content needs a recreate.
 - name: Start Compose project {{ docker_compose_project.name }}
   community.docker.docker_compose_v2:
     project_src: "{{ docker_compose_project_dir }}"
     project_name: "{{ docker_compose_project.name }}"
-    env_files: [.env]
+    env_files: "{{ ['.env'] + (['deploy.env'] if docker_compose_project.deploy is defined else []) }}"
     state: present
     pull: policy
     remove_orphans: true
     recreate: "{{ 'always' if docker_compose_secrets is changed else 'auto' }}"
     wait: true
     wait_timeout: "{{ docker_compose_project.wait_timeout | default(600) }}"
-  when: docker_compose_project.state == 'present'
+  when:
+    - docker_compose_project.state == 'present'
+    - docker_compose_project.deploy is not defined or docker_compose_deployed.stat.exists
 
 - name: Check for the compose file of Compose project {{ docker_compose_project.name }}
   ansible.builtin.stat:
@@ -99,7 +106,7 @@
   community.docker.docker_compose_v2:
     project_src: "{{ docker_compose_project_dir }}"
     project_name: "{{ docker_compose_project.name }}"
-    env_files: [.env]
+    env_files: "{{ ['.env'] + (['deploy.env'] if docker_compose_deployed.stat.exists else []) }}"
     state: absent
     remove_orphans: true
   when:

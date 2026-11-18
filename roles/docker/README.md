@@ -73,6 +73,15 @@ and healthy. A container keeps the secret file it mounted, so the role recreates
 containers when a secret changes. `state: absent` stops a project and deletes its directory;
 named volumes are kept.
 
+A project with `deploy` takes its image from CI instead. `docker-compose-deploy <project>
+<sha256:digest>`, run as root, records `<variable>=<image>@<digest>` in the project's
+`deploy.env` and brings the project up with it. If the containers aren't running and healthy
+within `wait_timeout`, it redeploys the previous image (or, on a first deploy, stops the
+project) and exits non-zero. The role leaves such a project down until its first deploy, then
+brings it up with the recorded image, so provisioning never reverts a deploy. The script logs
+to the journal (`journalctl -t docker-compose-deploy`). How CI runs it, e.g. through an SSH
+key whose forced command runs it with sudo, is up to the playbook.
+
 | Key | Description |
 |-----|-------------|
 | `name` | Project name: lowercase letters, digits, `-` and `_` |
@@ -80,6 +89,7 @@ named volumes are kept.
 | `definition` | The compose file as YAML, instead of `template` |
 | `env` | Variables for `${VAR}` interpolation, written to `.env`; values can't contain single quotes or newlines |
 | `secrets` | Secret files, `{name, content, owner, group, mode}`, by default `root:root` and `0400`; the container's user must be able to read them, e.g. `owner: "10001"` |
+| `deploy` | `{image, variable}`: CI deploys digests of `image`, which the compose file reads as `${variable}` |
 | `wait_timeout` | Seconds to wait for the containers to be running and healthy; default 600 |
 | `state` | `present` (default) or `absent` |
 
