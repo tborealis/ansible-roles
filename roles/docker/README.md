@@ -1,11 +1,8 @@
 # docker
 
-Installs Docker Engine (`docker-ce`, `docker-ce-cli` and `containerd.io`) from Docker's apt
-repository and writes `/etc/docker/daemon.json`.
-
-## Requirements
-
-Debian 13 (trixie); the role fails on any other release.
+Installs Docker Engine (`docker-ce`, `docker-ce-cli` and `containerd.io`) and the Compose and
+Buildx CLI plugins (`docker compose`, `docker buildx`) from Docker's apt repository, and writes
+`/etc/docker/daemon.json`.
 
 The daemon logs with the `local` driver, which rotates logs (the default `json-file` driver
 keeps them forever), and by default sets `no-new-privileges` on every container: setuid and
@@ -15,6 +12,10 @@ container, for example) has to run on a host with `docker_no_new_privileges: fal
 
 Docker's repository is added to unattended-upgrades, on the schedule `base` configures. An
 upgrade restarts dockerd, which restarts every container, including Swarm services.
+
+## Requirements
+
+Debian 13 (trixie); the role fails on any other release.
 
 ## Role Variables
 

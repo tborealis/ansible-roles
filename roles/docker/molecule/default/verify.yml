@@ -69,6 +69,41 @@
         that:
           - "'\"origin=Docker,archive=${distro_codename}\";' in docker_verify_unattended.content | b64decode"
 
+    - name: Query the Buildx plugin # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker buildx version
+      changed_when: false
+
+    - name: Create the Compose project directory
+      ansible.builtin.file:
+        path: /srv/docker-verify
+        state: directory
+        mode: "0755"
+
+    - name: Write a Compose project
+      ansible.builtin.copy:
+        dest: /srv/docker-verify/compose.yaml
+        mode: "0644"
+        content: |
+          services:
+            web:
+              image: busybox:1.37
+              command: httpd -f -p 80
+              restart: unless-stopped
+
+    - name: Start the Compose project # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker compose --project-directory /srv/docker-verify up --detach --wait
+      changed_when: false
+
+    - name: List the Compose project's containers # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker compose --project-directory /srv/docker-verify ps --format json
+      register: docker_verify_compose_ps
+      changed_when: false
+
+    - name: Assert Compose started the service
+      ansible.builtin.assert:
+        that:
+          - (docker_verify_compose_ps.stdout_lines | first | from_json).State == 'running'
+
     - name: Apply the role with a setting dockerd rejects
       block:
         - name: Apply the role with an unknown daemon.json key
