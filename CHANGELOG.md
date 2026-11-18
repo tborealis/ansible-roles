@@ -21,7 +21,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
   `icc` is off on the default bridge, and `apparmor` is installed so containers get the
   `docker-default` profile. Connections from the public interface reach only the
   published ports in `docker_firewall_allowed_ports`, through rules in Docker's
-  `DOCKER-USER` chain (`docker_firewall`). `docker_daemon_config` adds further `daemon.json`
+  `DOCKER-USER` chain (`docker_firewall`). A weekly timer prunes images no container
+  uses and old build cache (`docker_prune`). `docker_daemon_config` adds further `daemon.json`
   settings, which `dockerd --validate` checks before they are written. Docker's
   repository is added to unattended-upgrades (`docker_unattended_upgrades`); an upgrade
   restarts every container. Engine, containerd and Compose are pinned to a major

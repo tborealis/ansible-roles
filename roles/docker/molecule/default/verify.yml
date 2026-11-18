@@ -255,6 +255,40 @@
     - name: Probe the published ports again after Docker restarted
       ansible.builtin.include_tasks: tasks/probe-public-ports.yml
 
+    - name: Query the prune timer # noqa: command-instead-of-module (service_facts omits timers)
+      ansible.builtin.command: systemctl is-enabled docker-prune.timer
+      register: docker_verify_prune_timer
+      changed_when: false
+
+    - name: Assert the prune timer is enabled
+      ansible.builtin.assert:
+        that:
+          - docker_verify_prune_timer.stdout == 'enabled'
+
+    - name: Pull an image no container uses # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker pull --quiet busybox:1.36
+      changed_when: false
+
+    - name: Run the prune service
+      ansible.builtin.systemd_service:
+        name: docker-prune.service
+        state: started
+
+    - name: List images after the prune # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker image ls --format json
+      register: docker_verify_images
+      changed_when: false
+
+    - name: Assert the prune removed the unused image and kept the one in use
+      vars:
+        docker_verify_image_tags: >-
+          {{ docker_verify_images.stdout_lines | map('from_json')
+             | map(attribute='Tag') | list }}
+      ansible.builtin.assert:
+        that:
+          - "'1.36' not in docker_verify_image_tags"
+          - "'1.37' in docker_verify_image_tags"
+
     - name: Apply the role with a setting dockerd rejects
       block:
         - name: Apply the role with an unknown daemon.json key

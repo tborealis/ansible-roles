@@ -23,6 +23,11 @@ docker_firewall_interface: "{{ ansible_facts['default_ipv4']['interface'] }}"
 # Published ports reachable through that interface: 443, "443/udp", "8000:8100"
 docker_firewall_allowed_ports: []
 
+# Remove images no container uses, and build cache unused for a week, on this
+# systemd OnCalendar schedule (local time); false removes the timer.
+docker_prune: true
+docker_prune_schedule: "Sun *-*-* 03:00"
+
 # Let unattended-upgrades install updates from Docker's repository; false
 # removes that opt-in. An upgrade restarts dockerd and every container.
 docker_unattended_upgrades: true

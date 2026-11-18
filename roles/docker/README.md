@@ -35,6 +35,10 @@ needs both an explicit address in Compose and an entry in the list, e.g. `ports:
 `docker-firewall.service`, applies the rules before dockerd starts. They need Docker's
 default iptables firewall backend.
 
+Each `docker compose pull` leaves the previous image behind, so a weekly timer,
+`docker-prune.timer`, removes images no container uses (stopped ones included) and build
+cache unused for a week. Volumes are never pruned.
+
 Docker's repository is added to unattended-upgrades, on the schedule `base` configures. An
 upgrade restarts dockerd, which restarts every container; give Compose services a restart
 policy (`restart: unless-stopped`) so they come back, after reboots too. `live-restore` is
@@ -64,5 +68,7 @@ Debian 13 (trixie); the role fails on any other release.
 | `docker_firewall` | `true` | Filter connections from `docker_firewall_interface` to published ports; `false` removes the rules |
 | `docker_firewall_interface` | `ansible_facts['default_ipv4']['interface']` | Public interface to filter |
 | `docker_firewall_allowed_ports` | `[]` | Published ports reachable through it, e.g. `443`, `"443/udp"`, `"8000:8100"` |
+| `docker_prune` | `true` | Prune unused images and old build cache on `docker_prune_schedule`; `false` removes the timer |
+| `docker_prune_schedule` | `Sun *-*-* 03:00` | systemd `OnCalendar` schedule for the prune, in local time |
 | `docker_unattended_upgrades` | `true` | Let unattended-upgrades install updates from Docker's repository; `false` removes that opt-in |
 | `docker_daemon_config` | `{}` | Further `daemon.json` settings, merged over (and replacing) the role's top-level keys; `dockerd --validate` must accept the result |

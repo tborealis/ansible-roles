@@ -92,6 +92,9 @@
 - name: Filter connections from the public interface to published ports
   ansible.builtin.import_tasks: firewall.yml
 
+- name: Prune unused images weekly
+  ansible.builtin.import_tasks: prune.yml
+
 - name: Ensure Docker is started and enabled
   ansible.builtin.systemd_service:
     name: docker

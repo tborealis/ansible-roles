@@ -11,6 +11,13 @@
     daemon_reload: true
   when: docker_firewall
 
+- name: Restart docker prune timer
+  ansible.builtin.systemd_service:
+    name: docker-prune.timer
+    state: restarted
+    daemon_reload: true
+  when: docker_prune
+
 - name: Reload systemd
   ansible.builtin.systemd_service:
     daemon_reload: true

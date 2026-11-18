@@ -1,0 +1,53 @@
+---
+- name: Install the prune service
+  ansible.builtin.template:
+    src: docker-prune.service.j2
+    dest: /etc/systemd/system/docker-prune.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+  when: docker_prune
+
+- name: Install the prune timer
+  ansible.builtin.template:
+    src: docker-prune.timer.j2
+    dest: /etc/systemd/system/docker-prune.timer
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart docker prune timer
+  when: docker_prune
+
+- name: Ensure the prune timer is started and enabled
+  ansible.builtin.systemd_service:
+    name: docker-prune.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: docker_prune
+
+- name: Check for the prune timer
+  ansible.builtin.stat:
+    path: /etc/systemd/system/docker-prune.timer
+  register: docker_prune_timer
+  when: not docker_prune
+
+- name: Stop the prune timer
+  ansible.builtin.systemd_service:
+    name: docker-prune.timer
+    enabled: false
+    state: stopped
+  when:
+    - not docker_prune
+    - docker_prune_timer.stat.exists
+
+- name: Remove the prune timer
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/systemd/system/docker-prune.timer
+    - /etc/systemd/system/docker-prune.service
+  when: not docker_prune
+  notify: Reload systemd
