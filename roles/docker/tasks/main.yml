@@ -28,7 +28,16 @@
     update_cache: true
   when: docker_repo is changed
 
-# Written before the packages are installed, so dockerd's first start uses it
+- name: Install Docker
+  ansible.builtin.apt:
+    pkg:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
 - name: Create the Docker config directory
   ansible.builtin.file:
     path: /etc/docker
@@ -46,17 +55,9 @@
     owner: root
     group: root
     mode: "0644"
+    # A config dockerd rejects would stop Docker, and every container, on restart
+    validate: dockerd --validate --config-file %s
   notify: Restart docker
-
-- name: Install Docker
-  ansible.builtin.apt:
-    pkg:
-      - docker-ce
-      - docker-ce-cli
-      - containerd.io
-    state: present
-    update_cache: true
-    cache_valid_time: 3600
 
 - name: Configure unattended Docker updates
   ansible.builtin.import_tasks: unattended-upgrades.yml
@@ -67,6 +68,6 @@
     enabled: true
     state: started
 
-# Roles that use Docker next (docker_swarm, stacks) need the new config now
+# Tasks that use Docker next (e.g. Compose deploys) need the new config now
 - name: Apply daemon config changes
   ansible.builtin.meta: flush_handlers

@@ -14,11 +14,12 @@ flagged with **BREAKING** and require a MAJOR version bump.
 ### Added
 
 - **docker:** new role installing Docker Engine from Docker's apt repository, for
-  Debian 13 (trixie) only. It sets
-  `no-new-privileges` on every container (`docker_no_new_privileges`) and the `local`
-  log driver, which rotates logs, daemon-wide; `docker_daemon_config` adds further
-  `daemon.json` settings. Docker's repository is added to unattended-upgrades
-  (`docker_unattended_upgrades`); an upgrade restarts every container.
+  Debian 13 (trixie) only. It sets `no-new-privileges` on every container
+  (`docker_no_new_privileges`) and the `local` log driver, which rotates logs,
+  daemon-wide; `docker_daemon_config` adds further `daemon.json` settings, which
+  `dockerd --validate` checks before they are written. Docker's repository is added to
+  unattended-upgrades (`docker_unattended_upgrades`); an upgrade restarts every
+  container.
 - **apt_keys:** Docker's repository signing key, for the `docker` role.
 
 ### Changed

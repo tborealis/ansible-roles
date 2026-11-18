@@ -22,4 +22,4 @@ upgrade restarts dockerd, which restarts every container, including Swarm servic
 |----------|---------|-------------|
 | `docker_no_new_privileges` | `true` | Set `no-new-privileges` on every container; `false` leaves Docker's default (off) |
 | `docker_unattended_upgrades` | `true` | Let unattended-upgrades install updates from Docker's repository; `false` removes that opt-in |
-| `docker_daemon_config` | `{}` | Further `daemon.json` settings, merged over the role's `log-driver` and `no-new-privileges` |
+| `docker_daemon_config` | `{}` | Further `daemon.json` settings, merged over the role's `log-driver` and `no-new-privileges`; `dockerd --validate` must accept the result |

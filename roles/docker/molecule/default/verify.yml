@@ -68,3 +68,31 @@
       ansible.builtin.assert:
         that:
           - "'\"origin=Docker,archive=${distro_codename}\";' in docker_verify_unattended.content | b64decode"
+
+    - name: Apply the role with a setting dockerd rejects
+      block:
+        - name: Apply the role with an unknown daemon.json key
+          ansible.builtin.include_role:
+            name: tborealis.roles.docker
+          vars:
+            docker_daemon_config:
+              not-a-docker-option: true
+      rescue:
+        - name: Record that the role refused the config
+          ansible.builtin.set_fact:
+            docker_verify_rejected: true
+
+    - name: Read daemon.json after the rejected config
+      ansible.builtin.slurp:
+        src: /etc/docker/daemon.json
+      register: docker_verify_daemon_json_after
+
+    - name: Gather service facts after the rejected config
+      ansible.builtin.service_facts:
+
+    - name: Assert the rejected config was not written and Docker kept running
+      ansible.builtin.assert:
+        that:
+          - docker_verify_rejected | default(false)
+          - "'not-a-docker-option' not in docker_verify_daemon_json_after.content | b64decode"
+          - ansible_facts.services['docker.service'].state == 'running'
