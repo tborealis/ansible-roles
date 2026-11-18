@@ -15,7 +15,10 @@ The daemon is configured with:
 - a default bind address of `docker_default_bind_address` (`127.0.0.1`) for published
   ports, on the default bridge and on user-defined networks such as Compose's. `ports:
   ["8080:80"]` is then reachable from the host only, e.g. by a reverse proxy; publish
-  publicly with an explicit address, `ports: ["0.0.0.0:443:443"]`;
+  publicly with an explicit address, `ports: ["0.0.0.0:443:443"]`. Networks take the
+  default when they are created, so networks from before the role (or before a change to
+  `docker_default_bind_address`) keep binding to every address until recreated, e.g.
+  with `docker compose down` and `up`;
 - `userland-proxy: false`, so published ports are reached through NAT rather than a
   `docker-proxy` process. Ports on IPv4-only networks, Compose's default, are not
   reachable over IPv6;
