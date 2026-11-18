@@ -1,0 +1,47 @@
+---
+- name: Prepare
+  hosts: all
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Create lineage directories
+      ansible.builtin.file:
+        path: "/etc/letsencrypt/live/{{ item.name }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+      loop: "{{ certbot_test_seeded_certs }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Create renewal config directory
+      ansible.builtin.file:
+        path: /etc/letsencrypt/renewal
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Write placeholder certificates
+      ansible.builtin.copy:
+        content: "placeholder\n"
+        dest: "/etc/letsencrypt/live/{{ item.name }}/cert.pem"
+        owner: root
+        group: root
+        mode: "0644"
+      loop: "{{ certbot_test_seeded_certs }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Write renewal configs
+      ansible.builtin.template:
+        src: templates/renewal.conf.j2
+        dest: "/etc/letsencrypt/renewal/{{ item.name }}.conf"
+        owner: root
+        group: root
+        mode: "0644"
+      loop: "{{ certbot_test_seeded_certs }}"
+      loop_control:
+        label: "{{ item.name }}"

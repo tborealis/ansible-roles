@@ -124,3 +124,21 @@
       ansible.builtin.assert:
         that:
           - certbot_test_vhost_marker in certbot_verify_vhost_response.content
+
+    - name: Read seeded renewal configs
+      ansible.builtin.slurp:
+        src: "/etc/letsencrypt/renewal/{{ item.name }}.conf"
+      loop: "{{ certbot_test_seeded_certs }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: certbot_verify_renewal_confs
+
+    - name: Assert propagation seconds only reach configs on the dns-cloudflare authenticator
+      ansible.builtin.assert:
+        that: >-
+          ('dns_cloudflare_propagation_seconds = 30' in item.content | b64decode)
+          == (item.item.plugin == 'cloudflare')
+        fail_msg: "{{ item.content | b64decode }}"
+      loop: "{{ certbot_verify_renewal_confs.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
