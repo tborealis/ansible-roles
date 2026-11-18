@@ -1,0 +1,24 @@
+# {{ ansible_managed }}
+services:
+  web:
+    image: busybox:1.37
+    command: httpd -f -p 8080
+    user: "10001:10001"
+    read_only: true
+    restart: unless-stopped
+    stop_grace_period: 1s
+    environment:
+      GREETING: ${GREETING}
+    ports:
+      - "127.0.0.1:{{ docker_compose_project.port }}:8080"
+    # Healthy only while uid 10001 can read the secret
+    healthcheck:
+      test: ["CMD", "cat", "/run/secrets/token"]
+      interval: 2s
+      retries: 3
+    secrets:
+      - token
+
+secrets:
+  token:
+    file: ./secrets/token

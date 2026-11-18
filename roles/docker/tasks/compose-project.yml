@@ -1,0 +1,113 @@
+---
+- name: Create the directories of Compose project {{ docker_compose_project.name }}
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  loop:
+    - "{{ docker_compose_project_dir }}"
+    - "{{ docker_compose_project_dir }}/secrets"
+  when: docker_compose_project.state == 'present'
+
+- name: Write the compose file of Compose project {{ docker_compose_project.name }}
+  ansible.builtin.template:
+    src: "{{ docker_compose_project.template }}"
+    dest: "{{ docker_compose_project_dir }}/compose.yaml"
+    owner: root
+    group: root
+    mode: "0600"
+  when:
+    - docker_compose_project.state == 'present'
+    - docker_compose_project.template is defined
+
+- name: Write the compose file from the definition of Compose project {{ docker_compose_project.name }}
+  ansible.builtin.copy:
+    content: "{{ docker_compose_project.definition | to_nice_yaml(indent=2) }}"
+    dest: "{{ docker_compose_project_dir }}/compose.yaml"
+    owner: root
+    group: root
+    mode: "0600"
+  when:
+    - docker_compose_project.state == 'present'
+    - docker_compose_project.definition is defined
+
+- name: Write the environment file of Compose project {{ docker_compose_project.name }}
+  ansible.builtin.template:
+    src: compose.env.j2
+    dest: "{{ docker_compose_project_dir }}/.env"
+    owner: root
+    group: root
+    mode: "0600"
+  when: docker_compose_project.state == 'present'
+
+- name: Write the secrets of Compose project {{ docker_compose_project.name }}
+  ansible.builtin.copy:
+    content: "{{ item.content }}"
+    dest: "{{ docker_compose_project_dir }}/secrets/{{ item.name }}"
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default('root') }}"
+    mode: "{{ item.mode | default('0400') }}"
+  loop: "{{ docker_compose_project.secrets | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: docker_compose_secrets
+  no_log: true
+  when: docker_compose_project.state == 'present'
+
+- name: Find the secret files of Compose project {{ docker_compose_project.name }}
+  ansible.builtin.find:
+    paths: "{{ docker_compose_project_dir }}/secrets"
+    hidden: true
+  register: docker_compose_secret_files
+  when: docker_compose_project.state == 'present'
+
+- name: Remove secrets no longer listed for Compose project {{ docker_compose_project.name }}
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: >-
+    {{ docker_compose_secret_files.files | default([]) | map(attribute='path')
+       | reject('in', docker_compose_project.secrets | default([]) | map(attribute='name')
+                | map('regex_replace', '^', docker_compose_project_dir ~ '/secrets/') | list)
+       | list }}
+  when: docker_compose_project.state == 'present'
+
+# A container keeps the secret file it mounted, so new secret content needs a
+# recreate
+- name: Start Compose project {{ docker_compose_project.name }}
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_compose_project_dir }}"
+    project_name: "{{ docker_compose_project.name }}"
+    env_files: [.env]
+    state: present
+    pull: policy
+    remove_orphans: true
+    recreate: "{{ 'always' if docker_compose_secrets is changed else 'auto' }}"
+    wait: true
+    wait_timeout: "{{ docker_compose_project.wait_timeout | default(600) }}"
+  when: docker_compose_project.state == 'present'
+
+- name: Check for the compose file of Compose project {{ docker_compose_project.name }}
+  ansible.builtin.stat:
+    path: "{{ docker_compose_project_dir }}/compose.yaml"
+  register: docker_compose_file
+  when: docker_compose_project.state == 'absent'
+
+- name: Stop and remove Compose project {{ docker_compose_project.name }}
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_compose_project_dir }}"
+    project_name: "{{ docker_compose_project.name }}"
+    env_files: [.env]
+    state: absent
+    remove_orphans: true
+  when:
+    - docker_compose_project.state == 'absent'
+    - docker_compose_file.stat.exists
+
+- name: Remove the directory of Compose project {{ docker_compose_project.name }}
+  ansible.builtin.file:
+    path: "{{ docker_compose_project_dir }}"
+    state: absent
+  when: docker_compose_project.state == 'absent'

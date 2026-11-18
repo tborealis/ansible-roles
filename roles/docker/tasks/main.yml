@@ -165,3 +165,6 @@
 
 - name: Log in to registries
   ansible.builtin.import_tasks: registries.yml
+
+- name: Run the Compose projects
+  ansible.builtin.import_tasks: compose.yml

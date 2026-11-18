@@ -2,6 +2,8 @@
 - name: Verify
   hosts: all
   become: true
+  vars_files:
+    - vars.yml
   vars:
     # Throwaway values for the test registry
     docker_verify_registry: localhost:5000
@@ -357,9 +359,6 @@
           ansible.builtin.include_role:
             name: tborealis.roles.docker
           vars:
-            docker_daemon_config:
-              log-opts:
-                max-size: 5m
             docker_firewall_allowed_ports: [8082, "8100:8000"]
       rescue:
         - name: Record that the role refused the port range
@@ -377,6 +376,54 @@
           - docker_verify_range_rejected | default(false)
           - docker_verify_rules_after_refusal.stdout is search('--ctorigdstport 8082 -j RETURN')
           - docker_verify_rules_after_refusal.stdout is search('-A PUBLIC-CONTAINERS -j DROP')
+
+    - name: Read the web project's secret file
+      ansible.builtin.stat:
+        path: /etc/compose/web/secrets/token
+      register: docker_verify_web_secret
+
+    - name: Read the web service's secret, uid and environment # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: >-
+        docker compose --project-directory /etc/compose/web exec web
+        sh -c 'cat /run/secrets/token; echo; id -u; echo "$GREETING"'
+      register: docker_verify_web_exec
+      changed_when: false
+
+    - name: Assert the web project runs with its secret and environment
+      ansible.builtin.assert:
+        that:
+          - docker_verify_web_secret.stat.uid == 10001
+          - docker_verify_web_secret.stat.mode == '0400'
+          - docker_verify_web_exec.stdout_lines == ['s3cret-token', '10001', 'hello']
+
+    - name: Read the web container's ID # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker compose --project-directory /etc/compose/web ps --quiet web
+      register: docker_verify_web_id
+      changed_when: false
+
+    - name: Apply the role with a new secret
+      ansible.builtin.include_role:
+        name: tborealis.roles.docker
+      vars:
+        docker_compose_projects:
+          - "{{ docker_verify_compose_projects[0] | combine({'secrets': [{'name': 'token', 'content': 'rotated-token', 'owner': '10001'}]}) }}"
+
+    - name: Read the web service's secret and container ID after the change # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.shell: |
+        set -e
+        docker compose --project-directory /etc/compose/web exec web cat /run/secrets/token
+        echo
+        docker compose --project-directory /etc/compose/web ps --quiet web
+      args:
+        executable: /bin/bash
+      register: docker_verify_web_rotated
+      changed_when: false
+
+    - name: Assert the new secret recreated the container
+      ansible.builtin.assert:
+        that:
+          - docker_verify_web_rotated.stdout_lines[0] == 'rotated-token'
+          - docker_verify_web_rotated.stdout_lines[1] != docker_verify_web_id.stdout
 
     - name: Query the prune timer # noqa: command-instead-of-module (service_facts omits timers)
       ansible.builtin.command: systemctl is-enabled docker-prune.timer
@@ -447,10 +494,6 @@
       ansible.builtin.include_role:
         name: tborealis.roles.docker
       vars:
-        docker_daemon_config:
-          log-opts:
-            max-size: 5m
-        docker_firewall_allowed_ports: [8082]
         docker_registries:
           - registry: "{{ docker_verify_registry }}"
             username: "{{ docker_verify_registry_username }}"
@@ -492,10 +535,6 @@
       ansible.builtin.include_role:
         name: tborealis.roles.docker
       vars:
-        docker_daemon_config:
-          log-opts:
-            max-size: 5m
-        docker_firewall_allowed_ports: [8082]
         docker_registries:
           - registry: "{{ docker_verify_registry }}"
             state: absent
@@ -602,3 +641,27 @@
         that:
           - not docker_verify_firewall_unit.stat.exists
           - docker_verify_firewall_chain.rc != 0
+
+    - name: Apply the role with the web project absent
+      ansible.builtin.include_role:
+        name: tborealis.roles.docker
+      vars:
+        docker_compose_projects:
+          - name: web
+            state: absent
+
+    - name: List the web project's containers after its removal # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.command: docker ps --all --quiet --filter label=com.docker.compose.project=web
+      register: docker_verify_web_removed
+      changed_when: false
+
+    - name: Check for the web project's directory after its removal
+      ansible.builtin.stat:
+        path: /etc/compose/web
+      register: docker_verify_web_dir
+
+    - name: Assert removing the web project stopped it and deleted its files
+      ansible.builtin.assert:
+        that:
+          - docker_verify_web_removed.stdout == ''
+          - not docker_verify_web_dir.stat.exists

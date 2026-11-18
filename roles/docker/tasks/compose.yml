@@ -1,0 +1,44 @@
+---
+- name: Assert the Compose projects are valid
+  ansible.builtin.assert:
+    that:
+      - item.name | default('') | string is match('^[a-z0-9][a-z0-9_-]*$')
+      - item.state in ['present', 'absent']
+      - item.state == 'absent' or (item.template is defined) != (item.definition is defined)
+      - item.env | default({}) is mapping
+      - item.env | default({}) | dict2items | map(attribute='key') | reject('match', '^[A-Za-z_][A-Za-z0-9_]*$') | list | length == 0
+      - item.env | default({}) | dict2items | map(attribute='value') | map('string') | select('search', "['\\n]") | list | length == 0
+      - item.secrets | default([]) | map(attribute='name') | map('string') | reject('match', '^[A-Za-z0-9][A-Za-z0-9._-]*$') | list | length == 0
+    fail_msg: >-
+      Compose project {{ item.name | default('(unnamed)') }} needs: a name of lowercase letters,
+      digits, - and _; a state of present or absent; one of template or definition; env names
+      of letters, digits and _, with values free of single quotes and newlines; and secret
+      names usable as file names.
+    quiet: true
+  loop: "{{ docker_compose_projects_with_state }}"
+  loop_control:
+    label: "{{ item.name | default('(unnamed)') }}"
+
+- name: Assert the Compose project names are unique
+  ansible.builtin.assert:
+    that:
+      - docker_compose_projects | map(attribute='name') | unique | length == docker_compose_projects | length
+    fail_msg: Compose project names must be unique.
+
+- name: Create the Compose projects directory
+  ansible.builtin.file:
+    path: "{{ docker_compose_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: docker_compose_projects | length > 0
+
+- name: Manage the Compose projects
+  ansible.builtin.include_tasks: compose-project.yml
+  loop: "{{ docker_compose_projects_with_state }}"
+  loop_control:
+    loop_var: docker_compose_project
+    label: "{{ docker_compose_project.name }}"
+  vars:
+    docker_compose_project_dir: "{{ docker_compose_dir }}/{{ docker_compose_project.name }}"

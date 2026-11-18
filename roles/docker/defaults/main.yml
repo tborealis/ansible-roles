@@ -36,6 +36,11 @@ docker_unattended_upgrades: true
 # images: [{registry, username, password}]; `state: absent` logs out.
 docker_registries: []
 
+# Compose projects, each in docker_compose_dir/<name>: [{name, template or
+# definition, env, secrets, wait_timeout, state}]; see the README
+docker_compose_projects: []
+docker_compose_dir: /etc/compose
+
 # Further daemon.json settings, merged over the role's own, e.g.
 # {"log-opts": {"max-size": "50m"}}
 docker_daemon_config: {}

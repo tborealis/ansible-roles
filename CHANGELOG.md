@@ -33,6 +33,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
     (`docker_prune`).
   - `docker_registries` logs root in to private registries for `docker compose pull`;
     the collection now depends on `community.docker`.
+  - `docker_compose_projects` runs Compose projects, from a template or definition,
+    with an environment file and secret files, and waits for them to be healthy.
 - **apt_keys:** Docker's repository signing key, for the `docker` role.
 
 ### Changed

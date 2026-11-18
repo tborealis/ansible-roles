@@ -62,6 +62,27 @@ Raising one of these variables upgrades the packages in that run. Lowering one b
 installed release fails the run, as the role doesn't downgrade, and so does a pin that no
 release matches.
 
+## Compose projects
+
+Each project in `docker_compose_projects` lives in `docker_compose_dir/<name>`
+(`/etc/compose/<name>`, readable by root only): its compose file, `compose.yaml`; an
+environment file, `.env`, for `${VAR}` interpolation; and secret files under `secrets/`, which
+the compose file mounts with `secrets: {<name>: {file: ./secrets/<name>}}`. Secrets no longer
+listed are deleted. The role brings each project up and waits for its containers to be running
+and healthy. A container keeps the secret file it mounted, so the role recreates the project's
+containers when a secret changes. `state: absent` stops a project and deletes its directory;
+named volumes are kept.
+
+| Key | Description |
+|-----|-------------|
+| `name` | Project name: lowercase letters, digits, `-` and `_` |
+| `template` | Compose file template, looked up like any other (e.g. in the playbook's `templates/`); it sees the project as `docker_compose_project` |
+| `definition` | The compose file as YAML, instead of `template` |
+| `env` | Variables for `${VAR}` interpolation, written to `.env`; values can't contain single quotes or newlines |
+| `secrets` | Secret files, `{name, content, owner, group, mode}`, by default `root:root` and `0400`; the container's user must be able to read them, e.g. `owner: "10001"` |
+| `wait_timeout` | Seconds to wait for the containers to be running and healthy; default 600 |
+| `state` | `present` (default) or `absent` |
+
 ## Requirements
 
 Debian 13 (trixie); the role fails on any other release. The `community.docker`
@@ -83,4 +104,6 @@ collection on the controller, which this collection depends on.
 | `docker_prune_schedule` | `Sun *-*-* 03:00` | systemd `OnCalendar` schedule for the prune, in local time |
 | `docker_unattended_upgrades` | `true` | Let unattended-upgrades install updates from Docker's repository; `false` removes that opt-in |
 | `docker_registries` | `[]` | Registries root logs in to: `{registry, username, password}`; `state: absent` logs out |
+| `docker_compose_projects` | `[]` | Compose projects to run; see above |
+| `docker_compose_dir` | `/etc/compose` | Directory holding a directory per Compose project |
 | `docker_daemon_config` | `{}` | Further `daemon.json` settings, merged over (and replacing) the role's top-level keys; `dockerd --validate` must accept the result |

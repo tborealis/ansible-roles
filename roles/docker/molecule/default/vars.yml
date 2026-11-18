@@ -1,0 +1,18 @@
+---
+# Role settings shared by converge and verify, which applies the role again;
+# throwaway values
+docker_daemon_config:
+  log-opts:
+    max-size: 5m
+docker_firewall_allowed_ports: [8082]
+docker_compose_projects: "{{ docker_verify_compose_projects }}"
+docker_verify_compose_projects:
+  - name: web
+    template: compose-web.yml.j2
+    port: 8091
+    env:
+      GREETING: hello
+    secrets:
+      - name: token
+        content: s3cret-token
+        owner: "10001"
