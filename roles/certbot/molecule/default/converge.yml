@@ -1,8 +1,9 @@
 ---
 # Certificate issuance needs a real ACME challenge, which is impossible in the
-# container, so certbot_certs stays empty (its default) and the scenario tests
-# what the role manages locally: the certbot package, the DNS plugin (apt on
-# bookworm, pip on trixie), and the credentials file.
+# container, so certbot_certs stays empty (its default) or lists certificates
+# prepare.yml seeds as already issued, and the scenario tests what the role
+# manages locally: the certbot package, the DNS plugin (apt on bookworm, pip on
+# trixie), the credentials file, and existing renewal configs.
 - name: Converge
   hosts: all
   become: true
@@ -53,8 +54,9 @@
   roles:
     - role: tborealis.roles.certbot
 
-# dns-cloudflare mode: like dns-digitalocean it only manages the plugin and
-# the credentials file — no webserver coupling.
+# dns-cloudflare mode: like dns-digitalocean it manages the plugin and the
+# credentials file — no webserver coupling. Its certificates are seeded by
+# prepare.yml, to test which renewal configs get the propagation seconds.
 - name: Converge (dns-cloudflare mode)
   hosts: all
   become: true
@@ -62,5 +64,6 @@
     - vars.yml
   vars:
     certbot_mode: dns-cloudflare
+    certbot_certs: "{{ certbot_test_seeded_certs }}"
   roles:
     - role: tborealis.roles.certbot
