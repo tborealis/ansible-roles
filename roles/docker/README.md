@@ -83,6 +83,14 @@ project) and exits non-zero. The role leaves such a project down until its first
 brings it up with the recorded image, so provisioning never reverts a deploy. How CI runs it,
 e.g. through an SSH key whose forced command runs it with sudo, is up to the playbook.
 
+A deploy pulls with root's logins (`docker_registries`) unless the project sets
+`deploy.stdin_login` to a registry host. The script then reads a username and a password for
+that registry from stdin, one per line, and pulls with only that login, from a Docker config
+it deletes when the deploy ends. CI can send its own short-lived token, e.g. a GitHub Actions
+job's `GITHUB_TOKEN` with `packages: read`, so the host keeps no registry login. Provisioning
+needs no login for such a project: it brings it up with the image its last deploy left on the
+host, which the prune keeps while a container uses it.
+
 Each project has a history, `/var/log/docker-compose/<project>.log`, kept when the project is
 removed. It has a line for every deploy, and for every run of the role that creates,
 recreates, starts or removes containers:
@@ -116,7 +124,7 @@ them. The script prints all of it to stderr too, for CI's log.
 | `definition` | The compose file as YAML, instead of `template` |
 | `env` | Variables for `${VAR}` interpolation, written to `.env`; values can't contain single quotes or newlines |
 | `secrets` | Secret files, `{name, content, owner, group, mode}`, by default `root:root` and `0400`; the container's user must be able to read them, e.g. `owner: "10001"` |
-| `deploy` | `{image, variable}`: CI deploys digests of `image`, which the compose file reads as `${variable}` |
+| `deploy` | `{image, variable, stdin_login}`: CI deploys digests of `image`, which the compose file reads as `${variable}`; `stdin_login`, a registry host such as `ghcr.io`, makes each deploy read its login from stdin |
 | `wait_timeout` | Seconds to wait for the containers to be running and healthy; default 600 |
 | `state` | `present` (default) or `absent` |
 

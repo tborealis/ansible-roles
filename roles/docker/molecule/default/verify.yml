@@ -694,6 +694,123 @@
             docker_verify_registry not in
             (docker_verify_config_after.content | b64decode | from_json).get('auths', {})
 
+    # Root has no login now, so these deploys can only pull with the login stdin sends
+    - name: Apply the role with the app project logging in from stdin
+      ansible.builtin.include_role:
+        name: tborealis.roles.docker
+      vars:
+        docker_compose_projects: >-
+          {{ docker_verify_compose_projects | rejectattr('name', 'eq', 'app') | list
+             + [docker_verify_compose_projects | selectattr('name', 'eq', 'app') | first
+                | combine({'deploy': {'stdin_login': docker_verify_registry}}, recursive=true)] }}
+
+    - name: Push an app image the host doesn't have # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.shell: |
+        set -euo pipefail
+        DOCKER_CONFIG="$(mktemp -d)"
+        export DOCKER_CONFIG
+        trap 'rm -rf "$DOCKER_CONFIG"' EXIT
+        docker login --username {{ docker_verify_registry_username }} --password-stdin \
+          {{ docker_verify_registry }} <<< '{{ docker_verify_registry_password }}' > /dev/null
+        docker rm --force app-image > /dev/null 2>&1 || true
+        docker run --name app-image busybox:1.37 touch /healthy
+        docker commit --change 'LABEL org.opencontainers.image.revision=4567def' app-image \
+          {{ docker_verify_registry }}/probe/app:stdin > /dev/null
+        docker rm app-image > /dev/null
+        docker push --quiet {{ docker_verify_registry }}/probe/app:stdin > /dev/null
+        docker image inspect {{ docker_verify_registry }}/probe/app:stdin
+        docker image rm {{ docker_verify_registry }}/probe/app:stdin > /dev/null
+      args:
+        executable: /bin/bash
+      register: docker_verify_stdin_image
+      changed_when: false
+
+    - name: Record the new app image's digest
+      ansible.builtin.set_fact:
+        docker_verify_stdin_digest: >-
+          {{ (docker_verify_stdin_image.stdout | from_json | first).RepoDigests
+             | select('match', '^localhost:5000/probe/app@') | first | split('@') | last }}
+
+    - name: Deploy without a full login on stdin # noqa: command-instead-of-module (exercising the deploy script)
+      ansible.builtin.command:
+        cmd: /usr/local/sbin/docker-compose-deploy app {{ docker_verify_stdin_digest }}
+        stdin: "{{ item }}"
+        stdin_add_newline: false
+      loop:
+        - ""
+        - "{{ docker_verify_registry_username }}\n\n"
+      loop_control:
+        label: "{{ 'no password' if item else 'nothing' }}"
+      register: docker_verify_no_login
+      changed_when: false
+      failed_when: docker_verify_no_login.rc != 2
+
+    - name: Deploy with a wrong password on stdin # noqa: command-instead-of-module (exercising the deploy script)
+      ansible.builtin.command:
+        cmd: /usr/local/sbin/docker-compose-deploy app {{ docker_verify_stdin_digest }}
+        stdin: "{{ docker_verify_registry_username }}\nnot-the-password"
+      register: docker_verify_bad_login
+      changed_when: false
+      failed_when: docker_verify_bad_login.rc != 1
+
+    - name: Deploy with the login on stdin # noqa: command-instead-of-module (exercising the deploy script)
+      ansible.builtin.command:
+        cmd: /usr/local/sbin/docker-compose-deploy app {{ docker_verify_stdin_digest }}
+        stdin: "{{ docker_verify_registry_username }}\n{{ docker_verify_registry_password }}"
+      changed_when: true
+
+    - name: Inspect the app project's containers after the stdin deploys # noqa: command-instead-of-module (exercising the binary)
+      ansible.builtin.shell: docker inspect $(docker ps --quiet --filter label=com.docker.compose.project=app)
+      args:
+        executable: /bin/bash
+      register: docker_verify_app_stdin
+      changed_when: false
+
+    - name: Find Docker configs the deploys left behind
+      ansible.builtin.find:
+        paths: /tmp
+        patterns: docker-compose-deploy.*
+        file_type: directory
+      register: docker_verify_left_configs
+
+    - name: Read root's Docker config after the stdin deploys
+      ansible.builtin.slurp:
+        src: /root/.docker/config.json
+      register: docker_verify_config_stdin
+
+    - name: Read the app project's history after the stdin deploys
+      ansible.builtin.slurp:
+        src: /var/log/docker-compose/app.log
+      register: docker_verify_app_history_stdin
+
+    - name: Assert the deploys pulled with only stdin's login and kept none
+      vars:
+        docker_verify_app_image: localhost:5000/probe/app@{{ docker_verify_stdin_digest }}
+        docker_verify_app_containers: "{{ docker_verify_app_stdin.stdout | from_json }}"
+        docker_verify_previous: previous={{ docker_verify_app_digests[0] }}
+        docker_verify_last_events: >-
+          {{ (docker_verify_app_history_stdin.content | b64decode).splitlines()[-2:]
+             | map('regex_replace', '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:]{8}Z ', '')
+             | map('regex_replace', ' seconds=[0-9]+$', '') | list }}
+      ansible.builtin.assert:
+        that:
+          - >-
+            docker_verify_no_login.results | map(attribute='stderr')
+            | select('search', 'needs a username and password for ' ~ docker_verify_registry ~ ' on stdin')
+            | list | length == 2
+          - >-
+            docker_verify_last_events == [
+              'pull-failed digest=' ~ docker_verify_stdin_digest ~ ' ' ~ docker_verify_previous ~ ' revision=unknown user=root',
+              'deployed digest=' ~ docker_verify_stdin_digest ~ ' ' ~ docker_verify_previous ~ ' revision=4567def user=root']
+          - docker_verify_app_containers | length == 1
+          - docker_verify_app_containers[0].Config.Image == docker_verify_app_image
+          - docker_verify_app_containers[0].State.Health.Status == 'healthy'
+          - docker_verify_left_configs.matched == 0
+          - >-
+            docker_verify_registry not in
+            (docker_verify_config_stdin.content | b64decode | from_json).get('auths', {})
+        fail_msg: "{{ docker_verify_bad_login.stderr }}"
+
     - name: Apply the role with a setting dockerd rejects
       block:
         - name: Apply the role with an unknown daemon.json key
