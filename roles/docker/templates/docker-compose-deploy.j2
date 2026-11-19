@@ -40,7 +40,8 @@ esac
 # Docker reads only this config for the deploy's pulls, the image's and a
 # rollback's
 if [[ -n "$LOGIN" ]]; then
-    if ! { IFS= read -r -t 10 USERNAME && IFS= read -r -t 10 PASSWORD; }; then
+    if ! { IFS= read -r -t 10 USERNAME && IFS= read -r -t 10 PASSWORD; } \
+        || [[ -z "$USERNAME" || -z "$PASSWORD" ]]; then
         echo "docker-compose-deploy: $PROJECT needs a username and password for $LOGIN on stdin" >&2
         exit 2
     fi
