@@ -11,6 +11,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+## [9.0.1] - 2026-11-19
+
 ### Fixed
 
 - **certbot:** the DNS modes no longer apply propagation seconds to a certificate
