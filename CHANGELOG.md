@@ -11,6 +11,14 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+### Added
+
+- **docker:** a deployed project can set `deploy.stdin_login` to a registry host, so
+  `docker-compose-deploy` reads a username and password for it from stdin and pulls with
+  only that login, from a Docker config that lasts as long as the deploy. CI can send a
+  short-lived token, e.g. a GitHub Actions job's `GITHUB_TOKEN`, instead of the host
+  keeping one in `docker_registries`. Projects without it are unchanged.
+
 ## [9.0.1] - 2026-11-19
 
 ### Fixed

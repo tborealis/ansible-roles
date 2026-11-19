@@ -10,6 +10,10 @@
 # stops the project) and fails. Provisioning reapplies the recorded image, so it
 # never reverts one. Each outcome goes to the project's history, through
 # docker-compose-log.
+#
+# A project with deploy.stdin_login pulls with a login its caller sends on
+# stdin, a username and a password one per line (e.g. a CI job's short-lived
+# token), instead of root's. It lasts as long as the deploy.
 set -euo pipefail
 
 usage() {
@@ -26,11 +30,27 @@ case "$PROJECT" in
         IMAGE="{{ project.deploy.image }}"
         VARIABLE="{{ project.deploy.variable }}"
         TIMEOUT="{{ project.wait_timeout | default(600) }}"
+        LOGIN="{{ project.deploy.stdin_login | default('') }}"
         ;;
 {% endfor %}
     *) usage ;;
 esac
 [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || usage
+
+# Docker reads only this config for the deploy's pulls, the image's and a
+# rollback's
+if [[ -n "$LOGIN" ]]; then
+    if ! { IFS= read -r -t 10 USERNAME && IFS= read -r -t 10 PASSWORD; }; then
+        echo "docker-compose-deploy: $PROJECT needs a username and password for $LOGIN on stdin" >&2
+        exit 2
+    fi
+    DOCKER_CONFIG="$(mktemp -d -t docker-compose-deploy.XXXXXXXX)"
+    export DOCKER_CONFIG
+    trap 'rm -rf "$DOCKER_CONFIG"' EXIT
+    AUTH="$(printf '%s:%s' "$USERNAME" "$PASSWORD" | base64 --wrap=0)"
+    printf '{"auths": {"%s": {"auth": "%s"}}}\n' "$LOGIN" "$AUTH" > "$DOCKER_CONFIG/config.json"
+    unset PASSWORD AUTH
+fi
 
 DIR="{{ docker_compose_dir }}/$PROJECT"
 DEPLOYED="$DIR/deploy.env"
