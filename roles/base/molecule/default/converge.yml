@@ -30,6 +30,10 @@
     base_ssh_allow_tcp_forwarding: true
     # Exercise both: key-only root login on bookworm, the default (no) on trixie.
     base_ssh_permit_root_login: "{{ 'prohibit-password' if ansible_facts['distribution_release'] == 'bookworm' else 'no' }}"
+    # One address of the /64 that verify gets penalised. The exempt list
+    # needs OpenSSH 9.8+, so trixie only.
+    base_ssh_per_source_penalty_exempt_list: >-
+      {{ ['2001:db8:0:1::30/128', '198.51.100.0/24'] if ansible_facts['distribution_release'] == 'trixie' else [] }}
     base_profile_config:
       - src: molecule-profile.sh.j2
         dest: molecule-profile.sh

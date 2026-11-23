@@ -18,6 +18,11 @@ flagged with **BREAKING** and require a MAJOR version bump.
   only that login, from a Docker config that lasts as long as the deploy. CI can send a
   short-lived token, e.g. a GitHub Actions job's `GITHUB_TOKEN`, instead of the host
   keeping one in `docker_registries`. Projects without it are unchanged.
+- **base:** sshd counts an IPv6 client by its /64 for its per-source penalties
+  (`base_ssh_per_source_net_block_size`, default `32:64`; sshd's default is per
+  address), so a host cannot dodge a penalty by rotating addresses within its /64.
+  `base_ssh_per_source_penalty_exempt_list` lists addresses sshd never penalises,
+  e.g. an office or CI runner (OpenSSH 9.8+, so trixie).
 
 ## [9.0.1] - 2026-11-19
 

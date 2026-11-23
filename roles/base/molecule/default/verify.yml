@@ -170,6 +170,7 @@
           - "'passwordauthentication no' in base_verify_sshd_config.stdout_lines"
           - "'clientaliveinterval 120' in base_verify_sshd_config.stdout_lines"
           - "'allowstreamlocalforwarding no' in base_verify_sshd_config.stdout_lines"
+          - "'persourcenetblocksize 32:64' in base_verify_sshd_config.stdout_lines"
 
     - name: Compare sshd_config with the packaged copy
       ansible.builtin.command: cmp /usr/share/openssh/sshd_config /etc/ssh/sshd_config
@@ -274,6 +275,67 @@
           - base_verify_ssh_tcp_forward.rc == 0
           - base_verify_ssh_socket_forward.rc == 255
           - "'forwarding failed' in base_verify_ssh_socket_forward.stderr"
+
+    # Clients in a network namespace, so their addresses are not the host's.
+    - name: Verify sshd penalises a whole IPv6 /64 except exempt addresses (trixie)
+      when: ansible_facts['distribution_release'] == 'trixie'
+      vars:
+        base_verify_probe_ssh: >-
+          ip netns exec molecule-probe ssh -i /var/tmp/molecule-ssh-probe -o BatchMode=yes
+          -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+          -o LogLevel=ERROR -o ConnectTimeout=5
+      block:
+        - name: Assert the exempt list is live in the effective sshd config
+          ansible.builtin.assert:
+            that:
+              - >-
+                'persourcepenaltyexemptlist 2001:db8:0:1::30/128,198.51.100.0/24'
+                in base_verify_sshd_config.stdout_lines
+
+        - name: Create a client namespace with three addresses in one /64
+          ansible.builtin.shell: |
+            set -e
+            ip netns add molecule-probe
+            ip link add molecule-host type veth peer name molecule-probe netns molecule-probe
+            echo 0 > /proc/sys/net/ipv6/conf/molecule-host/disable_ipv6
+            ip addr add 2001:db8:0:1::1/64 dev molecule-host nodad
+            ip link set molecule-host up
+            ip netns exec molecule-probe sh -c 'echo 0 > /proc/sys/net/ipv6/conf/molecule-probe/disable_ipv6'
+            for a in 10 20 30; do
+              ip netns exec molecule-probe ip addr add "2001:db8:0:1::$a/64" dev molecule-probe nodad
+            done
+            ip netns exec molecule-probe ip link set molecule-probe up
+          changed_when: true
+
+        # sshd's default penalties: 5s per failed authentication, enforced
+        # once they add up to more than 15s, so the fourth failure blocks.
+        - name: Fail key logins from one address of the /64
+          ansible.builtin.shell: |
+            for i in 1 2 3 4 5 6; do
+              {{ base_verify_probe_ssh }} -b 2001:db8:0:1::10 molecule-deploy@2001:db8:0:1::1 true
+            done
+          changed_when: false
+          failed_when: false
+
+        - name: Log in as the admin user from another address of the /64
+          ansible.builtin.command: >-
+            {{ base_verify_probe_ssh }} -b 2001:db8:0:1::20 molecule-admin@2001:db8:0:1::1 id -un
+          register: base_verify_ssh_penalised
+          changed_when: false
+          failed_when: false
+
+        - name: Log in as the admin user from the exempt address of the /64
+          ansible.builtin.command: >-
+            {{ base_verify_probe_ssh }} -b 2001:db8:0:1::30 molecule-admin@2001:db8:0:1::1 id -un
+          register: base_verify_ssh_exempt
+          changed_when: false
+
+        - name: Assert sshd refuses the penalised /64 but not its exempt address
+          ansible.builtin.assert:
+            that:
+              - base_verify_ssh_penalised.rc == 255
+              - "'kex_exchange_identification' in base_verify_ssh_penalised.stderr"
+              - base_verify_ssh_exempt.stdout == 'molecule-admin'
 
     # Simulates an openssh update shipping a new default sshd_config: ucf
     # replaces the file only if it still considers it unmodified.

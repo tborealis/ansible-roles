@@ -12,3 +12,7 @@ X11Forwarding no
 UseDNS no
 AllowGroups ssh-users {{ base_ssh_extra_user_groups | join(' ') }}
 DebianBanner no
+PerSourceNetBlockSize {{ base_ssh_per_source_net_block_size }}
+{% if base_ssh_per_source_penalty_exempt_list | length > 0 %}
+PerSourcePenaltyExemptList {{ base_ssh_per_source_penalty_exempt_list | join(',') }}
+{% endif %}
