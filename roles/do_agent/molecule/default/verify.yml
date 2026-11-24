@@ -74,6 +74,7 @@
         that:
           - do_agent_verify_droplet_units.stdout_lines | select('eq', 'LoadState=not-found') | list | length == 2
           - do_agent_verify_droplet_units.stdout_lines | select('eq', 'ActiveState=inactive') | list | length == 2
+        fail_msg: "{{ do_agent_verify_droplet_units.stdout_lines }}"
 
     - name: Check droplet-agent binary, apt source, pin and keyring are gone
       ansible.builtin.stat:

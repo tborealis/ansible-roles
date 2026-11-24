@@ -36,6 +36,9 @@ flagged with **BREAKING** and require a MAJOR version bump.
 - **mailpit:** the installed-version check no longer asks GitHub for the latest
   release. When that lookup failed (no route to `api.github.com`, or rate limiting),
   `mailpit version` exited 1 and the role re-downloaded Mailpit on every run.
+- **do_agent:** removing droplet-agent clears the failed state of its units, so an
+  agent that was crash-looping when purged no longer lingers in `systemctl --failed`
+  and leaves the system degraded.
 
 ## [9.0.1] - 2026-11-19
 
