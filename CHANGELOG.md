@@ -24,6 +24,13 @@ flagged with **BREAKING** and require a MAJOR version bump.
   `base_ssh_per_source_penalty_exempt_list` lists addresses sshd never penalises,
   e.g. an office or CI runner (OpenSSH 9.8+, so trixie).
 
+### Changed
+
+- **mailpit:** install Mailpit 1.34.0 (was 1.30.4), picking up upstream security fixes
+  (GHSA-379p-g4f4-hq5h, GHSA-2vgv-6hcp-mf43). 1.34.0 removes flags and environment
+  variables deprecated for over two years; the role sets none, but a host that adds its
+  own (e.g. a relay config with `recipient-allowlist`) must move to the new names.
+
 ### Fixed
 
 - **mailpit:** the installed-version check no longer asks GitHub for the latest
