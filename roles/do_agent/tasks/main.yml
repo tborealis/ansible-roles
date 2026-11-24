@@ -10,6 +10,14 @@
           - droplet-agent-keyring
         state: absent
         purge: true
+      register: do_agent_droplet_agent_purge
+
+    # A unit that was failed when stopped (e.g. a crash-looping agent) stays loaded
+    # as failed after its unit file is gone, leaving the system degraded.
+    - name: Clear failed state left by droplet-agent units # noqa: no-handler command-instead-of-module
+      ansible.builtin.command: systemctl reset-failed 'droplet-agent*'
+      when: do_agent_droplet_agent_purge is changed
+      changed_when: true
 
     # Written by DigitalOcean's install script, not owned by either package.
     - name: Remove droplet-agent apt source, pin and keyring
