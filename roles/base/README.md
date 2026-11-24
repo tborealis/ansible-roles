@@ -24,6 +24,14 @@ allow it, such as DigitalOcean's (`PermitRootLogin yes`). A first provision
 connected as root still completes, because sshd only reloads in a handler at the
 end of the play; later runs must connect as one of the managed users.
 
+sshd (OpenSSH 9.8+) briefly refuses connections from a source that keeps failing to
+authenticate, connects without authenticating, or crashes it (`PerSourcePenalties`,
+left at sshd's defaults). The role makes it count an IPv6 source by its /64
+(`base_ssh_per_source_net_block_size`) rather than per address, since a host usually
+holds a whole /64 and could otherwise rotate through it. Where machines share a /64,
+one's failures also block the others; list trusted addresses, such as an office or a
+CI runner, in `base_ssh_per_source_penalty_exempt_list` (OpenSSH 9.8+, so trixie).
+
 Once a managed user has an authorized key, the role also deletes
 `/root/.ssh/authorized_keys`, removing keys injected at creation (DigitalOcean puts
 the account's SSH keys there). The deletion also waits until the end of the play.
@@ -66,6 +74,8 @@ The role installs `unattended-upgrades` and `needrestart`:
 | `base_ssh_permit_root_login` | `"no"` | sshd `PermitRootLogin` value (`no`, `prohibit-password`, `forced-commands-only` or `yes`); quote it so YAML keeps it a string |
 | `base_ssh_password_authentication` | `false` | Allow SSH password authentication |
 | `base_ssh_client_alive_interval` | `120` | Seconds between sshd keepalive probes to idle clients (`0` disables) |
+| `base_ssh_per_source_net_block_size` | `"32:64"` | sshd `PerSourceNetBlockSize`: IPv4:IPv6 prefix lengths sshd groups clients by for per-source penalties |
+| `base_ssh_per_source_penalty_exempt_list` | `[]` | Addresses or CIDR ranges sshd never penalises (OpenSSH 9.8+) |
 | `base_ssh_clear_root_authorized_keys` | `true` while root login is `no` | Delete `/root/.ssh/authorized_keys` once a managed user has an authorized key |
 | `base_default_system_packages` | See defaults | Essential system packages |
 | `base_profile_config` | `[]` | Profile configuration entries |
