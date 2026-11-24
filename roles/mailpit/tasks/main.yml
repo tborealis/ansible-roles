@@ -66,7 +66,7 @@
     mode: "0755"
 
 - name: Check the installed mailpit version
-  ansible.builtin.command: "{{ mailpit_install_dir }}/mailpit version"
+  ansible.builtin.command: "{{ mailpit_install_dir }}/mailpit version --no-release-check"
   register: mailpit_installed
   failed_when: false
   changed_when: false

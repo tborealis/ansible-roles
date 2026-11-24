@@ -24,6 +24,12 @@ flagged with **BREAKING** and require a MAJOR version bump.
   `base_ssh_per_source_penalty_exempt_list` lists addresses sshd never penalises,
   e.g. an office or CI runner (OpenSSH 9.8+, so trixie).
 
+### Fixed
+
+- **mailpit:** the installed-version check no longer asks GitHub for the latest
+  release. When that lookup failed (no route to `api.github.com`, or rate limiting),
+  `mailpit version` exited 1 and the role re-downloaded Mailpit on every run.
+
 ## [9.0.1] - 2026-11-19
 
 ### Fixed
