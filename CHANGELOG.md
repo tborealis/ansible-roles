@@ -30,6 +30,11 @@ flagged with **BREAKING** and require a MAJOR version bump.
   (GHSA-379p-g4f4-hq5h, GHSA-2vgv-6hcp-mf43). 1.34.0 removes flags and environment
   variables deprecated for over two years; the role sets none, but a host that adds its
   own (e.g. a relay config with `recipient-allowlist`) must move to the new names.
+- **chrome:** after linking the target version, the role deletes every other version
+  under `/opt/chrome` and `/opt/chromedriver`. Earlier releases kept each one, about
+  400 MB per Chrome upgrade. Anything that runs a versioned path instead of
+  `/usr/local/bin/google-chrome` or `/usr/local/bin/chromedriver` must switch to the
+  links.
 
 ### Fixed
 

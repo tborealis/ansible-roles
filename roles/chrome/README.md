@@ -6,6 +6,11 @@ under `/opt/chrome` and `/opt/chromedriver` and linked as
 `/usr/local/bin/google-chrome` and `/usr/local/bin/chromedriver`. Only the x86_64
 build is installed.
 
+When the version changes, the role moves the links to the new install and then
+deletes every other version under `/opt/chrome` and `/opt/chromedriver` (each Chrome
+is about 400 MB). Run the binaries through the links, not their versioned paths.
+Chrome processes already running keep working after their files are deleted.
+
 ## Role Variables
 
 | Variable | Default | Description |

@@ -65,6 +65,23 @@
     state: link
     force: true
 
+# Only once the link has moved, so it never points at a removed directory.
+- name: Find other chrome versions
+  ansible.builtin.find:
+    paths: /opt/chrome
+    patterns: linux-*
+    excludes: linux-{{ chrome_target_version }}
+    file_type: directory
+  register: chrome_other_versions
+
+- name: Remove other chrome versions
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ chrome_other_versions.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
 - name: Chromedriver tasks
   ansible.builtin.import_tasks: chromedriver.yml
   when: chrome_install_chromedriver
