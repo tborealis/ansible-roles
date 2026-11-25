@@ -72,3 +72,17 @@
         path: /etc/mysql/conf.d/native_password_migration.cnf
       register: mysql_verify_shim
       failed_when: mysql_verify_shim.stat.exists
+
+    - name: Query the live binary log retention
+      ansible.mysql.mysql_query:
+        query: SELECT @@GLOBAL.binlog_expire_logs_seconds AS live
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+      register: mysql_verify_binlog_retention
+
+    - name: Assert the binary log retention from tuning.cnf is live
+      ansible.builtin.assert:
+        that:
+          - "'binlog_expire_logs_seconds     = 604800' in mysql_verify_tuning.content | b64decode"
+          - mysql_verify_binlog_retention.query_result[0][0].live | int == 604800
