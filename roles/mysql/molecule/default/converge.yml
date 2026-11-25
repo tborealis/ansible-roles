@@ -6,6 +6,8 @@
     - vars.yml
   vars:
     mysql_innodb_buffer_pool_size: 128M
+    mysql_binlog_expire_logs_seconds: 604800
+    mysql_binlog_transaction_compression: true
     mysql_databases:
       - name: molecule_db
     mysql_users:

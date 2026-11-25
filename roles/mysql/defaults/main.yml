@@ -10,6 +10,11 @@ mysql_innodb_redo_log_capacity: 256M
 mysql_innodb_flush_log_at_trx_commit: 1
 mysql_slow_query_log: 0
 mysql_login_unix_socket: /var/run/mysqld/mysqld.sock
+# How long MySQL keeps binary logs before purging them; 2592000 (30 days) is
+# MySQL's own default.
+mysql_binlog_expire_logs_seconds: 2592000
+# Compress binary log transactions (row events) with zstd.
+mysql_binlog_transaction_compression: false
 
 # Address(es) MySQL accepts TCP connections on (comma-separated); "*" listens on
 # every interface, for clients on other hosts.

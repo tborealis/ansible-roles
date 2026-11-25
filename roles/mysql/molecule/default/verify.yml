@@ -72,3 +72,45 @@
         path: /etc/mysql/conf.d/native_password_migration.cnf
       register: mysql_verify_shim
       failed_when: mysql_verify_shim.stat.exists
+
+    - name: Query the live binary log retention
+      ansible.mysql.mysql_query:
+        query: SELECT @@GLOBAL.binlog_expire_logs_seconds AS live
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+      register: mysql_verify_binlog_retention
+
+    - name: Assert the binary log retention from tuning.cnf is live
+      ansible.builtin.assert:
+        that:
+          - "'binlog_expire_logs_seconds     = 604800' in mysql_verify_tuning.content | b64decode"
+          - mysql_verify_binlog_retention.query_result[0][0].live | int == 604800
+
+    - name: Write a row to log a transaction
+      ansible.mysql.mysql_query:
+        login_db: molecule_db
+        query:
+          - CREATE TABLE IF NOT EXISTS molecule_binlog (id INT PRIMARY KEY, body TEXT)
+          - REPLACE INTO molecule_binlog VALUES (1, REPEAT('molecule ', 1000))
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+
+    - name: Query binary log compression stats
+      ansible.mysql.mysql_query:
+        query: >-
+          SELECT TRANSACTION_COUNTER AS transactions
+          FROM performance_schema.binary_log_transaction_compression_stats
+          WHERE LOG_TYPE = 'BINARY' AND COMPRESSION_TYPE = 'ZSTD'
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+      register: mysql_verify_binlog_compression
+
+    - name: Assert binary log transactions are compressed
+      ansible.builtin.assert:
+        that:
+          - "'binlog_transaction_compression = ON' in mysql_verify_tuning.content | b64decode"
+          - mysql_verify_binlog_compression.query_result[0] | length == 1
+          - mysql_verify_binlog_compression.query_result[0][0].transactions | int > 0

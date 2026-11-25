@@ -6,4 +6,7 @@ innodb_buffer_pool_size        = {{ mysql_innodb_buffer_pool_size }}
 innodb_flush_log_at_trx_commit = {{ mysql_innodb_flush_log_at_trx_commit }}
 innodb_redo_log_capacity       = {{ mysql_innodb_redo_log_capacity }}
 
+binlog_expire_logs_seconds     = {{ mysql_binlog_expire_logs_seconds }}
+binlog_transaction_compression = {{ 'ON' if mysql_binlog_transaction_compression else 'OFF' }}
+
 slow_query_log                 = {{ mysql_slow_query_log }}
