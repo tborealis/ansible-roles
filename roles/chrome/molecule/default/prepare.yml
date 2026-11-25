@@ -16,3 +16,29 @@
         content: "{{ chrome_prepare_versions.json.channels.Stable.version }}\n"
         dest: /var/tmp/molecule-chrome-version
         mode: "0644"
+
+    # An earlier, linked install the role must upgrade from and then prune.
+    - name: Create earlier chrome and chromedriver install directories
+      ansible.builtin.file:
+        path: /opt/{{ item }}/linux-1.0.0.0/{{ item }}-linux64
+        state: directory
+        mode: "0755"
+      loop: [chrome, chromedriver]
+
+    - name: Plant earlier chrome and chromedriver binaries
+      ansible.builtin.copy:
+        content: "#!/bin/sh\necho 1.0.0.0\n"
+        dest: /opt/{{ item }}/linux-1.0.0.0/{{ item }}-linux64/{{ item }}
+        mode: "0755"
+      loop: [chrome, chromedriver]
+
+    - name: Link the earlier installs
+      ansible.builtin.file:
+        src: /opt/{{ item.name }}/linux-1.0.0.0/{{ item.name }}-linux64/{{ item.name }}
+        dest: /usr/local/bin/{{ item.link }}
+        state: link
+      loop:
+        - {name: chrome, link: google-chrome}
+        - {name: chromedriver, link: chromedriver}
+      loop_control:
+        label: "{{ item.link }}"

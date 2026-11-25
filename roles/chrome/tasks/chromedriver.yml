@@ -50,3 +50,19 @@
     dest: /usr/local/bin/chromedriver
     state: link
     force: true
+
+- name: Find other chromedriver versions
+  ansible.builtin.find:
+    paths: /opt/chromedriver
+    patterns: linux-*
+    excludes: linux-{{ chrome_chromedriver_target_version }}
+    file_type: directory
+  register: chrome_chromedriver_other_versions
+
+- name: Remove other chromedriver versions
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ chrome_chromedriver_other_versions.files }}"
+  loop_control:
+    label: "{{ item.path }}"

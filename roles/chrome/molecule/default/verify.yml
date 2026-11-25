@@ -56,3 +56,25 @@
       ansible.builtin.assert:
         that:
           - chrome_verify_chromedriver_version.stdout is search('ChromeDriver \d+\.\d+\.\d+\.\d+')
+
+    - name: List installed chrome versions
+      ansible.builtin.find:
+        paths: /opt/chrome
+        file_type: directory
+      register: chrome_verify_chrome_dirs
+
+    - name: List installed chromedriver versions
+      ansible.builtin.find:
+        paths: /opt/chromedriver
+        file_type: directory
+      register: chrome_verify_chromedriver_dirs
+
+    - name: Assert only the linked versions are left
+      ansible.builtin.assert:
+        that:
+          - >-
+            chrome_verify_chrome_dirs.files | map(attribute='path') | list
+            == [chrome_verify_link.stat.lnk_source | regex_replace('/chrome-linux64/chrome$')]
+          - >-
+            chrome_verify_chromedriver_dirs.files | map(attribute='path') | list
+            == [chrome_verify_chromedriver_link.stat.lnk_source | regex_replace('/chromedriver-linux64/chromedriver$')]
