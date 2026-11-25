@@ -9,6 +9,9 @@
 #   (debconf answers stay at Debian's defaults), which the role must restore
 #   to stock, and DigitalOcean injects the account's keys into root's
 #   authorized_keys, which the role must remove.
+# - Debian's cloud-init creates a default user (debian) with the instance's
+#   key and passwordless sudo, which the role must remove. molecule-image is a
+#   second such user that converge connects as, which the role must keep.
 - name: Prepare
   hosts: all
   become: true
@@ -70,3 +73,31 @@
       ansible.posix.authorized_key:
         user: molecule-deploy
         key: "{{ base_molecule_stray_public_key }}"
+
+    - name: Create the cloud-init users
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: [adm, sudo]
+        append: true
+        shell: /bin/bash
+      loop: [debian, molecule-image]
+
+    - name: Authorize the instance key for the cloud-init users
+      ansible.posix.authorized_key:
+        user: "{{ item }}"
+        key: "{{ base_molecule_root_injected_public_key }}"
+      loop: [debian, molecule-image]
+
+    - name: Write cloud-init's sudo rules
+      ansible.builtin.copy:
+        content: |
+          # Created by cloud-init v. 25.1.4 on Mon, 20 Jul 2026 09:00:00 +0000
+
+          # User rules for debian
+          debian ALL=(ALL) NOPASSWD:ALL
+
+          # User rules for molecule-image
+          molecule-image ALL=(ALL) NOPASSWD:ALL
+        dest: /etc/sudoers.d/90-cloud-init-users
+        mode: "0440"
+        validate: visudo -cf %s

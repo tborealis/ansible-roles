@@ -1,6 +1,9 @@
 ---
+# Connects as a cloud-init user, as a first provision can, so the role must
+# keep that user while removing the other.
 - name: Converge
   hosts: all
+  remote_user: molecule-image
   become: true
   vars_files:
     - vars.yml
@@ -37,6 +40,9 @@
     base_profile_config:
       - src: molecule-profile.sh.j2
         dest: molecule-profile.sh
+    base_remove_users:
+      - debian
+      - molecule-image
     base_unattended_upgrades_time: "03:17"
     # Exercise both renderings: opted out on bookworm, default (true) on trixie.
     base_unattended_upgrades_reboot: "{{ ansible_facts['distribution_release'] != 'bookworm' }}"
