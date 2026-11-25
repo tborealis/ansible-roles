@@ -26,6 +26,14 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ### Changed
 
+- **base:** the role deletes the `debian` user that cloud-init creates on Debian's
+  cloud images (including DigitalOcean's droplets) with the droplet's SSH key and
+  passwordless sudo, together with its home directory and its rule in
+  `/etc/sudoers.d/90-cloud-init-users`. This happens once a managed user has an
+  authorized key, and never to a managed user or the user Ansible connects as.
+  `base_remove_users` lists the users to delete; set it to `[]` to keep them.
+  **BREAKING** — inventories that connect as, or otherwise use, `debian` must move to a
+  managed user (or add `debian` to `base_users`) before upgrading.
 - **mailpit:** install Mailpit 1.34.0 (was 1.30.4), picking up upstream security fixes
   (GHSA-379p-g4f4-hq5h, GHSA-2vgv-6hcp-mf43). 1.34.0 removes flags and environment
   variables deprecated for over two years; the role sets none, but a host that adds its

@@ -148,6 +148,38 @@
     - "'root' not in (base_default_users + base_users) | map(attribute='name')"
     - (base_default_users + base_users) | map(attribute='authorized_keys', default=[]) | flatten | length > 0
 
+- name: Remove image users
+  when:
+    - base_remove_users | length > 0
+    - (base_default_users + base_users) | map(attribute='authorized_keys', default=[]) | flatten | length > 0
+  vars:
+    base_remove_users_absent: >-
+      {{ base_remove_users
+         | difference((base_default_users + base_users) | map(attribute='name') | list)
+         | difference([base_connection_user.stdout]) }}
+  block:
+    - name: Find the user Ansible connects as
+      ansible.builtin.command: id -un
+      become: false
+      register: base_connection_user
+      changed_when: false
+      check_mode: false
+
+    - name: Remove the sudo rules cloud-init wrote for image users
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers.d/90-cloud-init-users
+        regexp: "^{{ item | regex_escape }}\\s"
+        state: absent
+        validate: visudo -cf %s
+      loop: "{{ base_remove_users_absent }}"
+
+    - name: Remove image users and their home directories
+      ansible.builtin.user:
+        name: "{{ item }}"
+        state: absent
+        remove: true
+      loop: "{{ base_remove_users_absent }}"
+
 - name: Install openssh from backports
   ansible.builtin.apt:
     pkg: openssh-server

@@ -112,6 +112,28 @@
           - "'molecule-admin' in ansible_facts.getent_group['sudo'][2].split(',')"
           - "'molecule-deploy' in ansible_facts.getent_group['sftp-users'][2].split(',')"
 
+    - name: Stat the removed cloud-init user's home
+      ansible.builtin.stat:
+        path: /home/debian
+      register: base_verify_debian_home
+
+    - name: Read cloud-init's sudo rules
+      ansible.builtin.slurp:
+        src: /etc/sudoers.d/90-cloud-init-users
+      register: base_verify_cloud_init_sudoers
+
+    - name: Assert the cloud-init user is gone but the connecting one is kept
+      ansible.builtin.assert:
+        that:
+          - "'debian' not in ansible_facts.getent_passwd"
+          - "'debian' not in ansible_facts.getent_group"
+          - not base_verify_debian_home.stat.exists
+          - "'debian ALL' not in base_verify_cloud_init_sudoers.content | b64decode"
+          - "'molecule-image' in ansible_facts.getent_passwd"
+          - >-
+            'molecule-image ALL=(ALL) NOPASSWD:ALL'
+            in base_verify_cloud_init_sudoers.content | b64decode
+
     - name: Stat the admin authorized_keys file
       ansible.builtin.stat:
         path: /home/molecule-admin/.ssh/authorized_keys

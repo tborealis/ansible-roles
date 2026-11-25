@@ -38,6 +38,14 @@ the account's SSH keys there). The deletion also waits until the end of the play
 It is on by default only while `base_ssh_permit_root_login` is `no`, and is skipped
 when `root` is one of the managed users.
 
+Debian's cloud images, and so DigitalOcean's droplets, have cloud-init create a
+`debian` user at first boot, with the droplet's SSH key and passwordless sudo
+(`/etc/sudoers.d/90-cloud-init-users`). Once a managed user has an authorized key, the
+role deletes each user in `base_remove_users` (default `debian`), with its home
+directory and its line in that sudoers file. Managed users and the user Ansible
+connects as are never removed, so a run connected as `debian` keeps it until a later
+run connects as a managed user. Ubuntu's images name the user `ubuntu`.
+
 ## Automatic updates
 
 The role installs `unattended-upgrades` and `needrestart`:
@@ -77,6 +85,7 @@ The role installs `unattended-upgrades` and `needrestart`:
 | `base_ssh_per_source_net_block_size` | `"32:64"` | sshd `PerSourceNetBlockSize`: IPv4:IPv6 prefix lengths sshd groups clients by for per-source penalties |
 | `base_ssh_per_source_penalty_exempt_list` | `[]` | Addresses or CIDR ranges sshd never penalises (OpenSSH 9.8+) |
 | `base_ssh_clear_root_authorized_keys` | `true` while root login is `no` | Delete `/root/.ssh/authorized_keys` once a managed user has an authorized key |
+| `base_remove_users` | `["debian"]` | Users the image created to delete, with their home directory and cloud-init sudo rule, once a managed user has an authorized key; never a managed user or the one Ansible connects as |
 | `base_default_system_packages` | See defaults | Essential system packages |
 | `base_profile_config` | `[]` | Profile configuration entries |
 | `base_hosts_unsafe_writes` | `false` | Write /etc/hosts in place (for containers, where the bind mount breaks atomic renames) |

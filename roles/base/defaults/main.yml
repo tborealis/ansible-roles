@@ -27,6 +27,12 @@ base_ssh_per_source_penalty_exempt_list: []
 # creation) once a managed user has a key; on by default only while root
 # login is disabled.
 base_ssh_clear_root_authorized_keys: "{{ base_ssh_permit_root_login == 'no' }}"
+# Users the image created that the role deletes, with their home and the sudo
+# rule cloud-init wrote, once a managed user has a key. Debian's cloud images
+# (and so DigitalOcean's) create "debian" with the droplet's SSH key and
+# passwordless sudo.
+base_remove_users:
+  - debian
 base_default_system_packages:
   - ssl-cert
   - acl
