@@ -18,6 +18,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
   retention is unchanged. A change restarts MySQL, which purges logs past the new
   retention at startup. The first run on an existing server adds the line and so
   restarts MySQL once.
+- **mysql:** `mysql_binlog_transaction_compression` (default `false`) compresses binary
+  log transactions with zstd, in `tuning.cnf`.
 - **docker:** a deployed project can set `deploy.stdin_login` to a registry host, so
   `docker-compose-deploy` reads a username and password for it from stdin and pulls with
   only that login, from a Docker config that lasts as long as the deploy. CI can send a
