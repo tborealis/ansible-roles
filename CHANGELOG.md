@@ -11,6 +11,8 @@ flagged with **BREAKING** and require a MAJOR version bump.
 
 ## [Unreleased]
 
+## [10.0.0] - 2026-11-25
+
 ### Added
 
 - **mysql:** `mysql_binlog_expire_logs_seconds` sets how long MySQL keeps binary logs,
